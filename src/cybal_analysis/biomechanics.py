@@ -1,7 +1,7 @@
 from cmath import pi
 
 
-def WinterTable(M,H):
+def WinterTable(M=72, H=1.84):
 # input is body mass in kg and body height in m
 #
 # The function is based on the anthropometric table as publishe in
@@ -48,7 +48,7 @@ def WinterTable(M,H):
                         'trunk': l_T
                 },
                 'smh': {
-                        'description': 'segment com height above ankle joints',
+                        'description': 'segment com height above supporting joints',
                         'legs': h_L,
                         'trunk': h_T,
                         'body': h_com
@@ -72,9 +72,14 @@ def WinterTable(M,H):
 
 
 
-def get_com(df,resp_name):
+def get_com(fname,resp_name):
         import numpy as np
-        import pandas as pd
+
+        df = np.genfromtxt(fname, delimiter=',', names=True)
+
+        # rename all columns for legacy versions
+        if 'xrot' in df.dtype.names:
+                df = legacy_rename(df)
 
         h_hmd = np.mean(df['head_ty'])
         h_sm  = np.mean(df['sho_ty'])
@@ -87,24 +92,24 @@ def get_com(df,resp_name):
         if resp_name=='com_tz' or resp_name=='com_tap':
                 swdir = 'tz'
                 angle = False
-        elif resp_name=='com_rz' or resp_name=='com_rap':
+        elif resp_name=='com_rx' or resp_name=='com_rap':
                 swdir = 'tz'
                 angle = True
         elif resp_name=='com_tx' or resp_name=='com_tml':
                 swdir = 'tx'
                 angle = False
-        elif resp_name=='com_rx' or resp_name=='com_rml':
+        elif resp_name=='com_rz' or resp_name=='com_rml':
                 swdir = 'tx'
                 angle = True
         else: 
                 print('get_com input not recognized; should be com_tap/_rap/_tml/_rml')
                 return
 
-        sho = df['sho_'+swdir].to_numpy()
-        hip = df['hip_'+swdir].to_numpy()
+        sho = df['sho_'+swdir]
+        hip = df['hip_'+swdir]
 
-        hip = hip - np.mean(hip)
         sho = sho - np.mean(sho)
+        hip = hip - np.mean(hip)
         
         hT = wt['smh']['trunk']
         hL = wt['smh']['legs']
@@ -124,10 +129,35 @@ def get_com(df,resp_name):
         else:
                 out = comB
 
-        df[resp_name] = out
+        return out.reshape(-1,1)
 
-        return df
+def legacy_rename(arr):
+    # Define a dictionary with the old and new names
+    rename_dict = {
+        'xpos': 'head_tx', 
+        'ypos': 'head_ty', 
+        'zpos': 'head_tz', 
+        'xrot': 'head_rx', 
+        'yrot': 'head_ry', 
+        'zrot': 'head_rz',
+        'shld_xpos': 'sho_tx', 
+        'shld_ypos': 'sho_ty', 
+        'shld_zpos': 'sho_tz', 
+        'shld_xrot': 'sho_rx', 
+        'shld_yrot': 'sho_ry', 
+        'shld_zrot': 'sho_rz',
+        'hip_xpos': 'hip_tx', 
+        'hip_ypos': 'hip_ty', 
+        'hip_zpos': 'hip_tz', 
+        'hip_xrot': 'hip_rx', 
+        'hip_yrot': 'hip_ry', 
+        'hip_zrot': 'hip_rz'
+    }
 
+    # Create a new dtype with the new names
+    new_dtype = [(rename_dict.get(name, name), arr.dtype.fields[name][0]) for name in arr.dtype.names]
 
+    # Cast the array to the new dtype
+    arr = arr.astype(new_dtype)
 
-
+    return arr
