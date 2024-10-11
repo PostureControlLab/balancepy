@@ -95,7 +95,7 @@ def com(
     else:
         out = comB
 
-    return out.flatten()
+    return out
 
 
 @dataclass
