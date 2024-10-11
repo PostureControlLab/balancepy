@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "balancepy"
+version = "0.0.1"
+authors = [
+  { name="Lorenz Assländer", email="lorenz.asslaender@uni-konstanz.de" },
+  { name="Matthias Albrecht", email="matthias.albrecht@uni-konstanz.de" },
+]
+description = "Human balance analysis using Python"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "numpy"
+]
+
+[project.urls]
+Homepage = "https://github.com/pypa/sampleproject"
+Issues = "https://github.com/pypa/sampleproject/issues"
+

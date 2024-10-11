@@ -4,7 +4,7 @@ from scipy.optimize import Bounds, basinhopping
 
 def getOpts_ICmodel_Peterka2018(BM=72,BH=1.84):
     # Scale model parameters to anthropometric data
-    WT = bm.WinterTable(BM,BH)
+    WT = bm.winter_table(BM,BH)
     mgh = WT['mgh'] / 180*np.pi
     J = WT['J'] / 180*np.pi
 
@@ -80,7 +80,7 @@ def fit_ICmodel_Peterka2018(FD, opts = getOpts_ICmodel_Peterka2018()):
 
 def getOpts_ICmodel_maxLikelihood(BM=72,BH=1.84):
     # Scale model parameters to anthropometric data
-    WT = bm.WinterTable(BM,BH)
+    WT = bm.winter_table(BM,BH)
     mgh = WT['mgh'] / 180*np.pi
     J = WT['J'] / 180*np.pi
 
