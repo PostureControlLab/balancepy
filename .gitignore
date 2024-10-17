@@ -1,8 +1,4 @@
-s005_t3_avoc-unity-poc-foam_foam-sham-blind_data.csv
-s005_t3_avoc-unity-poc-foam_foam-sham-blind_info.json
-test.ipynb
-
-﻿# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
