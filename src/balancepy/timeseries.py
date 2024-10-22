@@ -32,7 +32,7 @@ def resample(
 
     new_time_vector = np.arange(1/sampling_rate, end_time_s+1/sampling_rate, 1/sampling_rate) # define time vector ]0, t_end]
 
-    out = interp1d(time_s[:,0], data[:,0], kind='cubic', fill_value='extrapolate')(new_time_vector)
+    out = interp1d(time_s, data, kind='cubic', fill_value='extrapolate')(new_time_vector)
 
     return out
 

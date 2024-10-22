@@ -8,24 +8,21 @@ def spectrum(
     sr: float,
 ) -> NDArray:
     """calculates properly scaled amplitude and power spectra of a time domain signal
+        Spectra are calculated along columns of the input data array.
         Sx is scaled such that the amplitude of a sine input is given by abs(Sx)
         Sxx is scaled such that the integrated power density Sxx is equal to the 
         mean power of the time domain input. sum(Sxx*df) = mean(data^2). 
         df is the frequency bandwidth accounted for by each frequency point.
 
     Args:
-        time (NDArray[np.number]): 1D timestamps of original recording
         data (NDArray[np.number]): 1D or 2D data array to be resampled
         sr (float): sampling rate in samples/second
-        t_end (float, optional): optional end time of resampled data. Defaults to 0.
 
     Returns:
-        NDArray: 1D Sx amplitude spectrum; complex values
-        NDArray: 1D Sxx power spectrum
-        NDArray: 1D f frequencies (Hz)
+        NDArray[np.number]: scaled amplitude spectrum
+        NDArray[np.number]: scaled power spectrum
+        NDArray[np.number]: frequencies in Hz
     """
-
-    assert data.ndim == 1
     
     N=np.size(data,0)              # number of samples in time axis
     f=np.arange(1,N/2+1) /N*sr  # frequency points for the output
@@ -47,8 +44,8 @@ def frequency_response_function(
     resp: NDArray[np.number],
     sampling_rate: float,
     selFreq_start: int=1,
-    selFreq_fmax: int=2,
     selFreq_skip: int=2,
+    selFreq_fmax: float=2,
     smoothPhase: bool=True,
     
 ) -> NDArray:
@@ -63,9 +60,8 @@ def frequency_response_function(
         selFreq_skip (int, optional): number of frequencies to be skipped in output FRF. Defaults to 2 (skips every second frequency).
 
     Returns:
-        NDArray: 1D Sx amplitude spectrum; complex values
-        NDArray: 1D Sxx power spectrum
-        NDArray: 1D f frequencies (Hz)
+        NDArray[np.number]: matrix with frequency domain outputs
+        NDArray[np.number]: matrix with time domain outputs
     """
             
     yi,yii,f = spectrum(stim,sampling_rate)

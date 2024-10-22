@@ -1,81 +1,47 @@
 from cmath import pi
 from dataclasses import dataclass
-from enum import Enum
 from numbers import Number
 import numpy as np
 from numpy.typing import NDArray
 
 
-class ComType(Enum):
-    TAP = 1
-    RAP = 2
-    TML = 3
-    RML = 4
-
-
 def com(
-    shoulder_t_ap: NDArray[np.number],
-    shoulder_t_ml: NDArray[np.number],
-    shoulder_t_height: NDArray[np.number],
-    hip_t_ap: NDArray[np.number],
-    hip_t_ml: NDArray[np.number],
-    hip_t_height: NDArray[np.number],
-    mass_kg: float,
+    shoulder_t: NDArray[np.number],
+    shoulder_marker_height: np.number,
+    hip_t: NDArray[np.number],
+    hip_marker_height: np.number,
     height_m: float,
-    type: ComType,
+    rotation: bool,
 ) -> NDArray:
     """Calculates center of mass
 
     Args:
-        shoulder_t_ap (NDArray[np.number]): 1D shoulder AP translation in meters
-        shoulder_t_ml (NDArray[np.number]): 1D shoulder ML translation in meters
-        shoulder_t_height (NDArray[np.number]): 1D shoulder height in meters
-        hip_t_ap (NDArray[np.number]): 1D hip AP translation in meters
-        hip_t_ml (NDArray[np.number]): 1D hip ML translation in meters
-        hip_t_height (NDArray[np.number]): 1D hip height in meters
-        mass_kg (float): Mass of subject in kilograms
+        shoulder_t (NDArray[np.number]): 1D shoulder translation in meters
+        shoulder_marker_height (np.number): shoulder marker height above support surface in meters
+        hip_t (NDArray[np.number]): 1D hip AP translation in meters
+        hip_t_height (np.number): hip marker height above support surface in meters
         height_m (float): Height of subject in meters
-        type (ComType): Type of of COM to calculate
+        rotation (bool): False: COM translation in m; True COM rotation about ankle joints in degrees
 
     Returns:
         NDArray: 1D center of mass
     """
 
-    assert shoulder_t_ap.ndim == 1
-    assert shoulder_t_ml.ndim == 1
-    assert shoulder_t_height.ndim == 1
-    assert hip_t_ap.ndim == 1
-    assert hip_t_ml.ndim == 1
-    assert hip_t_height.ndim == 1
+    assert shoulder_t.ndim == 1
+    assert hip_t.ndim == 1
 
     # AP is Z
     # ML is X
 
-    h_sm = np.mean(shoulder_t_height)
-    h_hm = np.mean(hip_t_height)
+    h_sm = np.mean(shoulder_marker_height)
+    h_hm = np.mean(hip_marker_height)
 
     # Needs to be in meters (m) for correct moment of inertia calculations
-    wt = WinterTable(mass_kg, height_m)
+    # mass cancels out in com calculation and is set to one here.
+    wt = WinterTable(1, height_m)
 
-    if type == ComType.TAP:
-        sho = shoulder_t_ap
-        hip = hip_t_ap
-        angle = False
-    elif type == ComType.RAP:
-        sho = shoulder_t_ap
-        hip = hip_t_ap
-        angle = True
-    elif type == ComType.TML:
-        sho = shoulder_t_ml
-        hip = hip_t_ml
-        angle = False
-    elif type == ComType.RML:
-        sho = shoulder_t_ml
-        hip = hip_t_ml
-        angle = True
-
-    sho = sho - np.mean(sho)
-    hip = hip - np.mean(hip)
+    sho = shoulder_t - np.mean(shoulder_t)
+    hip = hip_t - np.mean(hip_t)
 
     hT = wt.smh_trunk
     hL = wt.smh_legs
@@ -90,7 +56,7 @@ def com(
 
     comB = (comL * mL + comT * mT) / (mL + mT)
 
-    if angle:
+    if rotation:
         out = np.arcsin(comB / (wt.smh_body)) * 180 / pi
     else:
         out = comB
