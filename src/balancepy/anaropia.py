@@ -5,7 +5,7 @@ import balancepy.timeseries as ts
 import balancepy.frequency as fd
 from balancepy.frequency import frequency_response_function as get_frf
 from numpy.typing import NDArray as NDArray
-import balancepy.model as model
+#import balancepy.model as model
 
 def prts_analysis(
     fname: str, 
@@ -83,8 +83,8 @@ def lifespan_analysis(
     data = np.genfromtxt(fname, delimiter=',', names=True)
 
     time_raw = data['time']
-    stim_raw = data['stim_tz']
-    com_raw = bm.com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
+    stim_raw = data['stim_pitch']
+    com_raw = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
     com = ts.resample(time_raw, com_raw, sampling_rate, end_time)
     stim = ts.resample(time_raw, stim_raw, sampling_rate, end_time)
@@ -92,10 +92,16 @@ def lifespan_analysis(
     com_cyc = ts.cut_to_cycles(com, cycle_start_samples, cycle_length_samples)
     stim_cyc = ts.cut_to_cycles(stim, cycle_start_samples, cycle_length_samples)
 
-    selected_frequencies = range(1, 2 * np.size(com_cyc, 0) / sampling_rate, 2)
+    selected_frequencies = range(1, int(2 * np.size(com_cyc, 0) / sampling_rate), 2)
     FD1, TD1 = get_frf(com_cyc, stim_cyc, sampling_rate, selected_frequencies)
 
-    selected_frequencies = range(2, 2 * np.size(com_cyc, 0) / sampling_rate, 4)
+    selected_frequencies = range(2, int(2 * np.size(com_cyc, 0) / sampling_rate), 4)
     FD2, TD2 = get_frf(com_cyc, stim_cyc, sampling_rate, selected_frequencies)
 
+    # run model simulations
+    # opts = model.getOpts_ICmodel_Peterka2018(body_mass, body_height)
+    # par_out, sim_frf, res = model.fit_ICmodel_maxLikelihood(FD1, opts)
+    # FD1 = np.column_stack((FD1, sim_frf))
+
+    
     return FD1, TD1, FD2, TD2
