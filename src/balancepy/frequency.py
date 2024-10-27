@@ -43,9 +43,7 @@ def frequency_response_function(
     stim: NDArray[np.number],
     resp: NDArray[np.number],
     sampling_rate: float,
-    selFreq_start: int=1,
-    selFreq_skip: int=2,
-    selFreq_fmax: float=2,
+    selected_frequencies: NDArray[np.int32] = 0,
     smoothPhase: bool=True,
     
 ) -> NDArray:
@@ -55,33 +53,40 @@ def frequency_response_function(
         stim (NDArray[np.number]): 2D stimulus sequence with cycles in rows
         resp (NDArray[np.number]): 2D response data with cycles in rows
         sr (float): sampling rate in samples/second
-        selFreq_start (int, optional): start frequency point of output FRF (1 is base-frequency of 1 cycle). Defaults to 1.
-        selFreq_fmax (int, optional): end frequency in Hz for FRF calculation. Defaults to 2.
-        selFreq_skip (int, optional): number of frequencies to be skipped in output FRF. Defaults to 2 (skips every second frequency).
+        selected_frequencies (NDArray[np.int32], optional): 1D frequencies as multiples of base freq. Defaults to range(1,2,1).
 
     Returns:
         NDArray[np.number]: matrix with frequency domain outputs
+        f: frequency
+        yi: stimulus amplitude spectrum
+        yo: response amplitude spectrum
+        frf: frequency response function
+        gain: gain of frequency response function
+        pha: phase of frequency response function
+        coh: coherence
         NDArray[np.number]: matrix with time domain outputs
+        t: time
+        xi: stimulus averaged across cylces
+        xo: response averaged across cylces
     """
             
+    if selected_frequencies == 0:
+        selected_frequencies = range(1, 2 * np.size(resp, 0) / sampling_rate, 2)
+
     yi,yii,f = spectrum(stim,sampling_rate)
     yo,yoo,_ = spectrum(resp,sampling_rate)
-
-    # select Frequencies for output; convert options to range
-    ind = np.where(f > selFreq_fmax) # find first index where f>fmax
-    selFreq = range(selFreq_start,ind[0][0]+1,selFreq_skip)
 
     # calculate cross-power spectrum
     yoi = yo*np.conjugate(yi)
     yoi = 1/sampling_rate/2*np.size(stim,0) * yoi # scale cross spectrum by same factor as power spectra are scaled in getSpec
     
     # reduce to selected frequencies
-    f   = f[selFreq]
-    yi  = yi[selFreq,:]
-    yo  = yo[selFreq,:]
-    yii = yii[selFreq,:]
-    yoo = yoo[selFreq,:]
-    yoi = yoi[selFreq,:]
+    f   = f[selected_frequencies]
+    yi  = yi[selected_frequencies,:]
+    yo  = yo[selected_frequencies,:]
+    yii = yii[selected_frequencies,:]
+    yoo = yoo[selected_frequencies,:]
+    yoi = yoi[selected_frequencies,:]
        
     # mean spectra
     yi_mean=np.mean(yi,1)
@@ -110,8 +115,8 @@ def frequency_response_function(
 
     FD = rfn.merge_arrays([
                 np.array(f,    dtype=[('f','<f8')]),
-                np.array(yi_mean, dtype=[('yi_mean','complex')]),
-                np.array(yo_mean, dtype=[('yo_mean','complex')]),
+                np.array(yi_mean, dtype=[('stim_spec','complex')]),
+                np.array(yo_mean, dtype=[('resp_spec','complex')]),
                 np.array(FRF, dtype=[('FRF','complex')]),
                 np.array(Gain, dtype=[('Gain','<f8')]),
                 np.array(Pha,  dtype=[('Pha','<f8')]),
@@ -120,16 +125,16 @@ def frequency_response_function(
                 flatten = True, usemask = False)
 
     TD = rfn.merge_arrays([
-                np.array(t,  dtype=[('t','<f8')]),
-                np.array(xi_mean,  dtype=[('xi_mean','<f8')]),
-                np.array(xo_mean,  dtype=[('xo_mean','<f8')]),
+                np.array(t,  dtype=[('time','<f8')]),
+                np.array(xi_mean,  dtype=[('stim','<f8')]),
+                np.array(xo_mean,  dtype=[('resp','<f8')]),
                 ],
                 flatten = True, usemask = False)
 
     return FD, TD
 
 def smooth_phase(pha,f):
-    # create polynom roughly following a typical Phase curve + 180deg for modulo of 360deg
+    # create polynom roughly following a typical Phase curve of human sway responses + 180deg for modulo of 360deg
     p_ref = 100-500*f+100*f**2 - 180
     pha = np.mod(pha-p_ref,360) + p_ref
     return pha

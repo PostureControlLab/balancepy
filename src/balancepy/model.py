@@ -1,10 +1,10 @@
 import numpy as np
-import biomechanics as bm
+from balancepy import biomechanics as bm
 from scipy.optimize import Bounds, basinhopping
 
-def getOpts_ICmodel_Peterka2018(BM=72,BH=1.84):
+def getOpts_ICmodel_Peterka2018(body_mass=72,body_height=1.84):
     # Scale model parameters to anthropometric data
-    WT = bm.WinterTable(BM,BH)
+    WT = bm.WinterTable(body_mass,body_height)
     mgh = WT['mgh'] / 180*np.pi
     J = WT['J'] / 180*np.pi
 
