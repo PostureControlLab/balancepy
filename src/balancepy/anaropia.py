@@ -5,7 +5,8 @@ import balancepy.timeseries as ts
 import balancepy.frequency as fd
 from balancepy.frequency import frequency_response_function as get_frf
 from numpy.typing import NDArray as NDArray
-#import balancepy.model as model
+import balancepy.models.Peterka2018 as Peterka2018
+import numpy.lib.recfunctions as rfn
 
 def prts_analysis(
     fname: str, 
@@ -47,8 +48,8 @@ def prts_analysis(
     FD, TD = get_frf(com_cyc, stim_cyc, sampling_rate)
 
     # run model simulations
-    opts = model.getOpts_ICmodel_Peterka2018(body_mass, body_height)
-    par_out, sim_frf, res = model.fit_ICmodel_maxLikelihood(FD, opts)
+    opts = Peterka2018.getOpts_ICmodel_Peterka2018(body_mass, body_height)
+    par_out, sim_frf, res = Peterka2018.fit_ICmodel_maxLikelihood(FD, opts)
     FD = np.column_stack((FD, sim_frf))
 
     return FD, TD, par_out
@@ -83,25 +84,29 @@ def lifespan_analysis(
     data = np.genfromtxt(fname, delimiter=',', names=True)
 
     time_raw = data['time']
-    stim_raw = data['stim_pitch']
+    stim_vis_raw = data['stim_pitch']
+    stim_surf_raw = data['analog4']
+    
     com_raw = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
     com = ts.resample(time_raw, com_raw, sampling_rate, end_time)
-    stim = ts.resample(time_raw, stim_raw, sampling_rate, end_time)
+    stim_vis = ts.resample(time_raw, stim_vis_raw, sampling_rate, end_time)
+    stim_surf = ts.resample(time_raw, stim_surf_raw, sampling_rate, end_time)
 
     com_cyc = ts.cut_to_cycles(com, cycle_start_samples, cycle_length_samples)
-    stim_cyc = ts.cut_to_cycles(stim, cycle_start_samples, cycle_length_samples)
+    stim_vis_cyc = ts.cut_to_cycles(stim_vis, cycle_start_samples, cycle_length_samples)
+    stim_surf_cyc = ts.cut_to_cycles(stim_surf, cycle_start_samples, cycle_length_samples)
 
-    selected_frequencies = range(1, int(2 * np.size(com_cyc, 0) / sampling_rate), 2)
-    FD1, TD1 = get_frf(com_cyc, stim_cyc, sampling_rate, selected_frequencies)
+    selected_frequencies = range(0, int(2 * np.size(com_cyc, 0) / sampling_rate), 2)
+    FD1, TD1 = get_frf(stim_surf_cyc, com_cyc, sampling_rate, selected_frequencies)
 
-    selected_frequencies = range(2, int(2 * np.size(com_cyc, 0) / sampling_rate), 4)
-    FD2, TD2 = get_frf(com_cyc, stim_cyc, sampling_rate, selected_frequencies)
+    selected_frequencies = range(1, int(2 * np.size(com_cyc, 0) / sampling_rate), 4)
+    FD2, TD2 = get_frf(stim_vis_cyc, com_cyc, sampling_rate, selected_frequencies)
 
     # run model simulations
-    # opts = model.getOpts_ICmodel_Peterka2018(body_mass, body_height)
-    # par_out, sim_frf, res = model.fit_ICmodel_maxLikelihood(FD1, opts)
-    # FD1 = np.column_stack((FD1, sim_frf))
+    opts = Peterka2018.getOpts_ICmodel_maxLikelihood(body_mass, body_height)
+    par_out, sim_frf, res = Peterka2018.fit_ICmodel_maxLikelihood(FD1, opts)
+    FD1 = rfn.append_fields(FD1, 'sim_frf', sim_frf, usemask=False)
 
-    
-    return FD1, TD1, FD2, TD2
+
+    return FD1, TD1, FD2, TD2, par_out
