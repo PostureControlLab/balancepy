@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import Bounds, basinhopping
 import balancepy.biomechanics as bm
-from helper import dict2par
+from balancepy.models.helper import dict2par
 
 def settings(body_mass=72,body_height=1.84):
     # Scale model parameters to anthropometric data
@@ -95,7 +95,7 @@ def fit(FD_prop, FD_vis, opts = settings()):
     parameter_out = dict(zip(keys_fit, res.x))
     parameter_out.update(parameter_fix)
 
-    tf_sim_prop, f_prop = fdyn_prop(parameter_out)
-    tf_sim_vis, f_vis = fdyn_vis(parameter_out)
+    tf_sim_prop = fdyn_prop(parameter_out)
+    tf_sim_vis = fdyn_vis(parameter_out)
 
-    return parameter_out, tf_sim_prop, f_prop, tf_sim_vis, f_vis, res
+    return parameter_out, tf_sim_prop, tf_sim_vis, res

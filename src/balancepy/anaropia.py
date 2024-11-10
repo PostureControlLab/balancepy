@@ -7,6 +7,7 @@ from balancepy.frequency import frequency_response_function as get_frf
 from numpy.typing import NDArray as NDArray
 import balancepy.models.Peterka2018 as Peterka2018
 import numpy.lib.recfunctions as rfn
+import balancepy.models.ICdual as ICdual
 
 def prts_analysis(
     fname: str, 
@@ -91,22 +92,24 @@ def lifespan_analysis(
 
     com = ts.resample(time_raw, com_raw, sampling_rate, end_time)
     stim_vis = ts.resample(time_raw, stim_vis_raw, sampling_rate, end_time)
-    stim_surf = ts.resample(time_raw, stim_surf_raw, sampling_rate, end_time)
+    stim_prop = ts.resample(time_raw, stim_surf_raw, sampling_rate, end_time)
 
     com_cyc = ts.cut_to_cycles(com, cycle_start_samples, cycle_length_samples)
     stim_vis_cyc = ts.cut_to_cycles(stim_vis, cycle_start_samples, cycle_length_samples)
-    stim_surf_cyc = ts.cut_to_cycles(stim_surf, cycle_start_samples, cycle_length_samples)
+    stim_prop_cyc = ts.cut_to_cycles(stim_prop, cycle_start_samples, cycle_length_samples)
 
     selected_frequencies = range(0, int(2 * np.size(com_cyc, 0) / sampling_rate), 2)
-    FD1, TD1 = get_frf(stim_surf_cyc, com_cyc, sampling_rate, selected_frequencies)
+    FDprop, TDprop = get_frf(stim_prop_cyc, com_cyc, sampling_rate, selected_frequencies)
 
     selected_frequencies = range(1, int(2 * np.size(com_cyc, 0) / sampling_rate), 4)
-    FD2, TD2 = get_frf(stim_vis_cyc, com_cyc, sampling_rate, selected_frequencies)
+    FDvis, TDvis = get_frf(stim_vis_cyc, com_cyc, sampling_rate, selected_frequencies)
 
     # run model simulations
-    opts = Peterka2018.getOpts_ICmodel_maxLikelihood(body_mass, body_height)
-    par_out, sim_frf, res = Peterka2018.fit_ICmodel_maxLikelihood(FD1, opts)
-    FD1 = rfn.append_fields(FD1, 'sim_frf', sim_frf, usemask=False)
+    opts = ICdual.settings(body_mass, body_height)
+    par_out, sim_prop, sim_vis, res = ICdual.fit(FDprop, FDvis, opts)
+
+    FDprop = rfn.append_fields(FDprop, 'sim_frf', sim_prop, usemask=False)
+    FDvis = rfn.append_fields(FDvis, 'sim_frf', sim_vis, usemask=False)
 
 
-    return FD1, TD1, FD2, TD2, par_out
+    return FDprop, TDprop, FDvis, TDvis, par_out

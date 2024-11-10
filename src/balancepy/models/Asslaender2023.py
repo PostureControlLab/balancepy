@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import basinhopping
 import balancepy.biomechanics as bm
-from helper import dict2par
+from balancepy.models.helper import dict2par
 
 def settings(BM=72,BH=1.84):
     # Scale model parameters to anthropometric data
