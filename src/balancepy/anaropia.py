@@ -32,13 +32,13 @@ def prts_analysis(
     cycle_length_samples = 20*sampling_rate
     # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
     # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
-    
+
     data = np.genfromtxt(fname, delimiter=',', names=True)
 
     time_raw = data['time']
     stim_raw = data['stim_tz']
     com_raw = bm.com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
-
+    
     com = ts.resample(time_raw, com_raw, sampling_rate, end_time)
     stim = ts.resample(time_raw, stim_raw, sampling_rate, end_time)
     time = ts.resample(time_raw, time_raw, sampling_rate, end_time)
@@ -111,5 +111,5 @@ def lifespan_analysis(
     FDprop = rfn.append_fields(FDprop, 'sim_frf', sim_prop, usemask=False)
     FDvis = rfn.append_fields(FDvis, 'sim_frf', sim_vis, usemask=False)
 
-
+#    return FDprop, sim_prop, FDvis, sim_vis, par_out
     return FDprop, TDprop, FDvis, TDvis, par_out

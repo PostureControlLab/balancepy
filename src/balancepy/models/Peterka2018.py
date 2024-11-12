@@ -2,81 +2,93 @@ import numpy as np
 from scipy.optimize import Bounds, basinhopping
 import balancepy.biomechanics as bm
 from balancepy.models.helper import dict2par
+from numbers import Number
 
+class Peterka2018:
+    """
+    This is the model as described in Peterka et al. 2018 for visual scene tilt perturbations.
+    
+    Initialize the model with the anthropometric data of the subject.
 
-def settings(body_mass=72,body_height=1.84):
-    # Scale model parameters to anthropometric data
-    WT = bm.WinterTable(body_mass,body_height)
-    mgh = WT.mgh / 180*np.pi
-    J = WT.J / 180*np.pi
+    This will create a set of default parameters for the model that do not descibe the subject.
+    subject specific parameters can be identified by calling the fit method.
 
-    opts = {
-        'name': 'ICmodel_Peterka2018',
-        'description': 'Model as described in Peterka et al. 2018',
-        'modelEq': 'dynamics(f,p)',
-        'objectiveFunc': 'objective(theta, keys_fit, model_as_func, parameter_fix, TF_exp)',
-        'parameter_default': {
-            # default/start, fit bool, lower bound, upper bound
-            'mgh':  mgh,
-            'J':    J,
-            'Kp':   1.15 * mgh,
-            'Kd':   0.3 * mgh,
-            'W':    0.2,
-            'dt':   0.19,
-            'Glp':  0.1
-        },
-        'parameter_fit': {
-            # fit bool, lower bound, upper bound
-            'mgh':  [False, 10,  20],
-            'J':    [False, 0,   0],
-            'Kp':   [True,  mgh,   2*mgh],
-            'Kd':   [True,  0, 1*mgh],
-            'W':    [True,  0.01,   1],
-            'dt':   [True,  0.05,   0.3],
-            'Glp':  [True,  0,   0.3]
-        }
-        }
+    Args:
+        mass_kg (Number): mass of the subject in kg
+        height_m (Number): height of the subject in m
+    
+    """
 
-    return opts
+    winter_table: bm.WinterTable
 
-def dynamics(f = np.linspace(0.05, 2, 100) , p =settings()['parameter_default']):
+    def __init__(self, mass_kg: Number, height_m: Number):
+        WT = bm.WinterTable(mass_kg, height_m)
+        
+        mgh = WT.mgh / 180*np.pi
+        J = WT.J / 180*np.pi
+        Kp = 1.15 * WT.mgh / 180*np.pi
+        Kd = 0.3 * WT.mgh / 180*np.pi
+
+        self.start = np.array([mgh,    J,      Kp,     Kd,     0.2,    0.19,   0.1])
+        self.names = np.array(['mgh',  'J',    'Kp',   'Kd',   'W',    'dt',   'Glp'])
+        self.ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3])
+        self.lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0])
+        self.fixed_mask = np.array([True, True, False, False, False, False, False])
+
+#  = np.linspace(0.05, 2, 100) 
+
+def frequency_response(f, p):
     
     s = 1j * f * 2 * np.pi
     
-    B = 1 / (p['J'] * s**2 - p['mgh'])
-    NC = p['Kp'] + p['Kd'] * s
-    TD = np.exp(-s * p['dt'])
-    F = p['Glp'] / s
+    B = 1 / (p(1) * s**2 - p(2))
+    NC = p(3) + p(4) * s
+    TD = np.exp(-s * p(6))
+    F = p(7) / s
     
-    tf = (p['W'] * NC * B * TD) / (1 - F * NC * TD + NC * B * TD)
+    tf = (p(5) * NC * B * TD) / (1 - F * NC * TD + NC * B * TD)
     
     return tf
 
-def objective(theta, keys_fit, model_as_func, parameter_fix, TF_exp):  
-    p = dict(zip(keys_fit, theta))
-    p.update(parameter_fix)
+def objective(theta_free, theta_fixed, frequency_response, experimental_data):
 
-    tf = model_as_func(p)
+    # Reconstruct the full theta by filling in the fixed values
+    theta_full = np.zeros_like(theta)
+    theta_full[fixed_mask] = theta_fixed  # Set fixed values
+    theta_full[~fixed_mask] = theta_free  # Set free parameters
+
+    tf = frequency_response(theta_full)
     
-    err = np.sum( np.abs(tf - TF_exp) / (np.abs(tf)) )
+    err = np.sum( np.abs(tf - experimental_data) / (np.abs(tf)) )
 
     return err
 
-def fit(FD, opts = settings()):
+def fit(self,FD):
+
     f = FD['f']
-    model_as_func = lambda p: dynamics(f,p)
+    experimental_data = FD['FRF']
 
-    TF_exp = FD['FRF']
-    theta_start, bounds, keys_fit, parameter_fix = dict2par(opts)
-    obj = lambda theta: objective(theta, keys_fit, model_as_func, parameter_fix, TF_exp)
+    # Define the fixed values for the parameters that are fixed
+    theta_fixed = self.theta_start[self.fixed_mask]
 
+    # Create the reduced vector for free parameters
+    theta_free_init = self.theta_start[~self.fixed_mask]  # Only parameters to be optimized
+
+    model = lambda theta: frequency_response(f, theta)
+    obj = lambda theta_free_init: objective(theta_free_init, model, theta_fixed, experimental_data)
+
+    bounds = Bounds(self.lb[~self.fixed_mask], self.ub[~self.fixed_mask])
+    
     minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-    res = basinhopping(obj, theta_start, minimizer_kwargs=minimizer_kwargs)
+    fit_output = basinhopping(obj, theta_free_init, minimizer_kwargs=minimizer_kwargs)
 
-    parameter_out = dict(zip(keys_fit, res.x))
-    parameter_out.update(parameter_fix)
-    tf_sim = model_as_func(parameter_out)
+    # Reconstruct the full parameter vector from the estimated parameters res.x and theta_fixed
+    parameter_out = np.zeros_like(self.start)
+    parameter_out[self.fixed_mask] = theta_fixed
+    parameter_out[~self.fixed_mask] = fit_output.x
 
-    return parameter_out, tf_sim, res
+    tf_sim = model(parameter_out)
+
+    return parameter_out, tf_sim, fit_output
 
 
