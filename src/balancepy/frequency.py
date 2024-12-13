@@ -38,13 +38,35 @@ def spectrum(
 
     return Sx, Sxx, f
 
+def coherence(yi,yo):
+    """calculates coherence between two signals in the frequency domain
 
-def frequency_response_function(
+    Args:
+        yi (NDArray[np.number]): input signal spectrum across cycles
+        yo (NDArray[np.number]): output signal spectrum across cycles
+        
+    Returns:
+        NDArray[np.number]: coherence
+    """
+    
+    # calculate cross-power spectrum
+    yoi = yo*np.conjugate(yi)
+
+    yoi_mean=np.mean(yoi,1)
+    yii_mean=np.mean(abs(yi)**2,1)
+    yoo_mean=np.mean(abs(yo)**2,1)
+
+    coh=(abs(yoi_mean)**2) / (yii_mean*yoo_mean)
+
+    return coh
+
+def frequency_analysis(
     stim: NDArray[np.number],
     resp: NDArray[np.number],
     sampling_rate: float,
     selected_frequencies: NDArray[np.int32] = 0,
     smoothPhase: bool=True,
+    average_across_freq: bool=True
     
 ) -> NDArray:
     """calculates frequency response functions (FRFs).
@@ -54,6 +76,8 @@ def frequency_response_function(
         resp (NDArray[np.number]): 2D response data with cycles in rows
         sr (float): sampling rate in samples/second
         selected_frequencies (NDArray[np.int32], optional): 1D frequencies as multiples of base freq. Defaults to range(1,2,1).
+        smoothPhase (bool, optional): smooth phase curve. Defaults to True.
+        average_across_freq (bool, optional): average across frequencies. Defaults to True.
 
     Returns:
         NDArray[np.number]: matrix with frequency domain outputs
@@ -75,54 +99,50 @@ def frequency_response_function(
 
     yi,yii,f = spectrum(stim,sampling_rate)
     yo,yoo,_ = spectrum(resp,sampling_rate)
-
-    # calculate cross-power spectrum
-    yoi = yo*np.conjugate(yi)
-    yoi = 1/sampling_rate/2*np.size(stim,0) * yoi # scale cross spectrum by same factor as power spectra are scaled in getSpec
     
     # reduce to selected frequencies
     f   = f[selected_frequencies]
     yi  = yi[selected_frequencies,:]
     yo  = yo[selected_frequencies,:]
-    yii = yii[selected_frequencies,:]
-    yoo = yoo[selected_frequencies,:]
-    yoi = yoi[selected_frequencies,:]
-       
+
     # mean spectra
     yi_mean=np.mean(yi,1)
     yo_mean=np.mean(yo,1)
-    
-    yoi_mean=np.mean(yoi,1)
-    yii_mean=np.mean(yii,1)
-    yoo_mean=np.mean(yoo,1)
-        
+            
     # Calculate FRF, Magnitude and Phase of FRF, as well as Coherence
     # FRF from position data - Pintelon & Schoukens eq 2-17
-    FRF=yo_mean / yi_mean
-    Gain=abs(FRF)
-    Pha=np.angle(FRF,deg=True)
+    frf=yo_mean / yi_mean
+    stim_spec = abs(yi_mean)
+    resp_spec = abs(yo_mean)
+    coh = coherence(yi,yo)
+
+    if average_across_freq:
+        f = f_avg(f)
+        frf = f_avg(frf)
+        stim_spec = f_avg(stim_spec)
+        resp_spec = f_avg(resp_spec)
+        coh = f_avg(coh)
+
+    gain=abs(frf)
+    pha=np.angle(frf,deg=True)
 
     if smoothPhase:
-        Pha=smooth_phase(Pha,f)
-        
-    Coh=(abs(yoi_mean)**2) / (yii_mean*yoo_mean)
+        pha=smooth_phase(pha,f)
 
+    FD = rfn.merge_arrays([
+                np.array(f,    dtype=[('f','<f8')]),
+                np.array(stim_spec, dtype=[('stim_spec','<f8')]),
+                np.array(resp_spec, dtype=[('resp_spec','<f8')]),
+                np.array(frf, dtype=[('frf','complex')]),
+                np.array(gain, dtype=[('gain','<f8')]),
+                np.array(pha,  dtype=[('phase','<f8')]),
+                np.array(coh,  dtype=[('coherence','<f8')])
+                ],
+                flatten = True, usemask = False)
 
     t = np.arange(1,np.size(stim,0)+1) /sampling_rate
     xi_mean = np.mean(stim,1)
     xo_mean = np.mean(resp,1)
-
-
-    FD = rfn.merge_arrays([
-                np.array(f,    dtype=[('f','<f8')]),
-                np.array(yi_mean, dtype=[('stim_spec','complex')]),
-                np.array(yo_mean, dtype=[('resp_spec','complex')]),
-                np.array(FRF, dtype=[('FRF','complex')]),
-                np.array(Gain, dtype=[('Gain','<f8')]),
-                np.array(Pha,  dtype=[('Pha','<f8')]),
-                np.array(Coh,  dtype=[('Coh','<f8')])
-                ],
-                flatten = True, usemask = False)
 
     TD = rfn.merge_arrays([
                 np.array(t,  dtype=[('time','<f8')]),
@@ -139,7 +159,39 @@ def smooth_phase(pha,f):
     pha = np.mod(pha-p_ref,360) + p_ref
     return pha
 
+def f_avg(x):
+    if x.ndim == 1:
+            reduced_x = np.array([
+                x[0],
+                np.mean(x[0:2]),
+                x[1],
+                np.mean(x[1:3]),
+                np.mean(x[2:4]),
+                np.mean(x[3:5]),
+                np.mean(x[4:7]),
+                np.mean(x[5:9]),
+                np.mean(x[7:11]),
+                np.mean(x[9:13]),
+                np.mean(x[11:16]),
+                np.mean(x[15:20])
+            ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[0, :],
+            np.mean(x[0:2, :], axis=0),
+            x[1, :],
+            np.mean(x[1:3, :], axis=0),
+            np.mean(x[2:4, :], axis=0),
+            np.mean(x[3:5, :], axis=0),
+            np.mean(x[4:7, :], axis=0),
+            np.mean(x[5:9, :], axis=0),
+            np.mean(x[7:11, :], axis=0),
+            np.mean(x[9:13, :], axis=0),
+            np.mean(x[11:16, :], axis=0),
+            np.mean(x[15:20, :], axis=0)
+        ])
 
+    return reduced_x
 
 
 

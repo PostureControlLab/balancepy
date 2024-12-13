@@ -3,6 +3,9 @@ from scipy.optimize import Bounds, basinhopping
 import balancepy.biomechanics as bm
 from balancepy.models.helper import dict2par
 from numbers import Number
+import scipy.signal as signal
+from scipy.signal import convolve as conv
+
 
 class Peterka2018:
     """
@@ -10,85 +13,154 @@ class Peterka2018:
     
     Initialize the model with the anthropometric data of the subject.
 
-    This will create a set of default parameters for the model that do not descibe the subject.
-    subject specific parameters can be identified by calling the fit method.
+    This will create a set of default paramss for the model that do not descibe the subject.
+    subject specific paramss can be identified by calling the fit method.
 
     Args:
         mass_kg (Number): mass of the subject in kg
         height_m (Number): height of the subject in m
     
+    methods:
+        fit(frequencies: np.array, frf_experiment: np.array) -> Tuple[np.array, np.array, OptimizeResult]:
+            Fit the model to the given experimental frequency response function
+            Returns the optimized paramss, the simulated frequency response function and the optimization result
+                    
+        set_params(params: np.array) -> None:
+            Set the paramss of the model to the given values
+
+        objective(theta_free: np.array) -> float:
+            Calculate the objective function of the model for the given paramss
+
+    staticmethod:
+        get_transfer_function(params: np.array) -> signal.TransferFunction:
+            Returns the transfer function of the model for the given paramss
+
+
+
     """
 
-    winter_table: bm.WinterTable
+    #winter_table: bm.WinterTable
 
     def __init__(self, mass_kg: Number, height_m: Number):
         WT = bm.WinterTable(mass_kg, height_m)
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.15 * WT.mgh / 180*np.pi
-        Kd = 0.3 * WT.mgh / 180*np.pi
+        Kp = 1.45 * WT.mgh / 180*np.pi
+        Kd = 0.44 * WT.mgh / 180*np.pi
 
-        self.start = np.array([mgh,    J,      Kp,     Kd,     0.2,    0.19,   0.1])
-        self.names = np.array(['mgh',  'J',    'Kp',   'Kd',   'W',    'dt',   'Glp'])
+        self.params = np.array([mgh,    J,      Kp,     Kd,     0.45,    0.16,   0.005])
+        self.names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'dt',   'Glp']
         self.ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3])
         self.lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0])
-        self.fixed_mask = np.array([True, True, False, False, False, False, False])
+        self.fixed_params_mask = [True, True, False, False, False, False, False]
+        self.transfer_function = Peterka2018.get_transfer_function(self.params)
+        self.frequencies = None
+        self.frf_experiment = None
+        self.frf_simulation = None
+        self.fit_output = None
+        self.fitOptions = {
+            "bootstrapCI": True,
+            "N_bootstraps": 400
+            }
 
-#  = np.linspace(0.05, 2, 100) 
+    def set_params(self, params):
+        self.params = params
+        self.transfer_function = Peterka2018.get_transfer_function(self.params)
 
-def frequency_response(f, p):
+    @staticmethod
+    def get_transfer_function(params):
+        
+        G, J, Kp, Kd, W, T, Kt = params
+
+        num = [ -0.5*T*W*Kd, (W*Kd - 0.5*W*Kp*T), W*Kp, 0 ]
+
+        den = [ (0.5*J*T + 0.5*Kt*Kd*J*T ), 
+                (J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
+                (-0.5*G*T - Kt*Kp*J - 0.5*Kt*Kd*G*T - 0.5*Kp*T + Kd),
+                (-G - 0.5*Kt*Kp*G*T + Kt*Kd*G + Kp), 
+                Kt*Kp*G ]
+
+        transfer_function = signal.TransferFunction(num, den)
+
+        return transfer_function
+
+# def model(params):
     
-    s = 1j * f * 2 * np.pi
-    
-    B = 1 / (p(1) * s**2 - p(2))
-    NC = p(3) + p(4) * s
-    TD = np.exp(-s * p(6))
-    F = p(7) / s
-    
-    tf = (p(5) * NC * B * TD) / (1 - F * NC * TD + NC * B * TD)
-    
-    return tf
+#     G, J, Kp, Kd, W, T, Kt = params
 
-def objective(theta_free, theta_fixed, frequency_response, experimental_data):
+#     na = [W, 0]
+#     nb = [Kd,Kp]
+#     nc = [T**2 / 12, -T/2, 1]
 
-    # Reconstruct the full theta by filling in the fixed values
-    theta_full = np.zeros_like(theta)
-    theta_full[fixed_mask] = theta_fixed  # Set fixed values
-    theta_full[~fixed_mask] = theta_free  # Set free parameters
+#     num = conv(conv(na, nb, mode='full'), nc, mode='full')
 
-    tf = frequency_response(theta_full)
-    
-    err = np.sum( np.abs(tf - experimental_data) / (np.abs(tf)) )
+#     d1a = [T**2 / 12, T/2, 1]
+#     d1b = [J, 0, -G, 0]
+#     d2a = [Kd*Kt, Kp*Kt]
+#     d2b = [J, 0, -G]
+#     d2c = [T**2 / 12, -T/2, 1]
+#     d3a = [Kd, Kp]
+#     d3b = [T**2 / 12, -T/2, 1]
 
-    return err
+#     den1 = conv(d1a, d1b, mode='full') # s**5
+#     den2 = conv(conv(d2a, d2b, mode='full'), d2c, mode='full') # s**5
+#     den3 = conv(d3a, d3b, mode='full') # s**3
+#     den3 = np.pad(den3, (len(den2) - len(den3), 0), 'constant')
 
-def fit(self,FD):
+#     den = den1 - den2 + den3
+#     system = signal.TransferFunction(num, den)
 
-    f = FD['f']
-    experimental_data = FD['FRF']
+#     return system
 
-    # Define the fixed values for the parameters that are fixed
-    theta_fixed = self.theta_start[self.fixed_mask]
+    def objective(self, theta_free = None):
+        assert self.frequencies is not None or self.frf_experiment is not None, "Please provide the frequencies and frequency response function of the experiment"
 
-    # Create the reduced vector for free parameters
-    theta_free_init = self.theta_start[~self.fixed_mask]  # Only parameters to be optimized
+        # Set default parameters
+        if theta_free is None:
+            theta = self.params
+        else:
+            # Reconstruct the full theta by filling in the fixed values
+            theta = np.zeros(self.fixed_params_mask.__len__())
+            theta[self.fixed_params_mask] = self.params[self.fixed_params_mask]  # Set fixed values
+            theta[~np.array(self.fixed_params_mask)] = theta_free  # Set free paramss
 
-    model = lambda theta: frequency_response(f, theta)
-    obj = lambda theta_free_init: objective(theta_free_init, model, theta_fixed, experimental_data)
+        #calculate model frequency response
+        tf = Peterka2018.get_transfer_function(theta)
+        w, frf_sim = signal.freqresp(tf, w=self.frequencies*2*np.pi)
 
-    bounds = Bounds(self.lb[~self.fixed_mask], self.ub[~self.fixed_mask])
-    
-    minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-    fit_output = basinhopping(obj, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+        #calculate objective
+        err = np.sum( np.abs(frf_sim - self.frf_experiment) / np.abs(frf_sim) )
 
-    # Reconstruct the full parameter vector from the estimated parameters res.x and theta_fixed
-    parameter_out = np.zeros_like(self.start)
-    parameter_out[self.fixed_mask] = theta_fixed
-    parameter_out[~self.fixed_mask] = fit_output.x
+        return err
 
-    tf_sim = model(parameter_out)
+    def fit(self,frequencies,frf_experiment):
 
-    return parameter_out, tf_sim, fit_output
+        self.frequencies = frequencies
+        self.frf_experiment = frf_experiment
+
+        # Create the reduced vectors for free paramss and corresponding bounds
+        theta_free_init = self.params[~np.array(self.fixed_params_mask)]  # Only paramss to be optimized
+        theta_fixed = self.params[self.fixed_params_mask]  # Fixed paramss
+        
+        bounds = Bounds(self.lb[~np.array(self.fixed_params_mask)], self.ub[~np.array(self.fixed_params_mask)])
+        
+        #obj = lambda theta_free: self.objective(theta_free)
+
+        minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
+        fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+
+        # Reconstruct the full params vector from the estimated paramss res.x and theta_fixed
+        params_fit = np.zeros(self.fixed_params_mask.__len__())
+        params_fit[self.fixed_params_mask] = theta_fixed
+        params_fit[~np.array(self.fixed_params_mask)] = fit_output.x
+
+        self.set_params(params_fit)
+        self.fit_output = fit_output
+        w, self.frf_simulation = signal.freqresp(self.transfer_function, self.frequencies*2*np.pi)
+
+        return self.params, self.frf_simulation, self.fit_output
+
+
 
 
