@@ -1,11 +1,10 @@
 import numpy as np
 from scipy.optimize import Bounds, basinhopping
-import balancepy.biomechanics as bm
-from balancepy.models.helper import dict2par
 from numbers import Number
 import scipy.signal as signal
 from scipy.signal import convolve as conv
-
+import balancepy as bp
+import balancepy.models.Peterka2018 as Peterka2018
 
 class Peterka2018:
     """
@@ -34,15 +33,10 @@ class Peterka2018:
     staticmethod:
         get_transfer_function(params: np.array) -> signal.TransferFunction:
             Returns the transfer function of the model for the given paramss
-
-
-
     """
 
-    #winter_table: bm.WinterTable
-
     def __init__(self, mass_kg: Number, height_m: Number):
-        WT = bm.WinterTable(mass_kg, height_m)
+        WT = bp.WinterTable(mass_kg, height_m)
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
@@ -55,14 +49,37 @@ class Peterka2018:
         self.lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0])
         self.fixed_params_mask = [True, True, False, False, False, False, False]
         self.transfer_function = Peterka2018.get_transfer_function(self.params)
-        self.frequencies = None
-        self.frf_experiment = None
-        self.frf_simulation = None
+        self.logspacing = lambda x: bp.logspace_manual_20s(x)
+        self.stimulus = None
+        self.response = None
+        self.FD_frequencies = None
+        self.FD_frf_exp = None
+        self.FD_frf_exp_uCb = None
+        self.FD_frf_exp_lCb = None
+        self.FD_frf_sim = None
+        self.FD_frf_sim_uCb = None
+        self.FD_frf_sim_lCb = None
+        
+        self.TD_time = None
+        self.TD_stimulus_avg = None
+        self.TD_response_exp_avg = None
+        self.TD_response_exp_uCb = None
+        self.TD_response_exp_lCb = None
+        self.TD_response_sim_avg = None
+        self.TD_response_sim_uCb = None
+        self.TD_response_sim_lCb = None
+
+        self.param_uCb = None
+        self.param_lCb = None
         self.fit_output = None
         self.fitOptions = {
             "bootstrapCI": True,
             "N_bootstraps": 400
             }
+        self.samplingrate: float = 90
+        self.selectfreq_nth: int = 2
+        self.selectfreq_start_index: int = 0
+        self.selectfreq_max_Hz: float = 2
 
     def set_params(self, params):
         self.params = params
@@ -113,8 +130,34 @@ class Peterka2018:
 
 #     return system
 
+    def add_experimental_data(self,stimulus,response,samplingrate):
+        
+        self.stimulus = stimulus
+        self.response = response
+        self.samplingrate = samplingrate
+
+        self.TD_response_exp_avg = np.mean(response,1)
+        self.TD_stimulus_avg = np.mean(stimulus,1)
+
+        FD = bp.frequency_analysis(
+                    self.stimulus, 
+                    self.response, 
+                    self.samplingrate, 
+                    self.selectfreq_nth,
+                    self.selectfreq_start_index,
+                    self.selectfreq_max_Hz
+                    )
+    
+        if self.logspacing == None:
+            self.FD_frequencies = FD['f']
+            self.FD_frf_exp = FD['frf']
+        else:
+            self.FD_frequencies = self.logspacing(FD['f'])
+            self.FD_frf_exp = self.logspacing(FD['frf'])
+            
+
     def objective(self, theta_free = None):
-        assert self.frequencies is not None or self.frf_experiment is not None, "Please provide the frequencies and frequency response function of the experiment"
+        assert self.FD_frequencies is not None or self.FD_frf_exp is not None, "Please provide the frequencies and frequency response function of the experiment"
 
         # Set default parameters
         if theta_free is None:
@@ -127,17 +170,22 @@ class Peterka2018:
 
         #calculate model frequency response
         tf = Peterka2018.get_transfer_function(theta)
-        w, frf_sim = signal.freqresp(tf, w=self.frequencies*2*np.pi)
+        w, frf_sim = signal.freqresp(tf, w=self.FD_frequencies*2*np.pi)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - self.frf_experiment) / np.abs(frf_sim) )
+        err = np.sum( np.abs(frf_sim - self.FD_frf_exp) / np.abs(frf_sim) )
 
         return err
 
-    def fit(self,frequencies,frf_experiment):
 
-        self.frequencies = frequencies
-        self.frf_experiment = frf_experiment
+    def bootstrap_ConfidenceBounds(self):
+        
+        yi, yii, f = bp.getSpec(self.stimulus,self.samplingrate)
+        yo, yoo, f = bp.getSpec(self.response,self.samplingrate)
+
+        
+
+    def fit(self):
 
         # Create the reduced vectors for free paramss and corresponding bounds
         theta_free_init = self.params[~np.array(self.fixed_params_mask)]  # Only paramss to be optimized
@@ -145,8 +193,6 @@ class Peterka2018:
         
         bounds = Bounds(self.lb[~np.array(self.fixed_params_mask)], self.ub[~np.array(self.fixed_params_mask)])
         
-        #obj = lambda theta_free: self.objective(theta_free)
-
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
         fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
 
@@ -157,9 +203,9 @@ class Peterka2018:
 
         self.set_params(params_fit)
         self.fit_output = fit_output
-        w, self.frf_simulation = signal.freqresp(self.transfer_function, self.frequencies*2*np.pi)
+        w, self.FD_frf_sim = signal.freqresp(self.transfer_function, self.FD_frequencies*2*np.pi)
 
-        return self.params, self.frf_simulation, self.fit_output
+        return self.params, self.FD_frf_sim, self.fit_output
 
 
 

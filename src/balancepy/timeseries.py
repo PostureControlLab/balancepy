@@ -5,6 +5,7 @@ from numbers import Number
 import numpy as np
 from numpy.typing import NDArray
 from scipy.interpolate import interp1d
+import numpy.lib.recfunctions as rfn
 
 def resample(
     time_s: NDArray[np.number],
@@ -79,4 +80,58 @@ def cut_to_cycles(
     
 
 
-    
+def time_domain_analysis(
+        t: NDArray, 
+        xi: NDArray,
+        xo: NDArray
+) -> NDArray:
+    """analyse time domain input/output data.
+    """
+    from scikits.bootstrap import bootstrap_ci
+
+    # Detrend the response data
+    xo = np.apply_along_axis(lambda x: x - np.mean(x), 1, xo)
+
+    xi_mean = np.mean(xi,1)
+    xo_mean = np.mean(xo,1)
+
+    xi_lower, xi_upper = bootstrap_ci(xi, np.mean, n_samples=400)
+    xo_lower, xo_upper = bootstrap_ci(xo, np.mean, n_samples=400)
+
+    # t = np.arange(1,np.size(xi,0)+1) /samplingrate
+    t = t[:, 0]
+
+    TD = rfn.merge_arrays([
+        np.array(t,  dtype=[('time','<f8')]),
+        np.array(xi_mean,  dtype=[('stim','<f8')]),
+        np.array(xi_lower,  dtype=[('stim_lower','<f8')]),
+        np.array(xi_upper,  dtype=[('stim_upper','<f8')]),
+        np.array(xo_mean,  dtype=[('resp','<f8')]),
+        np.array(xo_lower,  dtype=[('resp_lower','<f8')]),
+        np.array(xo_upper,  dtype=[('resp_upper','<f8')])
+        ],
+        flatten = True, usemask = False)
+
+
+    # Calculate descriptive parameters of time domain data
+    TotalPower = np.mean(xo**2)
+
+    # power of periodic component
+    PeriodicPower = np.mean(xo_mean**2)
+
+    # calculation of remnants
+    rT = (xo - xo_mean)**2
+
+    # power of remnants
+    RemnantPower = np.mean(rT)
+
+    TD_par = {
+        'PeriodicPower': PeriodicPower,
+        'RemnantPower': RemnantPower,
+        'TotalPower': TotalPower
+    }
+
+    return TD, TD_par
+
+
+
