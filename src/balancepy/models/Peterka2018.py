@@ -4,6 +4,8 @@ from numbers import Number
 import scipy.signal as signal
 from scipy.signal import convolve as conv
 import balancepy as bp
+from joblib import Parallel, delayed
+
 import balancepy.models.Peterka2018 as Peterka2018
 
 class Peterka2018:
@@ -54,20 +56,22 @@ class Peterka2018:
         self.response = None
         self.FD_frequencies = None
         self.FD_frf_exp = None
-        self.FD_frf_exp_uCb = None
-        self.FD_frf_exp_lCb = None
+        self.FD_frfMag_exp = None
+        self.FD_frfMag_exp_uCb = None
+        self.FD_frfMag_exp_lCb = None
+        self.FD_frfPha_exp = None
+        self.FD_frfPha_exp_uCb = None
+        self.FD_frfPha_exp_lCb = None
         self.FD_frf_sim = None
-        self.FD_frf_sim_uCb = None
-        self.FD_frf_sim_lCb = None
+        self.FD_frfMag_sim = None
+        self.FD_frfPha_sim = None
         
         self.TD_time = None
         self.TD_stimulus_avg = None
         self.TD_response_exp_avg = None
         self.TD_response_exp_uCb = None
         self.TD_response_exp_lCb = None
-        self.TD_response_sim_avg = None
-        self.TD_response_sim_uCb = None
-        self.TD_response_sim_lCb = None
+        self.TD_response_sim = None
 
         self.param_uCb = None
         self.param_lCb = None
@@ -154,10 +158,14 @@ class Peterka2018:
         else:
             self.FD_frequencies = self.logspacing(FD['f'])
             self.FD_frf_exp = self.logspacing(FD['frf'])
-            
 
-    def objective(self, theta_free = None):
-        assert self.FD_frequencies is not None or self.FD_frf_exp is not None, "Please provide the frequencies and frequency response function of the experiment"
+        self.FD_frfMag_exp = np.abs(self.FD_frf_exp)
+        self.FD_frfPha_exp = bp.phase(self.FD_frf_exp,self.FD_frequencies)
+
+
+    def objective(self, theta_free = None, frequencies = None, reference_frf = None):
+        assert (self.FD_frequencies is not None or frequencies is not None), "Please provide a frequency vector for the objective function"
+        assert (self.FD_frf_exp is not None or reference_frf is not None), "Please provide a reference frequency response function for the objective function"
 
         # Set default parameters
         if theta_free is None:
@@ -168,24 +176,46 @@ class Peterka2018:
             theta[self.fixed_params_mask] = self.params[self.fixed_params_mask]  # Set fixed values
             theta[~np.array(self.fixed_params_mask)] = theta_free  # Set free paramss
 
+        if frequencies is None:
+            frequencies = self.FD_frequencies
+        if reference_frf is None:
+            reference_frf = self.FD_frf_exp
+
+        assert len(frequencies) == len(reference_frf), "The lengths of frequencies and reference_frf must be the same"
+
         #calculate model frequency response
         tf = Peterka2018.get_transfer_function(theta)
-        w, frf_sim = signal.freqresp(tf, w=self.FD_frequencies*2*np.pi)
+        w, frf_sim = signal.freqresp(tf, w=frequencies*2*np.pi)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - self.FD_frf_exp) / np.abs(frf_sim) )
+        err = np.sum( np.abs(frf_sim - reference_frf) / np.abs(frf_sim) )
 
         return err
-
-
-    def bootstrap_ConfidenceBounds(self):
-        
-        yi, yii, f = bp.getSpec(self.stimulus,self.samplingrate)
-        yo, yoo, f = bp.getSpec(self.response,self.samplingrate)
-
         
 
-    def fit(self):
+    def simulate(self, params=None, stimulus=None):
+        assert (params is not None or self.params is not None), "Please provide the parameters for the simulation"
+        assert (stimulus is not None or self.stimulus is not None), "Please provide the stimulus for the simulation"
+
+        if params is None:
+            params = self.params
+        if stimulus is None:
+            U = self.stimulus
+        else:
+            U = stimulus
+
+        time = np.arange(0, stimulus.shape[0]) / self.samplingrate
+
+        # Get the system response
+        time, TD_response_sim, x_out = signal.lsim(self.transfer_function, U=U, T=time)
+
+        if stimulus is not None:
+            self.TD_time = time
+            self.TD_response_sim_avg = TD_response_sim
+
+        return TD_response_sim, time
+
+    def fit(self, reference_frf=None):
 
         # Create the reduced vectors for free paramss and corresponding bounds
         theta_free_init = self.params[~np.array(self.fixed_params_mask)]  # Only paramss to be optimized
@@ -194,19 +224,84 @@ class Peterka2018:
         bounds = Bounds(self.lb[~np.array(self.fixed_params_mask)], self.ub[~np.array(self.fixed_params_mask)])
         
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-        fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+
+        if reference_frf is not None:
+            objective = lambda theta_free: Peterka2018.objective(self, theta_free, reference_frf=reference_frf)
+            fit_output = basinhopping(objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+        else:
+            fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+    
 
         # Reconstruct the full params vector from the estimated paramss res.x and theta_fixed
         params_fit = np.zeros(self.fixed_params_mask.__len__())
         params_fit[self.fixed_params_mask] = theta_fixed
         params_fit[~np.array(self.fixed_params_mask)] = fit_output.x
 
-        self.set_params(params_fit)
-        self.fit_output = fit_output
-        w, self.FD_frf_sim = signal.freqresp(self.transfer_function, self.FD_frequencies*2*np.pi)
+        w, FD_frf_sim = signal.freqresp(self.transfer_function, self.FD_frequencies*2*np.pi)
+        TD_response_sim, TD_time = self.simulate(params_fit, self.TD_stimulus_avg)
 
-        return self.params, self.FD_frf_sim, self.fit_output
+        # update class instance, if fit was performed on the experimental data of the instance
+        if reference_frf is None:
+            self.set_params(params_fit)
+            self.fit_output = fit_output
+            self.FD_frf_sim = FD_frf_sim
+            self.FD_frfMag_sim = np.abs(FD_frf_sim)
+            self.FD_frfPha_sim = bp.phase(FD_frf_sim,self.FD_frequencies)
+            self.TD_response_sim = TD_response_sim
+            self.TD_time = TD_time
+
+        return params_fit, FD_frf_sim, TD_response_sim, fit_output
 
 
+    def ConfidenceBounds_fit(self):
+        # get spetctra of stimulus and response
+        yi, yii, f = bp.spectrum(self.stimulus,self.samplingrate)
+        yo, yoo, f = bp.spectrum(self.response,self.samplingrate)
 
+        selected_frequencies = range(
+        self.selectfreq_start_index, 
+        int(round(self.selectfreq_max_Hz * np.size(self.response, 0) / self.samplingrate)), 
+        self.selectfreq_nth
+        )
+
+        yi  = yi[selected_frequencies,:]
+        yo  = yo[selected_frequencies,:]
+
+        # perform bootstraps for frequency response function
+        n_bootstraps = self.fitOptions["N_bootstraps"]
+        n_samples = yo.shape[0]
+        bootstrap_indices = [
+            np.random.choice(n_samples, size=n_samples, replace=True)
+            for _ in range(n_bootstraps)
+        ]
+
+        bootstrap_frf = Parallel(n_jobs=-1)(
+            delayed(bp.frf)(
+                yi[idx], yo[idx]
+            ) for idx in bootstrap_indices
+        )
+        
+        # bootstrap_frf = np.array([bp.frf(yi[idx], yo[idx]) for idx in bootstrap_indices])
+        
+        bootstrap_frf_logspaced = np.array([self.logspacing(frf) for frf in bootstrap_frf])
+
+        # perform fit for each bootstrapped frf
+        # bootstrap_params = []
+        # for frf in bootstrap_frf_logspaced:
+        #     result = self.fit(reference_frf=frf)
+        #     bootstrap_params.append(result[0])
+
+        bootstrap_fit_results = Parallel(n_jobs=-1)(
+            delayed(self.fit)(reference_frf=frf) for frf in bootstrap_frf_logspaced
+        )
+
+        bootstrap_params = []
+        for result in bootstrap_fit_results:
+            bootstrap_params.append(result[0])
+
+        # Extract upper and lower confidence bounds from bootstrap results
+        self.param_uCb = np.percentile(bootstrap_params, 97.5, axis=0)
+        self.param_lCb = np.percentile(bootstrap_params, 2.5, axis=0)
+        
+        return self.param_uCb, self.param_lCb
 
