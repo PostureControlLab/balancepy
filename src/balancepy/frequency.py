@@ -9,20 +9,19 @@ def frequency_analysis(
     stim: NDArray[np.number],
     resp: NDArray[np.number],
     samplingrate: float,
-    selectfreq_nth: int = 1,
-    selectfreq_start_index: int = 1,
-    selectfreq_max_Hz: float = 2
-
-) -> NDArray:
+    selected_frequencies = 'all',
+    smoothing = None,
+    bootstrap_cb = False,
+    n_bootstraps = 200,
+    ) -> NDArray:
     """calculates frequency response functions (FRFs).
 
     Args:
         stim (NDArray[np.number]): 2D stimulus sequence with cycles in rows
         resp (NDArray[np.number]): 2D response data with cycles in rows
-        sr (float): sampling rate in samples/second
-        selectfreq_start_index (int, optional): starting index of frequency selection. Defaults to 1.
-        selectfreq_nth (int, optional): nth index of frequency selection (1 every, 2 every 2nd frequency point, etc.). Defaults to 1.
-        selectfreq_max_Hz (float, optional): maximum frequency in Hz. Defaults to 2.
+        samplingrate (float): sampling rate in samples/second
+        selected_frequencies: 'all' or 'prts' or array of indices
+        smoothing: None or function performing smoothing of the FRF
 
     Returns:
         NDArray[np.number]: matrix with frequency domain outputs
@@ -32,46 +31,64 @@ def frequency_analysis(
         pha: phase of frequency response function
         coh: coherence
     """
-            
-    selected_frequencies = range(
-        selectfreq_start_index, 
-        int(round(selectfreq_max_Hz * np.size(resp, 0) / samplingrate)), 
-        selectfreq_nth
-    )
 
     yi,yii,f = spectrum(stim,samplingrate)
     yo,yoo,_ = spectrum(resp,samplingrate)
     
-    # reduce to selected frequencies
-    f   = f[selected_frequencies]
-    yi  = yi[selected_frequencies,:]
-    yo  = yo[selected_frequencies,:]
+
+    if isinstance(selected_frequencies, np.ndarray):
+        f   = f[selected_frequencies]
+        yi  = yi[selected_frequencies,:]
+        yo  = yo[selected_frequencies,:]
+    elif selected_frequencies == 'prts': # selects every second frequency point up to 2 Hz
+        selected_frequencies = np.arange(
+            0,
+            int(round(2 * np.size(resp, 0) / samplingrate)), 
+            2
+        )
+        f   = f[selected_frequencies]
+        yi  = yi[selected_frequencies,:]
+        yo  = yo[selected_frequencies,:]
+    elif selected_frequencies == 'all':
+        f   = f
+        yi  = yi
+        yo  = yo
 
     # mean spectra
-    yi_mean=np.mean(yi,1)
-    yo_mean=np.mean(yo,1)
-            
+    yi_mean = abs(np.mean(yi,1))
+    yo_mean = abs(np.mean(yo,1))
+        
     # Calculate FRF, Magnitude and Phase of FRF, as well as Coherence
     # FRF from position data - Pintelon & Schoukens eq 2-17
-    frf=yo_mean / yi_mean
+    frf = bp.frf(yi, yo)
     coh = coherence(yi,yo)
 
+    if smoothing is not None:
+        f = smoothing(f, f)
+        yi_mean = smoothing(yi_mean, f)
+        yo_mean = smoothing(yo_mean, f)
+        frf = smoothing(frf, f)
+        coh = smoothing(coh, f)
+    
     gain=abs(frf)
-    pha=bp.phase(frf,f)
+    pha=bp.phase(frf,f)        
 
     FD = rfn.merge_arrays([
-                np.array(f,    dtype=[('f','<f8')]),
-                np.array(abs(yi_mean), dtype=[('input_spectrum','complex')]),
-                np.array(abs(yo_mean), dtype=[('output_spectrum','complex')]),
-                np.array(frf, dtype=[('frf','complex')]),
-                np.array(gain, dtype=[('gain','<f8')]),
-                np.array(pha,  dtype=[('phase','<f8')]),
-                np.array(coh,  dtype=[('coherence','<f8')])
-                ],
-                flatten = True, usemask = False)
+            np.array(f,    dtype=[('freq','<f8')]),
+            np.array(yi_mean, dtype=[('input_spectrum','<f8')]),
+            np.array(yo_mean, dtype=[('output_spectrum','<f8')]),
+            np.array(frf, dtype=[('frf','complex')]),
+            np.array(gain, dtype=[('gain','<f8')]),
+            np.array(pha,  dtype=[('phase','<f8')]),
+            np.array(coh,  dtype=[('coherence','<f8')])
+            ],
+            flatten = True, usemask = False)
+
+    if bootstrap_cb:
+        print('Bootstrap confidence bound calculation not implemented yet')
+        
 
     return FD
-
 
 
 def spectrum(
@@ -168,7 +185,7 @@ def phase(frf,f):
 def logspace(
         H: NDArray, 
         f: NDArray, 
-        num_points: int):
+        num_points: int = 20):
     """Interpolates the values of H to log-spaced frequencies.
 
     Returns 
@@ -213,7 +230,7 @@ def logspace(
 
 
 
-def logspace_averaging(frf, freq, n_points):
+def logspace_averaging(frf, freq, n_points = 20):
     """
     Smooth a frequency response function (FRF) by averaging over 
     logarithmically spaced frequency bins using arithmetic averaging.
@@ -268,7 +285,7 @@ def logspace_averaging(frf, freq, n_points):
 def logspace_vector(
         y: NDArray, 
         freq: NDArray, 
-        num_points: int):
+        num_points: int = 20):
     
     import scipy.signal as signal
     from scipy.optimize import basinhopping
@@ -304,7 +321,7 @@ def logspace_vector(
     return y_log, f_log
 
 
-def logspace_manual_60s(x):
+def logspace_manual_60s(x,f):
     if x.ndim == 1:
         reduced_x = np.array([
             x[0],                 # :,1
@@ -347,7 +364,7 @@ def logspace_manual_60s(x):
         ])
     return reduced_x
 
-def logspace_manual_20s(x):
+def logspace_manual_20s(x,f):
     if x.ndim == 1:
         reduced_x = np.array([
             x[0],                # :,1
@@ -380,7 +397,7 @@ def logspace_manual_20s(x):
         ])
     return reduced_x
 
-def logspace_manual_10s(x):
+def logspace_manual_10s(x,f):
     if x.ndim == 1:
         reduced_x = np.array([
             x[0],               # :,1
