@@ -10,6 +10,9 @@ from .timeseries import *
 from . import frequency
 from .frequency import *
 
+from . import plot
+from .plot import *
+
 # from . import models
 # from .models import *
 # from .models import Peterka2018

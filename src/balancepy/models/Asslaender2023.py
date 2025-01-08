@@ -43,10 +43,10 @@ class Asslaender2023:
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.15 * WT.mgh / 180*np.pi
-        Kd = 0.3 * WT.mgh / 180*np.pi
+        Kp = 1.3 * WT.mgh / 180*np.pi
+        Kd = 0.48 * WT.mgh / 180*np.pi
 
-        self.params = np.array([mgh,    J,      Kp,     Kd,     0.2,    0.19,   0.1, 20,   1])
+        self.params = np.array([mgh,    J,      Kp,     Kd,     0.05,    0.17,   0.1, 20,   1])
         self.names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'T',   'Kt', 'Ft', 'b']
         self.ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3, 30, 10])
         self.lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0, 3, 0.0001])
@@ -70,10 +70,21 @@ class Asslaender2023:
 
         self.samplingrate: float = 90
 
+        self.frequency_response()
 
     def set_params(self, params):
-        self.params = params
+
+        if isinstance(params, dict):
+            for i, name in enumerate(self.names):
+                if name in params:
+                    self.params[i] = params[name]
+                else:
+                    raise ValueError(f"Parameter {name} not found in the model")
+
         self.transfer_function = Asslaender2023.get_transfer_function(self.params)
+
+    def get_params(self):
+        return dict(zip(self.names, self.params))
 
     @staticmethod
     def get_transfer_function(params):
@@ -115,7 +126,8 @@ class Asslaender2023:
                     self.selected_freq,
                     self.frfSmoothing,
                     )
-
+        
+        self.frequency_response()
 
     def objective(self, theta_free = None, freq = None, reference_frf = None):
         assert (self.FDexp['freq'] is not None or freq is not None), "Please provide a frequency vector for the objective function"
@@ -145,30 +157,67 @@ class Asslaender2023:
         err = np.sum(np.log(2 * theta[8] * np.abs(frf_sim))) + np.sum(np.abs(frf_sim - reference_frf) / (theta[8] * np.abs(frf_sim)))
 
         return err
-
+    
+    def frequency_response(self, params=None, freq=None):
         
-
-    def simulate(self, params=None, stimulus=None):
-        assert (params is not None or self.params is not None), "Please provide the parameters for the simulation"
-        assert (stimulus is not None or self.stimulus is not None), "Please provide the stimulus for the simulation"
-
         if params is None:
             params = self.params
-        if stimulus is None:
-            U = self.stimulus
+
+        if freq is not None:
+            f = freq
+        elif freq is None and self.FDexp is not None and 'freq' in self.FDexp.dtype.names:
+            f = self.FDexp['freq']
         else:
-            U = stimulus
+            f = np.arange(0.01, 2.01, 0.01)
 
-        time = np.arange(0, stimulus.shape[0]) / self.samplingrate
+        tf = Asslaender2023.get_transfer_function(params)
+        w, frf_sim = signal.freqresp(tf, w=f*2*np.pi)
 
-        # Get the system response
-        time, TD_response_sim, x_out = signal.lsim(self.transfer_function, U=U, T=time)
+        FDsim = rfn.merge_arrays([
+            np.array(f,    dtype=[('freq','<f8')]),
+            np.array(frf_sim, dtype=[('frf','complex')]),
+            np.array(np.abs(frf_sim), dtype=[('gain','<f8')]),
+            np.array(bp.phase(frf_sim,f),  dtype=[('phase','<f8')])
+            ],
+            flatten = True, usemask = False)
+
+        # Update the class instance if the simulation was performed on the experimental data of the instance
+        if freq is None:
+            self.FDsim
+
+        return FDsim
+
+    def simulate(self, params=None, stimulus=None):
+        
+        if params is None:
+            params = self.params
 
         if stimulus is not None:
-            self.TD_time = time
-            self.TD_response_sim_avg = TD_response_sim
+            U = stimulus
+            T = np.arange(0, stimulus.shape[0]) / self.samplingrate
+        elif stimulus is None and self.TDexp is not None and 'stimulus_avg' in self.TDexp.dtype.names:
+            U = self.TDexp['stimulus_avg']
+            T = self.TDexp['time']
+        else:
+            U = None
+            Warning('No stimulus provided for simulation')
+        
+        if U is not None:
+            # Get the system response
+            time, TD_response_sim, x_out = signal.lsim(self.transfer_function, U=U, T=T)
 
-        return TD_response_sim, time
+            TDsim = rfn.merge_arrays([  
+                np.array(time,    dtype=[('time','<f8')]),
+                np.array(U, dtype=[('stimulus_avg','complex')]),
+                np.array(TD_response_sim, dtype=[('response_avg','<f8')]),
+                ],
+                flatten = True, usemask = False)
+
+        # Update the class instance if the simulation was performed on the experimental data of the instance
+        if stimulus is None: 
+            self.TDsim = TDsim
+
+        return TDsim
 
     def fit(self, reference_frf=None):
 
@@ -195,14 +244,7 @@ class Asslaender2023:
 
         w, frf_sim = signal.freqresp(self.transfer_function, f*2*np.pi)
 
-        # update class instance, if fit was performed on the experimental data of the instance
-        if reference_frf is None:
-            response_sim, time = self.simulate(params_fit, np.mean(self.stimulus,1))
-
-            self.set_params(params_fit)
-            self.fit_output = fit_output
-
-            self.FDsim = rfn.merge_arrays([
+        FDsim = rfn.merge_arrays([
                 np.array(f,    dtype=[('freq','<f8')]),
                 np.array(frf_sim, dtype=[('frf','complex')]),
                 np.array(np.abs(frf_sim), dtype=[('gain','<f8')]),
@@ -210,13 +252,16 @@ class Asslaender2023:
                 ],
                 flatten = True, usemask = False)
 
-            self.TDsim = rfn.merge_arrays([  
-                np.array(time,    dtype=[('time','<f8')]),
-                np.array(response_sim, dtype=[('response','complex')]),
-                ],
-                flatten = True, usemask = False)
+        # update class instance, if fit was performed on the experimental data of the instance
+        if reference_frf is None:
+            self.set_params(params_fit)
+            self.FDsim = FDsim
+            self.fit_output = fit_output
 
-        return params_fit, frf_sim, fit_output
+            self.TDsim = self.simulate(params_fit, np.mean(self.stimulus,1))
+
+
+        return params_fit, FDsim, fit_output
 
 
     def ConfidenceBounds_fit(self, N_bootstraps = 200):
