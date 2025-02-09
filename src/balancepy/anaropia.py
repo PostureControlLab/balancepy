@@ -2,11 +2,7 @@ import numpy as np
 import balancepy as bp
 import balancepy.biomechanics as bm
 import balancepy.timeseries as ts
-import balancepy.frequency as fd
-from balancepy.frequency import frequency_analysis
 from numpy.typing import NDArray as NDArray
-import numpy.lib.recfunctions as rfn
-import balancepy.models.ICdual as ICdual
 
 
 def getdata_prts(

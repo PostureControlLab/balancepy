@@ -1,7 +1,6 @@
 from numpy.typing import NDArray
 import numpy.lib.recfunctions as rfn
 import numpy as np
-import scipy.fftpack as ft
 import skrf as rf
 import balancepy as bp
 
@@ -115,7 +114,7 @@ def spectrum(
     N=np.size(data,0)              # number of samples in time axis
     f=np.arange(1,N/2+1) /N*sr  # frequency points for the output
 
-    fk = ft.fft2(data)
+    fk = np.fft.fft(data, axis=0)
 
     b= int(np.ceil(N/2)+1)
     y = fk[1:b,:]*2 # half sided spectrum
@@ -158,13 +157,15 @@ def frf(yi,yo):
     Returns:
         NDArray[np.number]: FRF
     """
-    # mean spectra
-    yi_mean=np.mean(yi,1)
-    yo_mean=np.mean(yo,1)
             
-    # Calculate FRF, Magnitude and Phase of FRF, as well as Coherence
-    # FRF from position data - Pintelon & Schoukens eq 2-17
-    H = yo_mean / yi_mean
+    # Calculate cross-power spectrum
+    yoi = yo * np.conjugate(yi)
+    yii = yi * np.conjugate(yi)
+
+    yoi_mean=np.mean(yoi,1)
+    yii_mean=np.mean(yii,1)
+
+    H = yoi_mean / yii_mean
 
     return H
 
@@ -408,8 +409,7 @@ def logspace_manual_10s(x,f):
             np.mean(x[3:5]),    # :,4:5
             np.mean(x[4:7]),    # :,5:7
             np.mean(x[5:9]),    # :,6:9
-            np.mean(x[7:10]),   # :,8:10
-            np.mean(x[9:12])    # :,10:12
+            np.mean(x[7:10])    # :,8:10
         ])
     elif x.ndim == 2:
         reduced_x = np.array([
@@ -421,7 +421,6 @@ def logspace_manual_10s(x,f):
             np.mean(x[:,3:5], axis=1),
             np.mean(x[:,4:7], axis=1),
             np.mean(x[:,5:9], axis=1),
-            np.mean(x[:,7:10], axis=1),
-            np.mean(x[:,9:12], axis=1)
+            np.mean(x[:,7:10], axis=1)
         ])
     return reduced_x
