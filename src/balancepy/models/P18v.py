@@ -9,7 +9,7 @@ import numpy.lib.recfunctions as rfn
 import balancepy as bp
 from .ModelClassDefinition import balancepyModel
 
-class P18(balancepyModel):
+class P18v(balancepyModel):
 
 
     def __init__(self, mass_kg: Number, height_m: Number):
@@ -21,10 +21,11 @@ class P18(balancepyModel):
         Kd = 0.44 * WT.mgh / 180*np.pi
 
         self.params = np.array([mgh,    J,      Kp,     Kd,     0.45,    0.16,   0.005])
-        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'dt',   'Glp']
+        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'Wv',    'dt',   'Glp']
         self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3])
         self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0])
         self.parfit_fix_mask = [True, True, False, False, False, False, False]
+
         self.transfer_function = self.get_transfer_function(self.params)
         
         self.stimulus = None
@@ -40,7 +41,7 @@ class P18(balancepyModel):
         self.fit_output = None
 
         self.selected_freq = 'prts'
-        self.frfSmoothing = lambda x, f: bp.logspace_manual_20s(x,f)
+        self.frfSmoothing = lambda x, f: bp.logspace_manual_10s(x,f)
 
         self.samplingrate: float = 90
 
@@ -50,9 +51,9 @@ class P18(balancepyModel):
     @staticmethod
     def get_transfer_function(params):
         
-        G, J, Kp, Kd, W, T, Kt = params
+        G, J, Kp, Kd, Wv, T, Kt = params
 
-        num = [ -0.5*T*W*Kd, (W*Kd - 0.5*W*Kp*T), W*Kp, 0 ]
+        num = [ -0.5*T*Wv*Kd, (Wv*Kd - 0.5*Wv*Kp*T), Wv*Kp, 0 ]
 
         den = [ (0.5*J*T + 0.5*Kt*Kd*J*T ), 
                 (J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
@@ -63,7 +64,6 @@ class P18(balancepyModel):
         transfer_function = signal.TransferFunction(num, den)
 
         return transfer_function
-
 
     def objective(self, params_free = None, freq = None, reference_frf = None):
         assert (self.FDexp['freq'] is not None or freq is not None), "Please provide a frequency vector for the objective function"

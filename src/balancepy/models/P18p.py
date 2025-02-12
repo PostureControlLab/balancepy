@@ -9,7 +9,7 @@ import numpy.lib.recfunctions as rfn
 import balancepy as bp
 from .ModelClassDefinition import balancepyModel
 
-class P18(balancepyModel):
+class P18p(balancepyModel):
 
 
     def __init__(self, mass_kg: Number, height_m: Number):
@@ -21,7 +21,7 @@ class P18(balancepyModel):
         Kd = 0.44 * WT.mgh / 180*np.pi
 
         self.params = np.array([mgh,    J,      Kp,     Kd,     0.45,    0.16,   0.005])
-        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'dt',   'Glp']
+        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'Wp',    'dt',   'Glp']
         self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3])
         self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0])
         self.parfit_fix_mask = [True, True, False, False, False, False, False]
@@ -50,9 +50,9 @@ class P18(balancepyModel):
     @staticmethod
     def get_transfer_function(params):
         
-        G, J, Kp, Kd, W, T, Kt = params
+        G, J, Kp, Kd, Wp, T, Kt = params
 
-        num = [ -0.5*T*W*Kd, (W*Kd - 0.5*W*Kp*T), W*Kp, 0 ]
+        num = [ -0.5*T*Wp*Kd, (Wp*Kd - 0.5*Wp*Kp*T), Wp*Kp, 0 ]
 
         den = [ (0.5*J*T + 0.5*Kt*Kd*J*T ), 
                 (J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
