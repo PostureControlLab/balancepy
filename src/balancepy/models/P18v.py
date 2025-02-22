@@ -45,6 +45,9 @@ class P18v(balancepyModel):
 
         self.samplingrate: float = 90
 
+        # this parameter is used in the MultiConditionModel class
+        self.multimodel_paridx = None
+
         self.frequency_response()
 
 

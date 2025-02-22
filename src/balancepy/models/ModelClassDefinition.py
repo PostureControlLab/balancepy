@@ -40,6 +40,9 @@ class balancepyModel:
 
         self.samplingrate: float = None
 
+        # this parameter is used in the MultiConditionModel class
+        self.multimodel_paridx = None
+
         self.frequency_response()
 
 
@@ -283,20 +286,28 @@ class balancepyModel:
         return out
 
     def wrap_params(self, params_free):
-        assert len(params_free) == np.sum(~np.array(self.parfit_fix_mask)), "The length of params_free must match the number spefified in parfit_fix_mask"
+        assert len(params_free) == np.sum(~np.array(self.parfit_fix_mask)), "The length of params_free must match the number specified in parfit_fix_mask"
         
         # Reconstruct the full params vector by filling in the fixed values
-        params = np.zeros(self.parfit_fix_mask.__len__())
-        params[self.parfit_fix_mask] = self.params[self.parfit_fix_mask]  # Set fixed values
-        params[~np.array(self.parfit_fix_mask)] = params_free  # Set free paramss
+        params = np.zeros(len(self.parfit_fix_mask))
+        params[np.array(self.parfit_fix_mask)] = self.params[np.array(self.parfit_fix_mask)]  # Set fixed values
+        params[~np.array(self.parfit_fix_mask)] = params_free  # Set free params
 
         return params
     
     def unwrap_params(self, params=None):
         if params is None:
             params = self.params
-        # Extract the free paramss from the full params vector
+        # Extract the free params from the full params vector
         params_free = params[~np.array(self.parfit_fix_mask)]
-        params_fix = params[self.parfit_fix_mask]
+        params_fix = params[np.array(self.parfit_fix_mask)]
 
         return params_free, params_fix
+    
+    def plot(self):
+        figure = bp.bode_plot(self.FDexp, self.TDexp,line_name='Experimental')
+        figure = bp.bode_plot(self.FDsim, self.TDsim,fig = figure, line_name='Simulated', params_names=self.params_names, params=self.params)
+
+        figure.show()
+
+        # return figure
