@@ -6,9 +6,14 @@ from numpy.typing import NDArray as NDArray
 
 
 def getdata_prts(
-    fname: str,
+    filename: str,
+    body_height: float=0,
     resample: bool=True,
-    cut_to_cycles: bool=True
+    cut_to_cycles: bool=True,
+    sampling_rate: int = 90, # numer gives desired sampling rate; 0 means no resampling
+    end_time: float = 260,
+    cycle_start_samples: int = 20*90,
+    cycle_length_samples: int = 20*90
 ) -> NDArray:
     """get time domain stimulus and sway response data for a prts experiment
 
@@ -19,19 +24,21 @@ def getdata_prts(
         NDArray: experimental time domain data
     """
 
-    sampling_rate = 90 # numer gives desired sampling rate; 0 means no resampling
-    end_time = 260
-    cycle_start_samples = 20*sampling_rate
-    cycle_length_samples = 20*sampling_rate
     # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
     # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
 
-    data = np.genfromtxt(fname, delimiter=',', names=True)
+    data = np.genfromtxt(filename, delimiter=',', names=True)
 
-    time = data['time']
-    stim = data['stim_tz']
-    com = bm.com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
-    
+    if 'stim_tz' in data.dtype.names:
+        time = data['time']
+        stim = data['stim_tz']
+        com = bm.com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
+    else:    
+        time = data['time']
+        stim = -data['analog4']
+        com = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+
+
     if resample == True:
         com = ts.resample(time, com, sampling_rate, end_time)
         stim = ts.resample(time, stim, sampling_rate, end_time)
@@ -45,7 +52,7 @@ def getdata_prts(
     return com, stim, time
 
 def getdata_lifespan(
-    fname: str,
+    filename: str,
     body_height: float,
     resample: bool=True,
     cut_to_cycles: bool=True
@@ -71,7 +78,7 @@ def getdata_lifespan(
     # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
     # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
     
-    data = np.genfromtxt(fname, delimiter=',', names=True)
+    data = np.genfromtxt(filename, delimiter=',', names=True)
 
     time = data['time']
     stim_vis = data['stim_pitch']

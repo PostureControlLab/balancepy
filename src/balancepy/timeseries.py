@@ -41,8 +41,8 @@ def resample(
 
 def cut_to_cycles(
     data: NDArray[np.number],
-    cycle_length_samples: int,
     cycle_start_samples: int = 0,
+    cycle_length_samples: int = 20*90,
     discard_cycles_list: list = []
     ) -> NDArray:
     """
