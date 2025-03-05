@@ -1,0 +1,137 @@
+from cmath import pi
+from dataclasses import dataclass
+from enum import Enum
+from numbers import Number
+import numpy as np
+from numpy.typing import NDArray
+from scipy.interpolate import interp1d
+import numpy.lib.recfunctions as rfn
+
+def resample(
+    time_s: NDArray[np.number],
+    data: NDArray[np.number],
+    sampling_rate: float,
+    end_time_s: float = 0,
+) -> NDArray:
+    """resamples to fixed sample rate
+
+    Args:
+        time_s (NDArray[np.number]): 1D timestamps of original recording in seconds
+        data (NDArray[np.number]): 1D or 2D data array to be resampled
+        sr (float): sampling rate in samples/second
+        end_time_s (float, optional): optional end time of resampled data in seconds. Defaults to 0.
+
+    Returns:
+        NDArray: 1D or 2D with resampled data input
+    """
+
+    assert time_s.ndim == 1
+
+    if end_time_s == 0:
+        end_time_s = max(time_s) # get end of recording
+        end_time_s = end_time_s - np.mod(end_time_s,1/sampling_rate) # cut at last resampled data point
+
+    new_time_vector = np.arange(1/sampling_rate, end_time_s+1/sampling_rate, 1/sampling_rate) # define time vector ]0, t_end]
+
+    out = interp1d(time_s, data, kind='cubic', fill_value='extrapolate')(new_time_vector)
+
+    return out
+
+
+
+def cut_to_cycles(
+    data: NDArray[np.number],
+    cycle_start_samples: int = 0,
+    cycle_length_samples: int = 20*90,
+    discard_cycles_list: list = []
+    ) -> NDArray:
+    """
+    Cuts the data into cycles based on the provided cycle length, number of cycles, and cycle start.
+
+    Args:
+    data (NDArray[np.number]): 1D data array to be cut into cycles
+    cycle_length_samples (int): Length of cycles in samples
+    cycle_start_sample (int, optional): Index of first sample of the first cycle
+    discard_cycles_list (NDArray[np.number], optional): List of cycles to discard
+
+    Returns:
+    NDArray: 2D array with cycles in rows
+    """
+    
+    assert data.ndim == 1, "Data must be 1D array"
+
+    ncyc = int(np.floor((data.size - cycle_start_samples) / cycle_length_samples))
+
+    # preallocate new matrix
+    out = np.empty([cycle_length_samples, ncyc]) 
+
+    for n in range(ncyc):
+        i_start = cycle_start_samples + n * cycle_length_samples
+        i_end = cycle_start_samples + (n + 1) * cycle_length_samples
+        out[:, n] = data[i_start:i_end]
+
+    # remove cycles that are marked to be discarded
+    ind = np.ones(ncyc, dtype=bool) # create ncyc-long list of True
+    ind[discard_cycles_list] = False # set all discard cycles to False in list
+
+    out = out[:, ind] # select only cycles marked with True
+
+    return out
+    
+
+
+def time_domain_analysis(
+        t: NDArray, 
+        xi: NDArray,
+        xo: NDArray
+) -> NDArray:
+    """analyse time domain input/output data.
+    """
+    from scikits.bootstrap import bootstrap_ci
+
+    # Detrend the response data
+    xo = np.apply_along_axis(lambda x: x - np.mean(x), 1, xo)
+
+    xi_mean = np.mean(xi,1)
+    xo_mean = np.mean(xo,1)
+
+    xi_lower, xi_upper = bootstrap_ci(xi, np.mean, n_samples=400)
+    xo_lower, xo_upper = bootstrap_ci(xo, np.mean, n_samples=400)
+
+    # t = np.arange(1,np.size(xi,0)+1) /samplingrate
+    t = t[:, 0]
+
+    TD = rfn.merge_arrays([
+        np.array(t,  dtype=[('time','<f8')]),
+        np.array(xi_mean,  dtype=[('stim','<f8')]),
+        np.array(xi_lower,  dtype=[('stim_lower','<f8')]),
+        np.array(xi_upper,  dtype=[('stim_upper','<f8')]),
+        np.array(xo_mean,  dtype=[('resp','<f8')]),
+        np.array(xo_lower,  dtype=[('resp_lower','<f8')]),
+        np.array(xo_upper,  dtype=[('resp_upper','<f8')])
+        ],
+        flatten = True, usemask = False)
+
+
+    # Calculate descriptive parameters of time domain data
+    TotalPower = np.mean(xo**2)
+
+    # power of periodic component
+    PeriodicPower = np.mean(xo_mean**2)
+
+    # calculation of remnants
+    rT = (xo - xo_mean)**2
+
+    # power of remnants
+    RemnantPower = np.mean(rT)
+
+    TD_par = {
+        'PeriodicPower': PeriodicPower,
+        'RemnantPower': RemnantPower,
+        'TotalPower': TotalPower
+    }
+
+    return TD, TD_par
+
+
+
