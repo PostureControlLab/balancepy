@@ -89,8 +89,8 @@ class balancepyModel:
         time = np.arange(0, stimulus.shape[0]) / samplingrate
         self.TDexp = rfn.merge_arrays([
                     np.array(time,    dtype=[('time','<f8')]),
-                    np.array(np.mean(stimulus,1), dtype=[('stimulus_avg','<f8')]),
-                    np.array(np.mean(response,1), dtype=[('response_avg','<f8')])
+                    np.array(np.mean(stimulus,1), dtype=[('stimulus_average','<f8')]),
+                    np.array(np.mean(response,1), dtype=[('response_average','<f8')])
                     ])  
 
         self.FDexp = bp.frequency_analysis(
@@ -109,18 +109,17 @@ class balancepyModel:
         if params is None:
             params = self.params
 
-        # set default frequencies
-        f = np.arange(0.01, 2.01, 0.01)
-        
         if freq is not None:
             f = freq
         elif freq is None and self.FDexp is not None and 'freq' in self.FDexp.dtype.names:
             f = self.FDexp['freq']
-
+        else:
+            f = np.arange(0.01, 2.01, 0.01)
+        
         FDsim = self.static_frequency_response(self, params=params, freq=f)
 
         # Update the class instance if the simulation was performed on the experimental data of the instance
-        if freq is None:
+        if freq is None and self.FDexp is not None and 'freq' in self.FDexp.dtype.names:
             self.FDsim = FDsim
 
         return FDsim
@@ -148,8 +147,8 @@ class balancepyModel:
         if stimulus is not None:
             U = stimulus
             T = np.arange(0, stimulus.shape[0]) / self.samplingrate
-        elif stimulus is None and self.TDexp is not None and 'stimulus_avg' in self.TDexp.dtype.names:
-            U = self.TDexp['stimulus_avg']
+        elif stimulus is None and self.TDexp is not None and 'stimulus_average' in self.TDexp.dtype.names:
+            U = self.TDexp['stimulus_average']
             T = self.TDexp['time']
         else:
             U = None
@@ -161,8 +160,8 @@ class balancepyModel:
 
             TDsim = rfn.merge_arrays([  
                 np.array(time,    dtype=[('time','<f8')]),
-                np.array(U, dtype=[('stimulus_avg','<f8')]),
-                np.array(TD_response_sim, dtype=[('response_avg','<f8')]),
+                np.array(U, dtype=[('stimulus_average','<f8')]),
+                np.array(TD_response_sim, dtype=[('response_average','<f8')]),
                 ],
                 flatten = True, usemask = False)
 
@@ -305,9 +304,19 @@ class balancepyModel:
         return params_free, params_fix
     
     def plot(self):
-        figure = bp.bode_plot(self.FDexp, self.TDexp,line_name='Experimental')
-        figure = bp.bode_plot(self.FDsim, self.TDsim,fig = figure, line_name='Simulated', params_names=self.params_names, params=self.params)
 
-        figure.show()
+        figure = None
 
-        # return figure
+        if self.FDexp is not None and self.TDexp is not None:
+            figure = bp.bode_plot(self.FDexp, self.TDexp,line_name='Experimental')
+        else:
+            print('No experimental data available for plotting')
+
+        if self.FDsim is not None and self.TDsim is not None:    
+           figure = bp.bode_plot(self.FDsim, self.TDsim,fig = figure, line_name='Simulated', params_names=self.params_names, params=self.params)
+        else:
+            print('No simulated data available for plotting')
+
+        if figure:
+            figure.show()
+            return figure

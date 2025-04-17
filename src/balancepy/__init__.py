@@ -13,6 +13,9 @@ from .frequency import *
 from . import plot
 from .plot import *
 
+from . import make_stimulus
+from .make_stimulus import *
+
 # from . import models
 # from .models import *
 # from .models import Peterka2018

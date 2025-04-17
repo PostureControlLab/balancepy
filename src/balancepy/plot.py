@@ -37,8 +37,8 @@ def bode_plot(FD, TD=None, fig=None, line_name=None, params_names=None, params=N
 
     if TD is not None:
         # Time domain plots
-        fig.add_trace(go.Scatter(x=TD['time'], y=TD['stimulus_avg'], mode='lines', line=line, name=None, showlegend=False), row=1, col=1)
-        fig.add_trace(go.Scatter(x=TD['time'], y=TD['response_avg'], mode='lines', line=line, name=None, showlegend=False), row=1, col=2)
+        fig.add_trace(go.Scatter(x=TD['time'], y=TD['stimulus_average'], mode='lines', line=line, name=None, showlegend=False), row=1, col=1)
+        fig.add_trace(go.Scatter(x=TD['time'], y=TD['response_average'], mode='lines', line=line, name=None, showlegend=False), row=1, col=2)
 
     # Frequency domain plots
     fig.add_trace(go.Scatter(x=FD['freq'], y=FD['gain'], mode='lines', line=line, name=line_name, showlegend=True), row=2, col=1)

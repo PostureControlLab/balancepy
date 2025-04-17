@@ -52,7 +52,7 @@ def cut_to_cycles(
     data (NDArray[np.number]): 1D data array to be cut into cycles
     cycle_length_samples (int): Length of cycles in samples
     cycle_start_sample (int, optional): Index of first sample of the first cycle
-    discard_cycles_list (NDArray[np.number], optional): List of cycles to discard
+    discard_cycles_list (NDArray[np.number], optional): List of cycles to discard starting at 0 for first cycle
 
     Returns:
     NDArray: 2D array with cycles in rows
@@ -81,36 +81,53 @@ def cut_to_cycles(
 
 
 def time_domain_analysis(
-        t: NDArray, 
         xi: NDArray,
-        xo: NDArray
+        xo: NDArray,
+        samplingrate: int,
+        bootstrap_samples: int = 0
 ) -> NDArray:
     """analyse time domain input/output data.
-    """
-    from scikits.bootstrap import bootstrap_ci
 
+    Args:
+        xi (NDArray): stimulus data
+        xo (NDArray): response data
+        samplingrate (int): sampling rate in Hz
+    """
+    
     # Detrend the response data
-    xo = np.apply_along_axis(lambda x: x - np.mean(x), 1, xo)
+    xo = np.apply_along_axis(lambda x: x - np.mean(x), 0, xo)
 
     xi_mean = np.mean(xi,1)
     xo_mean = np.mean(xo,1)
 
-    xi_lower, xi_upper = bootstrap_ci(xi, np.mean, n_samples=400)
-    xo_lower, xo_upper = bootstrap_ci(xo, np.mean, n_samples=400)
-
-    # t = np.arange(1,np.size(xi,0)+1) /samplingrate
-    t = t[:, 0]
+    t = np.arange(1,np.size(xi,0)+1) /samplingrate
 
     TD = rfn.merge_arrays([
         np.array(t,  dtype=[('time','<f8')]),
-        np.array(xi_mean,  dtype=[('stim','<f8')]),
-        np.array(xi_lower,  dtype=[('stim_lower','<f8')]),
-        np.array(xi_upper,  dtype=[('stim_upper','<f8')]),
-        np.array(xo_mean,  dtype=[('resp','<f8')]),
-        np.array(xo_lower,  dtype=[('resp_lower','<f8')]),
-        np.array(xo_upper,  dtype=[('resp_upper','<f8')])
+        np.array(xi_mean,  dtype=[('stimulus_average','<f8')]),
+        np.array(xo_mean,  dtype=[('response_average','<f8')])
         ],
         flatten = True, usemask = False)
+
+    if bootstrap_samples > 0:
+        # Calculate confidence intervals using bootstrap
+        # This is a placeholder for the actual bootstrap implementation
+        # You need to implement the bootstrap logic here
+        
+        print("Bootstrap confidence intervals are not implemented yet.")
+
+        # from scikits.bootstrap import bootstrap_ci
+        # xi_lower, xi_upper = bootstrap_ci(xi, np.mean, n_samples=400)
+        # xo_lower, xo_upper = bootstrap_ci(xo, np.mean, n_samples=400)
+
+        # TD = rfn.merge_arrays([
+        #     TD,
+        #     np.array(xi_lower,  dtype=[('stim_lower','<f8')]),
+        #     np.array(xi_upper,  dtype=[('stim_upper','<f8')]),
+        #     np.array(xo_lower,  dtype=[('resp_lower','<f8')]),
+        #     np.array(xo_upper,  dtype=[('resp_upper','<f8')])
+        #     ],
+        #     flatten = True, usemask = False)
 
 
     # Calculate descriptive parameters of time domain data
@@ -120,7 +137,7 @@ def time_domain_analysis(
     PeriodicPower = np.mean(xo_mean**2)
 
     # calculation of remnants
-    rT = (xo - xo_mean)**2
+    rT = (xo - xo_mean[:, np.newaxis])**2
 
     # power of remnants
     RemnantPower = np.mean(rT)

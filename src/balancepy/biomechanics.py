@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def com(
+def calculate_com_2segmentmodel(
     shoulder_t: NDArray[np.number],
     shoulder_marker_height: np.number,
     hip_t: NDArray[np.number],
@@ -13,7 +13,7 @@ def com(
     height_m: float,
     rotation: bool,
 ) -> NDArray:
-    """Calculates center of mass
+    """Calculates center of mass from hip and shoulder movement using a 2 segment model and anthropometric tables.
 
     Args:
         shoulder_t (NDArray[np.number]): 1D shoulder translation in meters

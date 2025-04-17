@@ -5,13 +5,12 @@ import skrf as rf
 import balancepy as bp
 
 def frequency_analysis(
-    stim: NDArray[np.number],
-    resp: NDArray[np.number],
-    samplingrate: float,
+    xi: NDArray[np.number],
+    xo: NDArray[np.number],
+    samplingrate: int,
     selected_frequencies = 'all',
     smoothing = None,
-    bootstrap_cb = False,
-    n_bootstraps = 200,
+    bootstrap_samples: int = 0
     ) -> NDArray:
     """calculates frequency response functions (FRFs).
 
@@ -31,10 +30,9 @@ def frequency_analysis(
         coh: coherence
     """
 
-    yi,yii,f = spectrum(stim,samplingrate)
-    yo,yoo,_ = spectrum(resp,samplingrate)
+    yi,yii,f = spectrum(xi,samplingrate)
+    yo,yoo,_ = spectrum(xo,samplingrate)
     
-
     if isinstance(selected_frequencies, np.ndarray):
         f   = f[selected_frequencies]
         yi  = yi[selected_frequencies,:]
@@ -42,8 +40,17 @@ def frequency_analysis(
     elif selected_frequencies == 'prts': # selects every second frequency point up to 2 Hz
         selected_frequencies = np.arange(
             0,
-            int(round(2 * np.size(resp, 0) / samplingrate)), 
+            int(round(2 * np.size(xo, 0) / samplingrate)), 
             2
+        )
+        f   = f[selected_frequencies]
+        yi  = yi[selected_frequencies,:]
+        yo  = yo[selected_frequencies,:]
+    elif selected_frequencies == 'double_prts': # selects every second frequency point up to 2 Hz
+        selected_frequencies = np.arange(
+            1,
+            int(round(2 * np.size(xo, 0) / samplingrate)), 
+            4
         )
         f   = f[selected_frequencies]
         yi  = yi[selected_frequencies,:]
@@ -83,7 +90,9 @@ def frequency_analysis(
             ],
             flatten = True, usemask = False)
 
-    if bootstrap_cb:
+    if bootstrap_samples > 0:
+        # Calculate confidence intervals using bootstrap
+        # This is a placeholder for the actual bootstrap implementation
         print('Bootstrap confidence bound calculation not implemented yet')
         
 

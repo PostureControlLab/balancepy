@@ -1,3 +1,6 @@
+# this submodule contains functions to analyze the data from anaropia balance experiments
+# 
+
 import numpy as np
 import balancepy as bp
 import balancepy.biomechanics as bm
@@ -5,10 +8,12 @@ import balancepy.timeseries as ts
 from numpy.typing import NDArray as NDArray
 
 
-def getdata_prts(
+
+def getdata_anaropia(
     filename: str,
     body_height: float=0,
     resample: bool=True,
+    stimulus: str='stim_tz',
     cut_to_cycles: bool=True,
     sampling_rate: int = 90, # numer gives desired sampling rate; 0 means no resampling
     end_time: float = 260,
@@ -29,14 +34,14 @@ def getdata_prts(
 
     data = np.genfromtxt(filename, delimiter=',', names=True)
 
-    if 'stim_tz' in data.dtype.names:
+    if stimulus in data.dtype.names:
         time = data['time']
-        stim = data['stim_tz']
-        com = bm.com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
+        stim = data[stimulus]
+        com = bm.calculate_com_2segmentmodel(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
     else:    
         time = data['time']
         stim = -data['analog4']
-        com = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+        com = bm.calculate_com_2segmentmodel(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
 
     if resample == True:
@@ -49,6 +54,53 @@ def getdata_prts(
         stim = ts.cut_to_cycles(stim, cycle_start_samples, cycle_length_samples)
         time = ts.cut_to_cycles(time, cycle_start_samples, cycle_length_samples)
     
+    return com, stim, time
+
+def getdata_legacy(
+    filename: str,
+    body_height: float,
+    resample: bool=True,
+    cut_to_cycles: bool=True,
+    sampling_rate: int = 90,
+    end_time: float = 220,
+    cycle_start_samples: int = 20*90,
+    cycle_length_samples: int = 20*90
+) -> NDArray:
+    """This script reads in the data from the legacy balance experiments and returns the time domain data for the COM and the stimulus
+
+    Args:
+        filename (str): path and filename to be analyzed
+        body_height (float): height of subject
+        resample (bool): resample data to 90 Hz
+        cut_to_cycles (bool): cut data to cycles
+        sampling_rate (int): desired sampling rate
+        end_time (float): end time of the experiment
+        cycle_start_samples (int): start of the cycle
+        cycle_length_samples (int): length of the cycle
+
+    Returns:
+        NDArray: experimental center of mass sway in anterior-posterior direction
+        NDArray: stimulus data
+        NDArray: time data
+    """
+    
+    data = np.genfromtxt(filename, delimiter=',', names=True)
+
+    time = data['time']
+    stim = data['stim_pitch']
+    
+    com = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+
+    if resample == True:
+        com = ts.resample(time, com, sampling_rate, end_time)
+        stim = ts.resample(time, stim, sampling_rate, end_time)
+        time = ts.resample(time, time, sampling_rate, end_time)
+
+    if cut_to_cycles == True:
+        com = ts.cut_to_cycles(com, cycle_start_samples, cycle_length_samples)
+        stim = ts.cut_to_cycles(stim, cycle_start_samples, cycle_length_samples)
+        time = ts.cut_to_cycles(time, cycle_start_samples, cycle_length_samples)
+
     return com, stim, time
 
 def getdata_lifespan(
