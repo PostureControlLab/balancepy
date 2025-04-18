@@ -6,10 +6,11 @@ from scipy.signal import convolve as conv
 import balancepy as bp
 from joblib import Parallel, delayed
 import numpy.lib.recfunctions as rfn
-import balancepy as bp
-from .ModelClassDefinition import balancepyModel
 
-class P18(balancepyModel):
+
+from .base_model import balancepyModel
+
+class A23(balancepyModel):
 
 
     def __init__(self, mass_kg: Number, height_m: Number):
@@ -17,15 +18,15 @@ class P18(balancepyModel):
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.45 * WT.mgh / 180*np.pi
-        Kd = 0.44 * WT.mgh / 180*np.pi
+        Kp = 1.3 * WT.mgh / 180*np.pi
+        Kd = 0.48 * WT.mgh / 180*np.pi
 
-        self.params = np.array([mgh,    J,      Kp,     Kd,     0.45,    0.16,   0.005])
-        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'dt',   'Glp']
-        self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3])
-        self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0])
-        self.parfit_fix_mask = [True, True, False, False, False, False, False]
-        self.transfer_function = self.get_transfer_function(self.params)
+        self.params = np.array([mgh,    J,      Kp,     Kd,     0.05,    0.17,   0.1, 20,   1])
+        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'T',   'Kt', 'Ft', 'b']
+        self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3, 30, 10])
+        self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0, 3, 0.0001])
+        self.parfit_fix_mask = [True, True, False, False, False, False, False, True, False]
+        self.transfer_function = A23.get_transfer_function(self.params)
         
         self.stimulus = None
         self.response = None
@@ -44,21 +45,24 @@ class P18(balancepyModel):
 
         self.samplingrate: float = 90
 
-        self.frequency_response()
+        self.simulate_FD()
 
 
     @staticmethod
     def get_transfer_function(params):
-        
-        G, J, Kp, Kd, W, T, Kt = params
+        # implemanted as static method to allow efficient use during bootstrapping
+        G, J, Kp, Kd, W, T, Kt, Ft, b = params
 
-        num = [ -0.5*T*W*Kd, (W*Kd - 0.5*W*Kp*T), W*Kp, 0 ]
+        num = [ -0.5*T*W*Kd*Ft, 
+               (W*Kd*Ft - 0.5*W*Kp*Ft*T - 0.5*T*W*Kd), 
+               W*Kp*Ft + W*Kd - 0.5*W*Kp*T, 
+               W*Kp ]
 
-        den = [ (0.5*J*T + 0.5*Kt*Kd*J*T ), 
-                (J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
-                (-0.5*G*T - Kt*Kp*J - 0.5*Kt*Kd*G*T - 0.5*Kp*T + Kd),
-                (-G - 0.5*Kt*Kp*G*T + Kt*Kd*G + Kp), 
-                Kt*Kp*G ]
+        den = [ (0.5*Ft*J*T + 0.5*Kt*Kd*J*T ), 
+                (Ft*J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
+                (-0.5*G*Ft*T + J - Kt*Kp*J - 0.5*Kt*Kd*G*T - 0.5*Kp*Ft*T + Kd*Ft - 0.5*Kd*T),
+                (-Ft*G -0.5*G*T - 0.5*Kt*Kp*G*T + Kt*Kd*G + Kp*Ft - 0.5*Kp*T + Kd), 
+                (-G + Kt*Kp*G + Kp) ]
 
         transfer_function = signal.TransferFunction(num, den)
 
@@ -81,42 +85,13 @@ class P18(balancepyModel):
             reference_frf = self.FDexp['frf']
 
         assert len(freq) == len(reference_frf), "The lengths of freq and reference_frf must be the same"
-
+        
         #calculate model frequency response
         tf = self.get_transfer_function(params)
         w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - reference_frf) / np.abs(frf_sim) )
+        err = sum(np.log(2 * params[8] * abs(frf_sim))) + sum(abs(frf_sim - reference_frf) / (params[8] * abs(frf_sim)))
 
         return err
-        
-# attempt to formulate model using convolutions to allow easier implementation of 
-# new model components
-# def model(params):
     
-#     G, J, Kp, Kd, W, T, Kt = params
-
-#     na = [W, 0]
-#     nb = [Kd,Kp]
-#     nc = [T**2 / 12, -T/2, 1]
-
-#     num = conv(conv(na, nb, mode='full'), nc, mode='full')
-
-#     d1a = [T**2 / 12, T/2, 1]
-#     d1b = [J, 0, -G, 0]
-#     d2a = [Kd*Kt, Kp*Kt]
-#     d2b = [J, 0, -G]
-#     d2c = [T**2 / 12, -T/2, 1]
-#     d3a = [Kd, Kp]
-#     d3b = [T**2 / 12, -T/2, 1]
-
-#     den1 = conv(d1a, d1b, mode='full') # s**5
-#     den2 = conv(conv(d2a, d2b, mode='full'), d2c, mode='full') # s**5
-#     den3 = conv(d3a, d3b, mode='full') # s**3
-#     den3 = np.pad(den3, (len(den2) - len(den3), 0), 'constant')
-
-#     den = den1 - den2 + den3
-#     system = signal.TransferFunction(num, den)
-
-#     return system

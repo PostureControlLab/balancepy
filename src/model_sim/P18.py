@@ -6,11 +6,10 @@ from scipy.signal import convolve as conv
 import balancepy as bp
 from joblib import Parallel, delayed
 import numpy.lib.recfunctions as rfn
+import balancepy as bp
+from .base_model import balancepyModel
 
-
-from .ModelClassDefinition import balancepyModel
-
-class A23(balancepyModel):
+class P18(balancepyModel):
 
 
     def __init__(self, mass_kg: Number, height_m: Number):
@@ -18,15 +17,19 @@ class A23(balancepyModel):
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.3 * WT.mgh / 180*np.pi
-        Kd = 0.48 * WT.mgh / 180*np.pi
+        Kp = 1.45 * WT.mgh / 180*np.pi
+        Kd = 0.44 * WT.mgh / 180*np.pi
 
-        self.params = np.array([mgh,    J,      Kp,     Kd,     0.05,    0.17,   0.1, 20,   1])
-        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'T',   'Kt', 'Ft', 'b']
-        self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3, 30, 10])
-        self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0, 3, 0.0001])
-        self.parfit_fix_mask = [True, True, False, False, False, False, False, True, False]
-        self.transfer_function = A23.get_transfer_function(self.params)
+        params = bp.ParameterSet()
+        params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
+        params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
+        params.add(bp.Parameter("Kp", Kp, bounds=(mgh, 2 * mgh), fixed=False))
+        params.add(bp.Parameter("Kd", Kd, bounds=(0, 1 * mgh), fixed=False))
+        params.add(bp.Parameter("Wv", 0.45, bounds=(0.01, 1), fixed=False))
+        params.add(bp.Parameter("dt", 0.16, bounds=(0.05, 0.3), fixed=False))
+        params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.3), fixed=False))
+
+        self.params = params
         
         self.stimulus = None
         self.response = None
@@ -45,25 +48,20 @@ class A23(balancepyModel):
 
         self.samplingrate: float = 90
 
-        self.frequency_response()
+        self.simulate_FD()
 
 
-    @staticmethod
-    def get_transfer_function(params):
-        # implemanted as static method to allow efficient use during bootstrapping
-        G, J, Kp, Kd, W, T, Kt, Ft, b = params
+    def transfer_function(self):
+        
+        p = self.params.to_value_dict()
 
-        num = [ -0.5*T*W*Kd*Ft, 
-               (W*Kd*Ft - 0.5*W*Kp*Ft*T - 0.5*T*W*Kd), 
-               W*Kp*Ft + W*Kd - 0.5*W*Kp*T, 
-               W*Kp ]
+        num = [ -0.5*p['dt']*p['Wv']*p['Kd'], (p['Wv']*p['Kd'] - 0.5*p['Wv']*p['Kp']*p['dt']), p['Wv']*p['Kp'], 0 ]
 
-        den = [ (0.5*Ft*J*T + 0.5*Kt*Kd*J*T ), 
-                (Ft*J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
-                (-0.5*G*Ft*T + J - Kt*Kp*J - 0.5*Kt*Kd*G*T - 0.5*Kp*Ft*T + Kd*Ft - 0.5*Kd*T),
-                (-Ft*G -0.5*G*T - 0.5*Kt*Kp*G*T + Kt*Kd*G + Kp*Ft - 0.5*Kp*T + Kd), 
-                (-G + Kt*Kp*G + Kp) ]
-
+        den = [ (0.5*p['J']*p['dt'] + 0.5*p['Kt']*p['Kd']*p['J']*p['dt'] ), 
+                (p['J'] + 0.5*p['Kt']*p['Kp']*p['J']*p['dt'] - p['Kt']*p['Kd']*p['J'] - 0.5*p['Kd']*p['dt']),
+                (-0.5*p['mgh']*p['dt'] - p['Kt']*p['Kp']*p['J'] - 0.5*p['Kt']*p['Kd']*p['mgh']*p['dt'] - 0.5*p['Kp']*p['dt'] + p['Kd']),
+                (-p['mgh'] - 0.5*p['Kt']*p['Kp']*p['mgh']*p['dt'] + p['Kt']*p['Kd']*p['mgh'] + p['Kp']), 
+                p['Kt']*p['Kp']*p['mgh'] ]
         transfer_function = signal.TransferFunction(num, den)
 
         return transfer_function
@@ -85,13 +83,13 @@ class A23(balancepyModel):
             reference_frf = self.FDexp['frf']
 
         assert len(freq) == len(reference_frf), "The lengths of freq and reference_frf must be the same"
-        
+
         #calculate model frequency response
         tf = self.get_transfer_function(params)
         w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
 
         #calculate objective
-        err = sum(np.log(2 * params[8] * abs(frf_sim))) + sum(abs(frf_sim - reference_frf) / (params[8] * abs(frf_sim)))
+        err = np.sum( np.abs(frf_sim - reference_frf) / np.abs(frf_sim) )
 
         return err
-    
+        

@@ -11,7 +11,7 @@ def calculate_com_2segmentmodel(
     hip_t: NDArray[np.number],
     hip_marker_height: np.number,
     height_m: float,
-    rotation: bool,
+    rotation: bool = True,
 ) -> NDArray:
     """Calculates center of mass from hip and shoulder movement using a 2 segment model and anthropometric tables.
 

@@ -16,6 +16,14 @@ from .plot import *
 from . import make_stimulus
 from .make_stimulus import *
 
+from .model_sim import base_model
+from .model_sim.base_model import *
+
+from .model_sim import parameters
+from .model_sim.parameters import *
+
+
+
 # from . import models
 # from .models import *
 # from .models import Peterka2018

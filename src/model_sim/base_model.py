@@ -17,11 +17,6 @@ class balancepyModel:
         J = WT.J / 180*np.pi
 
         self.params = None
-        self.params_names = None
-        self.parfit_ub = None
-        self.parfit_lb = None
-        self.parfit_fix_mask = None
-        self.transfer_function = None
         
         self.stimulus = None
         self.response = None
@@ -31,8 +26,6 @@ class balancepyModel:
         self.FDsim = None
         self.TDsim = None        
 
-        self.params_uCb = None
-        self.params_lCb = None
         self.fit_output = None
 
         self.selected_freq = None
@@ -40,43 +33,26 @@ class balancepyModel:
 
         self.samplingrate: float = None
 
-        # this parameter is used in the MultiConditionModel class
-        self.multimodel_paridx = None
-
-        self.frequency_response()
+        self.simulate_FD()
 
 
-    @staticmethod
-    def get_transfer_function(params):
-        # implemanted as static method to allow efficient use during bootstrapping
+    def transfer_function(self):
         pass
 
+    def objective(self, params_free = None):
+        assert (self.frequencies is not None), "Please provide a frequency vector for the objective function"
+        assert (self.reference_frf is not None), "Please provide a reference frequency response function for the objective function"
+        assert len(self.frequencies) == len(self.reference_frf), "The lengths of frequencies and reference_frf vectors must be the same"
 
+        # Set parameters if changed e.g. during fitting
+        if params_free is not None:
+            params = self.params.set_values(params_free, only_free=True)
 
-
-    def objective(self, params_free = None, freq = None, reference_frf = None):
-        assert (self.FDexp['freq'] is not None or freq is not None), "Please provide a frequency vector for the objective function"
-        assert (self.FDexp['frf'] is not None or reference_frf is not None), "Please provide a reference frequency response function for the objective function"
-
-        # Set default parameters
-        if params_free is None:
-            params = self.params
-        else:
-            params = self.wrap_params(params_free)
-
-        if freq is None:
-            freq = self.FDexp['freq']
-        if reference_frf is None:
-            reference_frf = self.FDexp['frf']
-
-        assert len(freq) == len(reference_frf), "The lengths of freq and reference_frf must be the same"
-        
         #calculate model frequency response
-        tf = self.get_transfer_function(params)
-        w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
+        w, frf_sim = signal.freqresp(self.transfer_function(), w=self.frequencies*2*np.pi)
 
         #calculate objective
-        err = sum(np.log(2 * params[8] * abs(frf_sim))) + sum(abs(frf_sim - reference_frf) / (params[8] * abs(frf_sim)))
+        err = np.sum( np.abs(frf_sim - self.reference_frf) / np.abs(frf_sim) )
 
         return err
     
@@ -101,32 +77,20 @@ class balancepyModel:
                     self.frfSmoothing,
                     )
         
-        self.frequency_response()
+        self.frequencies = self.FDexp['freq']
+        self.reference_frf = self.FDexp['frf']
+
+        self.simulate_FD()
         
 
-    def frequency_response(self, params=None, freq=None):
+    def simulate_FD(self, freq=None):
         
-        if params is None:
-            params = self.params
-
-        if freq is not None:
-            f = freq
-        elif freq is None and self.FDexp is not None and 'freq' in self.FDexp.dtype.names:
-            f = self.FDexp['freq']
-        else:
-            f = np.arange(0.01, 2.01, 0.01)
-        
-        FDsim = self.static_frequency_response(self, params=params, freq=f)
-
-        # Update the class instance if the simulation was performed on the experimental data of the instance
         if freq is None and self.FDexp is not None and 'freq' in self.FDexp.dtype.names:
-            self.FDsim = FDsim
-
-        return FDsim
-
-    @staticmethod
-    def static_frequency_response(self, params, freq):
-        tf = self.get_transfer_function(params)
+            freq = self.FDexp['freq']
+        elif freq is None:
+            freq = np.arange(0.01, 2.01, 0.01)
+        
+        tf = self.transfer_function()
         w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
 
         FDsim = rfn.merge_arrays([
@@ -137,26 +101,31 @@ class balancepyModel:
             ],
             flatten = True, usemask = False)
 
+        # Update the class instance if the simulation was performed on the experimental data of the instance
+        self.FDsim = FDsim
+
         return FDsim
 
-    def simulate(self, params=None, stimulus=None):
-        
-        if params is None:
-            params = self.params
 
+    def simulate_TD(self, stimulus=None):
+        
         if stimulus is not None:
+            self.stimulus = stimulus
             U = stimulus
             T = np.arange(0, stimulus.shape[0]) / self.samplingrate
         elif stimulus is None and self.TDexp is not None and 'stimulus_average' in self.TDexp.dtype.names:
             U = self.TDexp['stimulus_average']
             T = self.TDexp['time']
+        elif stimulus is None and self.stimulus is not None:
+            U = self.stimulus
+            T = np.arange(0, self.stimulus.shape[0]) / self.samplingrate
         else:
             U = None
             Warning('No stimulus provided for simulation')
         
         if U is not None:
             # Get the system response
-            time, TD_response_sim, x_out = signal.lsim(self.transfer_function, U=U, T=T)
+            time, TD_response_sim, x_out = signal.lsim(self.transfer_function(), U=U, T=T)
 
             TDsim = rfn.merge_arrays([  
                 np.array(time,    dtype=[('time','<f8')]),
@@ -175,10 +144,10 @@ class balancepyModel:
     def fit(self, reference_frf=None):
 
         # Set initial guess for free paramss
-        theta_free_init = self.unwrap_params()[0]
+        theta_free_init = self.params.values(only_free=True)
 
         # bounds = Bounds(self.parfit_lb[~np.array(self.parfit_fix_mask)], self.parfit_ub[~np.array(self.parfit_fix_mask)])
-        bounds = Bounds(self.unwrap_params(self.parfit_lb)[0], self.unwrap_params(self.parfit_ub)[0])
+        bounds = self.bounds()
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
 
         if reference_frf is not None:
@@ -187,11 +156,12 @@ class balancepyModel:
         else:
             fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
     
-        params_fit = self.wrap_params(fit_output.x)
+        params_fit = fit_output.x
+        self.params.set_values(params_fit, only_free=True)
 
         f = self.FDexp['freq']
 
-        FDsim = self.static_frequency_response(self, params=params_fit, freq=f)
+        FDsim = self.simulate_FD(self, params=params_fit, freq=f)
         transfer_function = self.get_transfer_function(params_fit)
 
         # update class instance, if fit was performed on the experimental data of the instance
@@ -201,7 +171,7 @@ class balancepyModel:
             self.fit_output = fit_output
             self.transfer_function = transfer_function
 
-            self.TDsim = self.simulate(params_fit, np.mean(self.stimulus,1))
+            self.TDsim = self.simulate_TD(params_fit, np.mean(self.stimulus,1))
 
 
         return params_fit, FDsim, transfer_function, fit_output
@@ -307,13 +277,13 @@ class balancepyModel:
 
         figure = None
 
-        if self.FDexp is not None and self.TDexp is not None:
+        if self.FDexp is not None:
             figure = bp.bode_plot(self.FDexp, self.TDexp,line_name='Experimental')
         else:
             print('No experimental data available for plotting')
 
-        if self.FDsim is not None and self.TDsim is not None:    
-           figure = bp.bode_plot(self.FDsim, self.TDsim,fig = figure, line_name='Simulated', params_names=self.params_names, params=self.params)
+        if self.FDsim is not None:    
+           figure = bp.bode_plot(self.FDsim, self.TDsim,fig = figure, line_name='Simulated')#, params_names=self.params_names, params=self.params)
         else:
             print('No simulated data available for plotting')
 
