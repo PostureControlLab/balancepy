@@ -136,7 +136,7 @@ def getdata_lifespan(
     stim_vis = data['stim_pitch']
     stim_surf = -data['analog4']
     
-    com = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+    com = bm.calculate_com_2segmentmodel(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
     if resample == True:
         com = ts.resample(time, com, sampling_rate, end_time)

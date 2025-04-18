@@ -147,7 +147,7 @@ class balancepyModel:
         theta_free_init = self.params.values(only_free=True)
 
         # bounds = Bounds(self.parfit_lb[~np.array(self.parfit_fix_mask)], self.parfit_ub[~np.array(self.parfit_fix_mask)])
-        bounds = self.bounds()
+        bounds = self.params.bounds()
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
 
         if reference_frf is not None:
@@ -161,20 +161,9 @@ class balancepyModel:
 
         f = self.FDexp['freq']
 
-        FDsim = self.simulate_FD(self, params=params_fit, freq=f)
-        transfer_function = self.get_transfer_function(params_fit)
+        self.simulate_FD()
+        self.simulate_TD()
 
-        # update class instance, if fit was performed on the experimental data of the instance
-        if reference_frf is None:
-            self.set_params(params_fit)
-            self.FDsim = FDsim
-            self.fit_output = fit_output
-            self.transfer_function = transfer_function
-
-            self.TDsim = self.simulate_TD(params_fit, np.mean(self.stimulus,1))
-
-
-        return params_fit, FDsim, transfer_function, fit_output
 
 
     def ConfidenceBounds_fit(self, N_bootstraps = 200):
@@ -229,49 +218,49 @@ class balancepyModel:
 
 
 
-    def set_params(self, params):
+    # def set_params(self, params):
 
-        if isinstance(params, dict):
-            for i, name in enumerate(self.params_names):
-                if name in params:
-                    self.params[i] = params[name]
-                else:
-                    raise ValueError(f"Parameter {name} not found in the model")
-        elif isinstance(params, np.ndarray):
-            self.params = params
+    #     if isinstance(params, dict):
+    #         for i, name in enumerate(self.params_names):
+    #             if name in params:
+    #                 self.params[i] = params[name]
+    #             else:
+    #                 raise ValueError(f"Parameter {name} not found in the model")
+    #     elif isinstance(params, np.ndarray):
+    #         self.params = params
 
-        self.transfer_function = self.get_transfer_function(self.params)
+    #     self.transfer_function = self.get_transfer_function(self.params)
 
-    def get_params(self):
-        if self.params_lCb is not None:
-            out = {
-                n: (p, lcb, ucb)
-                for n, p, lcb, ucb in zip(self.params_names, np.round(self.params,3), np.round(self.params_lCb,3), np.round(self.params_uCb,3))
-            }
+    # def get_params(self):
+    #     if self.params_lCb is not None:
+    #         out = {
+    #             n: (p, lcb, ucb)
+    #             for n, p, lcb, ucb in zip(self.params_names, np.round(self.params,3), np.round(self.params_lCb,3), np.round(self.params_uCb,3))
+    #         }
 
-        else:
-            out = dict(zip(self.params_names, self.params))
+    #     else:
+    #         out = dict(zip(self.params_names, self.params))
 
-        return out
+    #     return out
 
-    def wrap_params(self, params_free):
-        assert len(params_free) == np.sum(~np.array(self.parfit_fix_mask)), "The length of params_free must match the number specified in parfit_fix_mask"
+    # def wrap_params(self, params_free):
+    #     assert len(params_free) == np.sum(~np.array(self.parfit_fix_mask)), "The length of params_free must match the number specified in parfit_fix_mask"
         
-        # Reconstruct the full params vector by filling in the fixed values
-        params = np.zeros(len(self.parfit_fix_mask))
-        params[np.array(self.parfit_fix_mask)] = self.params[np.array(self.parfit_fix_mask)]  # Set fixed values
-        params[~np.array(self.parfit_fix_mask)] = params_free  # Set free params
+    #     # Reconstruct the full params vector by filling in the fixed values
+    #     params = np.zeros(len(self.parfit_fix_mask))
+    #     params[np.array(self.parfit_fix_mask)] = self.params[np.array(self.parfit_fix_mask)]  # Set fixed values
+    #     params[~np.array(self.parfit_fix_mask)] = params_free  # Set free params
 
-        return params
+    #     return params
     
-    def unwrap_params(self, params=None):
-        if params is None:
-            params = self.params
-        # Extract the free params from the full params vector
-        params_free = params[~np.array(self.parfit_fix_mask)]
-        params_fix = params[np.array(self.parfit_fix_mask)]
+    # def unwrap_params(self, params=None):
+    #     if params is None:
+    #         params = self.params
+    #     # Extract the free params from the full params vector
+    #     params_free = params[~np.array(self.parfit_fix_mask)]
+    #     params_fix = params[np.array(self.parfit_fix_mask)]
 
-        return params_free, params_fix
+    #     return params_free, params_fix
     
     def plot(self):
 

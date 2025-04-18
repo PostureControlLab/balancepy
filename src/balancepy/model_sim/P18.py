@@ -67,29 +67,21 @@ class P18(balancepyModel):
         return transfer_function
 
 
-    def objective(self, params_free = None, freq = None, reference_frf = None):
-        assert (self.FDexp['freq'] is not None or freq is not None), "Please provide a frequency vector for the objective function"
-        assert (self.FDexp['frf'] is not None or reference_frf is not None), "Please provide a reference frequency response function for the objective function"
+    def objective(self, params_free = None):
+        assert (self.frequencies is not None), "Please provide a frequency vector for the objective function"
+        assert (self.reference_frf is not None), "Please provide a reference frequency response function for the objective function"
+        assert len(self.frequencies) == len(self.reference_frf), "The lengths of frequencies and reference_frf vectors must be the same"
 
-        # Set default parameters
-        if params_free is None:
-            params = self.params
-        else:
-            params = self.wrap_params(params_free)
-
-        if freq is None:
-            freq = self.FDexp['freq']
-        if reference_frf is None:
-            reference_frf = self.FDexp['frf']
-
-        assert len(freq) == len(reference_frf), "The lengths of freq and reference_frf must be the same"
+        # Set parameters if changed e.g. during fitting
+        if params_free is not None:
+            params = self.params.set_values(params_free, only_free=True)
 
         #calculate model frequency response
-        tf = self.get_transfer_function(params)
-        w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
+        tf = self.transfer_function()
+        w, frf_sim = signal.freqresp(tf, w=self.frequencies*2*np.pi)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - reference_frf) / np.abs(frf_sim) )
+        err = np.sum( np.abs(frf_sim - self.reference_frf) / np.abs(frf_sim) )
 
         return err
         
