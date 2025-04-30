@@ -12,7 +12,7 @@ class Parameter:
         self.description = description
 
     def __repr__(self):
-        return f"Parameter(name={self.name}, default={self.default}, bounds={self.bounds})"
+        return f"Parameter(name={self.name}, value={self.value}, bounds={self.bounds}, fixed={self.fixed}, unit={self.unit}, description={self.description})"
 
 class ParameterSet:
     def __init__(self):
@@ -23,9 +23,23 @@ class ParameterSet:
 
     def __getitem__(self, name):
         return self._params[name]
+    
+    def __setitem__(self, name, value):
+        if name in self._params:
+            self._params[name].value = value  # Update the value of the existing parameter
+        else:
+            raise KeyError(f"Parameter '{name}' does not exist in the ParameterSet.")
 
     def __iter__(self):
         return iter(self._params.values())
+
+    def __repr__(self):
+        # Create a summary of all parameters, each on a new line
+        param_summaries = [
+            f"{name}: value={param.value}, bounds={param.bounds}, fixed={param.fixed}"
+            for name, param in self._params.items()
+        ]
+        return "ParameterSet( \n    " + ",\n    ".join(param_summaries) + "\n    )"
 
     def items(self):
         return self._params.items()
@@ -60,6 +74,10 @@ class ParameterSet:
             if not only_free or not p.fixed:
                 p.value = values[i]
                 i += 1
+
+    def set_defaults(self):
+        for p in self._params.values():
+            p.value = p.default
 
     def to_value_dict(self, only_free=False):
         if only_free:

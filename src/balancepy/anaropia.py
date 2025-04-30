@@ -64,7 +64,8 @@ def getdata_legacy(
     sampling_rate: int = 90,
     end_time: float = 220,
     cycle_start_samples: int = 20*90,
-    cycle_length_samples: int = 20*90
+    cycle_length_samples: int = 20*90,
+    stimulus: str='stim_pitch'
 ) -> NDArray:
     """This script reads in the data from the legacy balance experiments and returns the time domain data for the COM and the stimulus
 
@@ -87,9 +88,9 @@ def getdata_legacy(
     data = np.genfromtxt(filename, delimiter=',', names=True)
 
     time = data['time']
-    stim = data['stim_pitch']
+    stim = data[stimulus]
     
-    com = bm.com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+    com = bm.calculate_com_2segmentmodel(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
     if resample == True:
         com = ts.resample(time, com, sampling_rate, end_time)
@@ -107,29 +108,31 @@ def getdata_lifespan(
     filename: str,
     body_height: float,
     resample: bool=True,
-    cut_to_cycles: bool=True
+    cut_to_cycles: bool=True,
+    sampling_rate: int = 90,
+    end_time: float = 220,
+    cycle_start_samples: int = 20*90,
+    cycle_length_samples: int = 20*90
 ) -> NDArray:
-    """run full analysis pipeline for anaropia data
+    """This function reads in the data from the lifespan balance experiments and returns the time domain data for the COM, visual stimulus, and proprioceptive stimulus.
 
     Args:
-        fname (str): path and filename to be analyzed
-        body_height (float): height of subject
-        body_mass (float): mass of subject
+        filename (str): path and filename to be analyzed
+        body_height (float): height of the subject
+        resample (bool): resample data to 90 Hz
+        cut_to_cycles (bool): cut data to cycles
+        sampling_rate (int): desired sampling rate
+        end_time (float): end time of the experiment
+        cycle_start_samples (int): start of the cycle
+        cycle_length_samples (int): length of the cycle
 
     Returns:
-        NDArray: 2D experimental frequency domain data longer stimulus component
-        NDArray: 2D experimental time domain data longer stimulus component
-        NDArray: 2D experimental frequency domain data shorter stimulus component
-        NDArray: 2D experimental time domain data shorter stimulus component
+        NDArray: experimental center of mass sway in anterior-posterior direction
+        NDArray: visual stimulus data
+        NDArray: proprioceptive stimulus data
+        NDArray: time data
     """
 
-    sampling_rate = 90 # numer gives desired sampling rate; 0 means no resampling
-    end_time = 220
-    cycle_start_samples = 20*sampling_rate
-    cycle_length_samples = 20*sampling_rate
-    # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
-    # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
-    
     data = np.genfromtxt(filename, delimiter=',', names=True)
 
     time = data['time']

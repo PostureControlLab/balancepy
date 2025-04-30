@@ -26,7 +26,9 @@ def calculate_com_2segmentmodel(
     Returns:
         NDArray: 1D center of mass
     """
-
+    """
+    This function calculates the center of mass (COM) using a 2-segment model based on anthropometric data.
+    """
     assert shoulder_t.ndim == 1
     assert hip_t.ndim == 1
 
