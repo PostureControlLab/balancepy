@@ -25,6 +25,10 @@ documentation for details.
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: balancepy.model_sim.P18
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 .. automodule:: balancepy.frequency
    :members:

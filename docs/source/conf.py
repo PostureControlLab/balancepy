@@ -18,6 +18,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',  # For Google/NumPy docstrings
     'sphinx_autodoc_typehints',
+    'sphinx.ext.mathjax'
 ]
 
 templates_path = ['_templates']

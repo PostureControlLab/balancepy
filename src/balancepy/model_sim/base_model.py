@@ -14,7 +14,7 @@ class balancepyModel:
         "height_m": None,
         "stimulus_cycles": None,
         "response_cycles": None,
-        "frequencies_Hz": np.arange(0.01, 2.01, 0.01),
+        "frequencies_Hz": np.arange(0.01, 2.51, 0.01),
         "frequency_selection": None,
         "samplingrate_Hz": None,
     }
@@ -43,13 +43,13 @@ class balancepyModel:
 
         # Assign attributes from the configuration
         self.ModelName = config["ModelName"]
-        self.stimulus_frequencies_index = config["stimulus_frequencies_index"]
-        self.stimulus_frequencies_type = config["stimulus_frequencies_type"]
+        self.frequency_selection = config["frequency_selection"]
         self.samplingrate_Hz = config["samplingrate_Hz"]
-        self.frequencies_Hz = config["frequencies_Hz"]
 
         # Initialize other attributes
-        self.data_sim = bp.simulation_data
+        self.data_sim = bp.simulation_data()
+        self.data_sim.samplingrate_Hz = self.samplingrate_Hz
+        self.data_sim.freq = config["frequencies_Hz"]
         self.data_exp = None
         
         self.fit_reference = None
@@ -71,7 +71,7 @@ class balancepyModel:
         Includes ModelName, ParameterSet, frequencies_Hz, fit_reference, and samplingrate_Hz.
         """
         param_summary = repr(self.params) if hasattr(self, 'params') else "No parameters defined"
-        frequencies_summary = f"{len(self.frequencies_Hz)} frequencies from {self.frequencies_Hz[0]} to {self.frequencies_Hz[-1]}" if self.frequencies_Hz is not None else "No frequencies defined"
+        frequencies_summary = f"{len(self.freq)} frequencies from {self.freq[0]} to {self.freq[-1]}" if self.freq is not None else "No frequencies defined"
         fit_reference_summary = "Defined" if self.fit_reference is not None else "Not defined"
         samplingrate_summary = f"{self.samplingrate_Hz} Hz" if self.samplingrate_Hz is not None else "Not defined"
 
@@ -107,7 +107,7 @@ class balancepyModel:
     def dynamics(self):
         pass
     
-    def add_simulation_stimulus(self, stimulus_cycles, frequency_selection=None):
+    def add_stimulus(self, stimulus_cycles, frequency_selection=None):
         
         self.data_sim.samplingrate_Hz = self.samplingrate_Hz
         self.data_sim.stimulus = stimulus_cycles
@@ -156,6 +156,8 @@ class balancepyModel:
 
         self.data_exp = data_exp
 
+        self.fit_reference = self.data_exp.frf
+
         self.data_sim.samplingrate_Hz = samplingrate_Hz
         self.data_sim.stimulus = data_exp.stimulus.average
         self.data_sim.time = data_exp.time
@@ -176,6 +178,8 @@ class balancepyModel:
         w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
 
         self.data_sim.frf = frf_sim
+        # self.data_sim.gain = abs(frf_sim)
+        # self.data_sim.phase = bp.phase(frf_sim, freq)
 
         return self.data_sim
 
@@ -189,7 +193,7 @@ class balancepyModel:
         Returns:
             TDsim (ndarray): The simulated time domain response.
         """
-        assert self.data_sim.stimulus is not None and stimulus is not None, "No stimulus provided for time domain simulation"
+        assert self.data_sim.stimulus is not None or stimulus is not None, "No stimulus provided for time domain simulation"
         
         if stimulus is not None:
             assert stimulus.ndim == 1, "Stimulus must be a 1D array"
@@ -206,16 +210,14 @@ class balancepyModel:
         return self.data_sim
 
     def objective(self, params_free = None):
-        assert (self.frequencies_Hz is not None), "Please provide a frequency vector for the objective function"
-        assert (self.reference_frf is not None), "Please provide a reference frequency response function for the objective function"
-        assert len(self.frequencies_Hz) == len(self.reference_frf), "The lengths of frequencies and reference_frf vectors must be the same"
+        assert (self.fit_reference is not None), "No reference data available for fitting"
 
         # Set parameters if changed e.g. during fitting
         if params_free is not None:
             params = self.params.set_values(params_free, only_free=True)
 
         #calculate model frequency response
-        w, frf_sim = signal.freqresp(self.dynamics(), w=self.frequencies_Hz*2*np.pi)
+        w, frf_sim = signal.freqresp(self.dynamics(), w=self.freq*2*np.pi)
 
         #calculate objective
         err = np.sum( np.abs(frf_sim - self.reference_frf) / np.abs(frf_sim) )
@@ -245,13 +247,13 @@ class balancepyModel:
 
         figure = None
 
-        if self.FDexp is not None:
-            figure = bp.bode_plot(self.FDexp, self.TDexp,line_name='Experimental')
+        if self.data_exp is not None:
+            figure = bp.bode_plot(self.data_exp,line_name='Experimental')
         else:
             print('No experimental data available for plotting')
 
-        if self.FDsim is not None:    
-           figure = bp.bode_plot(self.FDsim, self.TDsim,fig = figure, line_name='Simulated')#, params_names=self.params_names, params=self.params)
+        if self.data_sim is not None:    
+           figure = bp.bode_plot(self.data_sim,fig = figure, line_name='Simulated')#, params_names=self.params_names, params=self.params)
         else:
             print('No simulated data available for plotting')
 

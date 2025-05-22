@@ -16,9 +16,8 @@ class P18(balancepyModel):
         "height_m": None,
         "stimulus_cycles": None,
         "response_cycles": None,
-        "frequencies_Hz": np.arange(0.01, 2.01, 0.01),
-        "stimulus_frequencies_index": None,
-        "stimulus_frequencies_type": 'prts',
+        "frequencies_Hz": np.arange(0.01, 2.51, 0.01),
+        "frequency_selection": 'prts',
         "samplingrate_Hz": 90,
     }
 
@@ -70,9 +69,24 @@ class P18(balancepyModel):
 
 
     def objective(self, params_free = None):
-        assert (self.frequencies_Hz is not None), "Please provide a frequency vector for the objective function"
-        assert (self.fit_reference is not None), "Please provide a reference frequency response function for the objective function"
-        assert len(self.frequencies_Hz) == len(self.fit_reference), "The lengths of frequencies and reference_frf vectors must be the same"
+        r"""
+        Objective function for optimization.
+        Applies a smoothing of the frf across frequencies.
+        The error is given by
+
+        .. math::
+
+           \mathrm{err} = \sum_{i} \frac{ \left| H_{\mathrm{sim},i} - H_{\mathrm{exp},i} \right| }{ \left| H_{\mathrm{sim},i} \right| }
+
+        where :math:`H_{\mathrm{sim},i}` is the smoothed simulated FRF at frequency index :math:`i`, and :math:`H_{\mathrm{exp},i}` is the smoothed experimental/reference FRF.
+
+        Args:
+            params_free: Parameters to be optimized.
+
+        Returns:
+            err: Objective function value.
+        """
+        assert (self.fit_reference is not None), "No reference data available for fitting"
 
         # Set parameters if changed e.g. during fitting
         if params_free is not None:
@@ -80,23 +94,23 @@ class P18(balancepyModel):
 
         #calculate model frequency response
         tf = self.dynamics()
-        w, frf_sim = signal.freqresp(tf, w=self.frequencies_Hz*2*np.pi)
+        w, frf_sim = signal.freqresp(tf, w=self.data_sim.freq*2*np.pi)
 
         #smooth frequency response functions
-        frf_sim = frf_smoothing(frf_sim, self.frequencies_Hz)
-        frf_exp = frf_smoothing(self.fit_reference, self.frequencies_Hz)
+        frf_sim = frf_smoothing(frf_sim, self.data_sim.freq)
+        frf_exp = frf_smoothing(self.fit_reference, self.data_sim.freq)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - frf_exp) / np.abs(frf_sim) )
+        err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))
 
         return err
 
 
 # smoothing function for the frequency response function
 # is applied during the calculation of the objective function
-def frf_smoothing(frf, frequencies_Hz):
+def frf_smoothing(frf, freq):
 
-    index = np.searchsorted(frequencies_Hz, 2.51, side='left')
+    index = np.searchsorted(freq, 2.51, side='left')
     if index < 20:
         return logspace_manual_10s(frf)
     elif index < 75:

@@ -81,5 +81,5 @@ class ParameterSet:
 
     def to_value_dict(self, only_free=False):
         if only_free:
-            return {name: p.value for name, p in self._params.items() if not p.fixed}
-        return {name: p.value for name, p in self._params.items()}
+            return {name: float(p.value) for name, p in self._params.items() if not p.fixed}
+        return {name: float(p.value) for name, p in self._params.items()}

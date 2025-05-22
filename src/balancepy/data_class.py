@@ -11,20 +11,20 @@ class stimulus_response_data:
     Class for handling balancepy stimulus-response data in the frequency domain.
     This class is used to calculate the frequency response function (FRF), gain, phase, and coherence of a system based on the input stimulus and output response data.
     It also provides methods for selecting specific frequencies from the data.
-    Attributes:
+    Args:
         samplingrate_Hz (int): Sampling rate in Hz.
         stimulus (NDArray[np.number]): Input stimulus data.
         response (NDArray[np.number]): Output response data.
         frequency_selection (str or list): Type of frequency selection ('all', 'prts', 'double_prts', or a list of indices).
+    Attributes:
         time (NDArray[np.number]): Time vector calculated from the stimulus data.
         freq (NDArray[np.number]): Frequency vector calculated from the stimulus and response data.
         stimulus_spectrum (NDArray[np.number]): Spectrum of the input stimulus data.
         response_spectrum (NDArray[np.number]): Spectrum of the output response data.
-    Methods:
         frf: Returns the frequency response function (FRF) of the system.
-        gain: Returns the gain of the system.
-        phase: Returns the phase of the system.
-        coherence: Returns the coherence of the system.
+        gain: Returns the gain of the frf.
+        phase: Returns the phase of the frf.
+        coherence: Returns the coherence of the stimulus-response data.
     """
     def __init__(self, samplingrate_Hz: int, stimulus: NDArray[np.number], response: NDArray[np.number]=None, frequency_selection='all'):
         assert isinstance(samplingrate_Hz, int) and samplingrate_Hz > 0, "Samplingrate must be a positive integer."
@@ -170,13 +170,13 @@ class FD:
 
     @property
     def average(self):
-        return np.mean(self.cycles, axis=1)
+        return np.asarray(np.mean(self.cycles, axis=1))
 
     @property
     def PSD(self):
         avg = np.mean(self.cycles, axis=1)
         PSD = 1 / (self.samplingrate_Hz*2) * abs(avg)**2
-        return np.sum(np.abs(self.cycles) ** 2)
+        return np.asarray(np.sum(np.abs(self.cycles) ** 2))
     
     # def remnants(self):
     #     # Returns the difference between each cycle and the average cycle
@@ -193,12 +193,19 @@ class TD:
 
     @property
     def average(self):
-        return np.mean(self.cycles, axis=1)
+        if self.cycles.ndim == 2:
+            avg = np.mean(self.cycles, axis=1)
+        else:
+            avg = self.cycles
+        return np.asarray(avg)
 
     @property
     def average_0(self):
-        avg = np.mean(self.cycles, axis=1)
-        return avg - np.mean(avg)
+        if self.cycles.ndim == 2:
+            avg = np.mean(self.cycles, axis=1)
+        else:
+            avg = self.cycles
+        return np.asarray(avg - np.mean(avg))
 
 class simulation_data:
     """
@@ -235,9 +242,9 @@ class simulation_data:
     @property
     def gain(self):
         """Returns the gain of the system."""
-        return abs(self.frf)
+        return np.asarray(abs(self.frf))
     
     @property
     def phase(self):
         """Returns the phase of the system."""
-        return bp.phase(self.frf, self.freq)
+        return np.asarray(bp.phase(self.frf, self.freq))
