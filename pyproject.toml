@@ -11,17 +11,34 @@ authors = [
 ]
 description = "Human balance analysis using Python"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "numpy"
+  "numpy",
+  "scipy",
+  "hatchling",
+  "pandas",
+  "ipykernel",
+  "plotly",
+  "nbformat",
+  "openpyxl",
+  "scikit-rf",
+  "statsmodels",
+  "joblib",
+  "ipywidgets",
+  "kaleido",
+  "scikits-bootstrap"
 ]
+
+
+
 
 [project.urls]
 Homepage = "https://github.com/PostureControlLab/balancepy"
 Issues = "https://github.com/PostureControlLab/balancepy/issues"
+
 

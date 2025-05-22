@@ -22,6 +22,11 @@ from .model_sim.base_model import *
 from .model_sim import parameters
 from .model_sim.parameters import *
 
+from . import model_tests
+from .model_tests import *
+
+from . import data_class
+from .data_class import *
 
 # from . import models
 # from .models import *

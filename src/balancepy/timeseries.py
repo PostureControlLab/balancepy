@@ -11,15 +11,15 @@ def resample(
     time_s: NDArray[np.number],
     data: NDArray[np.number],
     sampling_rate: float,
-    end_time_s: float = 0,
+    end_time_seconds: float = 0,
 ) -> NDArray:
     """resamples to fixed sample rate
 
     Args:
-        time_s (NDArray[np.number]): 1D timestamps of original recording in seconds
-        data (NDArray[np.number]): 1D or 2D data array to be resampled
-        sr (float): sampling rate in samples/second
-        end_time_s (float, optional): optional end time of resampled data in seconds. Defaults to 0.
+        time_s (np.ndarray): 1D timestamps of original recording in seconds
+        data (np.ndarray): 1D or 2D data array to be resampled
+        sr (int): sampling rate in samples/second
+        end_time_seconds (float, optional): optional end time of resampled data in seconds. Defaults to 0.
 
     Returns:
         NDArray: 1D or 2D with resampled data input
@@ -27,11 +27,11 @@ def resample(
 
     assert time_s.ndim == 1
 
-    if end_time_s == 0:
-        end_time_s = max(time_s) # get end of recording
-        end_time_s = end_time_s - np.mod(end_time_s,1/sampling_rate) # cut at last resampled data point
+    if end_time_seconds == 0:
+        end_time_seconds = max(time_s) # get end of recording
+        end_time_seconds = end_time_seconds - np.mod(end_time_seconds,1/sampling_rate) # cut at last resampled data point
 
-    new_time_vector = np.arange(1/sampling_rate, end_time_s+1/sampling_rate, 1/sampling_rate) # define time vector ]0, t_end]
+    new_time_vector = np.arange(1/sampling_rate, end_time_seconds+1/sampling_rate, 1/sampling_rate) # define time vector ]0, t_end]
 
     out = interp1d(time_s, data, kind='cubic', fill_value='extrapolate')(new_time_vector)
 
@@ -40,22 +40,22 @@ def resample(
 
 
 def cut_to_cycles(
-    data: NDArray[np.number],
+    data: NDArray,
     cycle_start_samples: int = 0,
     cycle_length_samples: int = 20*90,
-    discard_cycles_list: list = []
+    discard_cycles_index: NDArray[int] = []
     ) -> NDArray:
     """
-    Cuts the data into cycles based on the provided cycle length, number of cycles, and cycle start.
+    Cuts the data into cycles based on the provided cycle length, number of cycles, and a given start sample.
 
     Args:
-    data (NDArray[np.number]): 1D data array to be cut into cycles
-    cycle_length_samples (int): Length of cycles in samples
-    cycle_start_sample (int, optional): Index of first sample of the first cycle
-    discard_cycles_list (NDArray[np.number], optional): List of cycles to discard starting at 0 for first cycle
+        data (NDArray): 1D data array to be cut into cycles
+        cycle_length_samples (int): Length of cycles in samples
+        cycle_start_sample (int, optional): Index of first sample of the first cycle
+        discard_cycles_list (NDArray[int], optional): List of cycles to discard starting at 0 for first cycle
 
     Returns:
-    NDArray: 2D array with cycles in rows
+        NDArray: 2D array with cycles in columns
     """
     
     assert data.ndim == 1, "Data must be 1D array"
@@ -72,7 +72,7 @@ def cut_to_cycles(
 
     # remove cycles that are marked to be discarded
     ind = np.ones(ncyc, dtype=bool) # create ncyc-long list of True
-    ind[discard_cycles_list] = False # set all discard cycles to False in list
+    ind[discard_cycles_index] = False # set all discard cycles to False in list
 
     out = out[:, ind] # select only cycles marked with True
 

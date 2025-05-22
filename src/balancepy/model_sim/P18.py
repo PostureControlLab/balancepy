@@ -12,26 +12,20 @@ from .base_model import balancepyModel
 class P18(balancepyModel):
     default_config = {
         "ModelName": "Peterka2018",
-        "stimulus": None,
-        "response": None,
-        "FDexp": None,
-        "TDexp": None,
-        "FDsim": None,
-        "TDsim": None,
-        "frequencies": np.arange(0.01, 2.01, 0.01),
-        "fit_reference": None,
-        "fit_output": None,
-        "params_uCb": None,
-        "params_lCb": None,
-        "selected_freq": 'prts',
-        "frfSmoothing": lambda x, f: bp.logspace_manual_20s(x,f),
-        "samplingrate": 90,
+        "mass_kg": None,
+        "height_m": None,
+        "stimulus_cycles": None,
+        "response_cycles": None,
+        "frequencies_Hz": np.arange(0.01, 2.01, 0.01),
+        "stimulus_frequencies_index": None,
+        "stimulus_frequencies_type": 'prts',
+        "samplingrate_Hz": 90,
     }
 
     def create_parameters(self, mass_kg: Number, height_m: Number):
         """
         Create a set of parameters for the model.
-        Parameters:
+        Args:
             mass_kg (Number): Mass in kilograms.
             height_m (Number): Height in meters.
         Returns:
@@ -55,7 +49,7 @@ class P18(balancepyModel):
 
         return params
 
-    def transfer_function(self):
+    def dynamics(self):
         
         p = self.params.to_value_dict()
 
@@ -76,20 +70,143 @@ class P18(balancepyModel):
 
 
     def objective(self, params_free = None):
-        assert (self.frequencies is not None), "Please provide a frequency vector for the objective function"
+        assert (self.frequencies_Hz is not None), "Please provide a frequency vector for the objective function"
         assert (self.fit_reference is not None), "Please provide a reference frequency response function for the objective function"
-        assert len(self.frequencies) == len(self.fit_reference), "The lengths of frequencies and reference_frf vectors must be the same"
+        assert len(self.frequencies_Hz) == len(self.fit_reference), "The lengths of frequencies and reference_frf vectors must be the same"
 
         # Set parameters if changed e.g. during fitting
         if params_free is not None:
             self.params.set_values(params_free, only_free=True)
 
         #calculate model frequency response
-        tf = self.transfer_function()
-        w, frf_sim = signal.freqresp(tf, w=self.frequencies*2*np.pi)
+        tf = self.dynamics()
+        w, frf_sim = signal.freqresp(tf, w=self.frequencies_Hz*2*np.pi)
+
+        #smooth frequency response functions
+        frf_sim = frf_smoothing(frf_sim, self.frequencies_Hz)
+        frf_exp = frf_smoothing(self.fit_reference, self.frequencies_Hz)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - self.fit_reference) / np.abs(frf_sim) )
+        err = np.sum( np.abs(frf_sim - frf_exp) / np.abs(frf_sim) )
 
         return err
-        
+
+
+# smoothing function for the frequency response function
+# is applied during the calculation of the objective function
+def frf_smoothing(frf, frequencies_Hz):
+
+    index = np.searchsorted(frequencies_Hz, 2.51, side='left')
+    if index < 20:
+        return logspace_manual_10s(frf)
+    elif index < 75:
+        return logspace_manual_20s(frf)
+    else:
+        return logspace_manual_60s(frf)
+
+def logspace_manual_10s(x):
+    if x.ndim == 1:
+        reduced_x = np.array([
+            x[0],               # :,1
+            np.mean(x[0:2]),    # :,1:2
+            x[1],               # :,2
+            np.mean(x[1:3]),    # :,2:3
+            np.mean(x[2:4]),    # :,3:4
+            np.mean(x[3:5]),    # :,4:5
+            np.mean(x[4:7]),    # :,5:7
+            np.mean(x[5:9]),    # :,6:9
+            np.mean(x[7:10])    # :,8:10
+        ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[:,0],
+            np.mean(x[:,0:2], axis=1),
+            x[:,1],
+            np.mean(x[:,1:3], axis=1),
+            np.mean(x[:,2:4], axis=1),
+            np.mean(x[:,3:5], axis=1),
+            np.mean(x[:,4:7], axis=1),
+            np.mean(x[:,5:9], axis=1),
+            np.mean(x[:,7:10], axis=1)
+        ])
+    return reduced_x
+
+
+def logspace_manual_20s(x):
+    if x.ndim == 1:
+        reduced_x = np.array([
+            x[0],                # :,1
+            np.mean(x[0:2]),     # :,1:2
+            x[1],                # :,2
+            np.mean(x[1:3]),     # :,2:3
+            np.mean(x[2:4]),     # :,3:4
+            np.mean(x[3:5]),     # :,4:5
+            np.mean(x[4:7]),     # :,5:7
+            np.mean(x[5:9]),     # :,6:9
+            np.mean(x[7:11]),    # :,8:11
+            np.mean(x[9:13]),    # :,10:13
+            np.mean(x[11:16]),   # :,12:16
+            np.mean(x[15:20])    # :,16:20
+        ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[:,0],
+            np.mean(x[:,0:2], axis=1),
+            x[:,1],
+            np.mean(x[:,1:3], axis=1),
+            np.mean(x[:,2:4], axis=1),
+            np.mean(x[:,3:5], axis=1),
+            np.mean(x[:,4:7], axis=1),
+            np.mean(x[:,5:9], axis=1),
+            np.mean(x[:,7:11], axis=1),
+            np.mean(x[:,9:13], axis=1),
+            np.mean(x[:,11:16], axis=1),
+            np.mean(x[:,15:20], axis=1)
+        ])
+    return reduced_x
+
+def logspace_manual_60s(x):
+    if x.ndim == 1:
+        reduced_x = np.array([
+            x[0],                 # :,1
+            x[1],                 # :,2
+            np.mean(x[2:4]),      # :,3:4
+            np.mean(x[3:5]),      # :,4:5
+            np.mean(x[4:7]),      # :,5:7
+            np.mean(x[5:9]),      # :,6:9
+            np.mean(x[7:11]),     # :,8:11
+            np.mean(x[9:13]),     # :,10:13
+            np.mean(x[11:16]),    # :,12:16
+            np.mean(x[15:20]),    # :,16:20
+            np.mean(x[19:25]),    # :,20:25
+            np.mean(x[24:32]),    # :,25:32
+            np.mean(x[31:40]),    # :,32:40
+            np.mean(x[39:49]),    # :,40:49
+            np.mean(x[48:59]),    # :,49:59
+            np.mean(x[53:66]),    # :,54:66
+            np.mean(x[60:75])     # :,61:75
+        ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[:,0],
+            x[:,1],
+            np.mean(x[:,2:4], axis=1),
+            np.mean(x[:,3:5], axis=1),
+            np.mean(x[:,4:7], axis=1),
+            np.mean(x[:,5:9], axis=1),
+            np.mean(x[:,7:11], axis=1),
+            np.mean(x[:,9:13], axis=1),
+            np.mean(x[:,11:16], axis=1),
+            np.mean(x[:,15:20], axis=1),
+            np.mean(x[:,19:25], axis=1),
+            np.mean(x[:,24:32], axis=1),
+            np.mean(x[:,31:40], axis=1),
+            np.mean(x[:,39:49], axis=1),
+            np.mean(x[:,48:59], axis=1),
+            np.mean(x[:,53:66], axis=1),
+            np.mean(x[:,60:75], axis=1)
+        ])
+    return reduced_x
+
+
+

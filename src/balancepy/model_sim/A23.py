@@ -26,7 +26,7 @@ class A23(balancepyModel):
         self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3, 30, 10])
         self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0, 3, 0.0001])
         self.parfit_fix_mask = [True, True, False, False, False, False, False, True, False]
-        self.transfer_function = A23.get_transfer_function(self.params)
+        self.dynamics = A23.get_transfer_function(self.params)
         
         self.stimulus = None
         self.response = None

@@ -1,11 +1,12 @@
 import numpy as np
+import warnings
 
 
-def get_mseq(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state=0.25, power=4, base=3, seq=1, shift=0):
+def make_stimulus(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state=0.25, power=4, base=3, seq=1, shift=0):
     """
     Generate a stimulus based on m-sequence or other types.
 
-    Parameters:
+    Args:
         type (str): Type of stimulus ('Peterka2002', 'prts80', 'mseq', etc.).
         ncyc (int): Number of cycles to repeat the stimulus.
         ampl (float): Amplitude of the stimulus.
@@ -23,7 +24,7 @@ def get_mseq(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state=0.25
     """
     if type == 'Peterka2002':
         ms = mseq(3, 5, shift=37, which_seq=2)  # Peterka 2002 stimulus
-    elif type == 'prts80':
+    elif type == 'prts_20s':
         ms = mseq(3, 4, shift=59, which_seq=1)  # Standard 20s stimulus
     elif type == 'mseq':
         ms = mseq(base, power, shift=shift, which_seq=seq)
@@ -34,10 +35,16 @@ def get_mseq(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state=0.25
     else:
         raise ValueError(f"Unknown type: {type}")
 
+    # if a velocity is specified, scale the stimulus to the velocity
     if vel != 0:
         ms = ms * vel
 
+    # integrate the m-sequence to get the position sequence of the stimulus
+    if not (t_state * samplingrate).is_integer():
+        warnings.warn("samplingrate does not allow duration of individual prts states")
     stim = np.cumsum(np.repeat(ms, int(t_state * samplingrate)) / samplingrate)
+
+    # 
     if vel == 0:
         stim = stim / (np.max(stim) - np.min(stim)) * ampl
 
@@ -49,7 +56,7 @@ def mseq(base_val, power_val, shift=1, which_seq=1):
     """
     Generate a maximum length sequence (m-sequence).
 
-    Parameters:
+    Args:
         base_val (int): Number of sequence levels (2, 3, or 5 allowed).
         power_val (int): Power, so that sequence length is base_val^power_val - 1.
         shift (int): Cyclical shift of the sequence.
