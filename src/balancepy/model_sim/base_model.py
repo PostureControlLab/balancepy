@@ -8,18 +8,48 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class balancepyModel:
+    """
+    balancepyModel is a base class for balancepy model simulations, providing a framework for parameter management, data handling, simulation, and model fitting.
+
+    Attributes:
+        default_config (dict): Default configuration for the model, including keys such as "ModelName", "mass_kg", "height_m", and "data_exp".
+        params (ParameterSet): Model parameters, created by the subclass implementation of create_parameters().
+        ModelName (str or None): Name of the model.
+        data_exp (stimulus_response_data or None): Experimental data object.
+        data_sim (stimulus_response_data or None): Simulated data object.
+        fit_output (object or None): Output of the fitting procedure.
+
+    Methods:
+        __init__(self, mass_kg: Number = None, height_m: Number = None, data_exp = None, ModelName: str = None)
+            Initializes the balancepyModel with mass, height, and optional experimental data and model name.
+        __repr__(self)
+            Returns a detailed string representation of the balancepyModel object.
+        create_parameters(self, mass_kg: Number, height_m: Number)
+            Abstract method to create a set of parameters for the model. Must be implemented by subclasses.
+        dynamics(self)
+            Abstract method to define the system dynamics. Must be implemented by subclasses.
+        add_data(self, data_exp)
+            Adds experimental data to the model and triggers fitting.
+        freqresp(self)
+            Simulates the frequency domain response of the system.
+        run_stimulus(self, stimulus, samplingrate_Hz, frequency_selection=None)
+            Simulates the time domain response of the system using the provided stimulus.
+        objective(self, params_free = None)
+            Objective function for model fitting, comparing simulated and reference frequency responses.
+        fit(self)
+            Fits the model parameters to the reference data using optimization.
+        plot(self)
+            Plots the experimental and simulated frequency response data.
+    """
     default_config = {
         "ModelName": None,
         "mass_kg": None,
         "height_m": None,
-        "stimulus_cycles": None,
-        "response_cycles": None,
-        "frequencies_Hz": np.arange(0.01, 2.51, 0.01),
-        "frequency_selection": None,
-        "samplingrate_Hz": None,
-    }
+        "data_exp": None,
+        "freq": None
+        }
 
-    def __init__(self, mass_kg: Number = None, height_m: Number = None, config=None):
+    def __init__(self, mass_kg: Number = None, height_m: Number = None, data_exp = None, ModelName: str = None, config: dict = None):
         """
         Initialize the balancepyModel with mass and height.
         Args:
@@ -34,36 +64,21 @@ class balancepyModel:
         # Allow mass_kg and height_m to be provided via config if not directly passed
         mass_kg = mass_kg if mass_kg is not None else config["mass_kg"]
         height_m = height_m if height_m is not None else config["height_m"]
-
         if mass_kg is None or height_m is None:
             raise ValueError("Both mass_kg and height_m must be provided.")
+        else:
+            # Initialize parameters
+            self.params = self.create_parameters(mass_kg, height_m)
 
-        # Initialize parameters
-        self.params = self.create_parameters(mass_kg, height_m)
+        self.data_exp = data_exp if data_exp is not None else config["data_exp"]
+        self.ModelName = ModelName if ModelName is not None else config["ModelName"]
 
-        # Assign attributes from the configuration
-        self.ModelName = config["ModelName"]
-        self.frequency_selection = config["frequency_selection"]
-        self.samplingrate_Hz = config["samplingrate_Hz"]
-
-        # Initialize other attributes
-        self.data_sim = bp.simulation_data()
-        self.data_sim.samplingrate_Hz = self.samplingrate_Hz
-        self.data_sim.freq = config["frequencies_Hz"]
-        self.data_exp = None
-        
-        self.fit_reference = None
         self.fit_output = None
 
-        # Check if stimulus_cycles and response_cycles are provided
-        # run functions to add stimulus data and/or experimental data
-        if config["stimulus_cycles"] is not None:
-            self.add_data(
-                samplingrate_Hz=self.samplingrate_Hz,
-                stimulus_cycles=config["stimulus_cycles"],
-                response_cycles=config["response_cycles"],
-                frequency_selection=config["frequency_selection"]
-            )
+        if self.data_exp is not None:
+            self.fit()
+        else:
+            self.freqresp(freq=config["freq"])
 
     def __repr__(self):
         """
@@ -71,8 +86,8 @@ class balancepyModel:
         Includes ModelName, ParameterSet, frequencies_Hz, fit_reference, and samplingrate_Hz.
         """
         param_summary = repr(self.params) if hasattr(self, 'params') else "No parameters defined"
-        frequencies_summary = f"{len(self.freq)} frequencies from {self.freq[0]} to {self.freq[-1]}" if self.freq is not None else "No frequencies defined"
-        fit_reference_summary = "Defined" if self.fit_reference is not None else "Not defined"
+        frequencies_summary = f"{len(self.data_sim.freq)} frequencies from {self.freq[0]} to {self.freq[-1]}" if self.freq is not None else "No frequencies defined"
+        fit_reference_summary = "Defined as data_exp.frf" if self.data_exp.frf is not None else "Not defined"
         samplingrate_summary = f"{self.samplingrate_Hz} Hz" if self.samplingrate_Hz is not None else "Not defined"
 
         return (
@@ -106,106 +121,54 @@ class balancepyModel:
 
     def dynamics(self):
         pass
-    
-    def add_stimulus(self, stimulus_cycles, frequency_selection=None):
-        
-        self.data_sim.samplingrate_Hz = self.samplingrate_Hz
-        self.data_sim.stimulus = stimulus_cycles
-        self.frequency_selection = frequency_selection
-        self.time = None
-        self.freq = None
-        self.stimulus_spectrum = None
-        self.response_spectrum = None
-        self.frf = None
-        self.coherence = None
-
-        self.stimulus_cycles = stimulus_cycles
-
-        # calculate input spectrum
-        
-        if self.stimulus_cycles.ndim < 2:
-            yi, yii, f = bp.spectrum(self.stimulus_cycles, self.samplingrate_Hz)
-        else:
-            yi, yii, f = bp.spectrum(np.mean(self.stimulus_cycles, axis=1), self.samplingrate_Hz)
-
-        if self.stimulus_frequencies_type is not None:
-            self.stimulus_frequencies_index = bp.get_frequency_selection(self.stimulus_frequencies_type, self.samplingrate_Hz, f)
-        
-        if self.stimulus_frequencies_index is not None:
-            yi, yii = yi[self.stimulus_frequencies_index], yii[self.stimulus_frequencies_index]
-
-        yi = np.array(yi, dtype=[('stimulus_amplitude_spectrum', 'complex')])
-        yii = np.array(yii, dtype=[('stimulus_power_spectrum', '<f8')])
-
-        self.FDsim = rfn.merge_arrays(
-            [np.array(f, dtype=[('freq', '<f8')]), yi, yii], flatten=True, usemask=False
-        ).view(np.recarray)
-
-        self.simulate_FD()
-        self.simulate_TD()
 
 
-    def add_data(self,samplingrate_Hz,stimulus_cycles,response_cycles=None):
-
-        data_exp = bp.stimulus_response_data(
-            samplingrate_Hz=samplingrate_Hz,
-            stimulus=stimulus_cycles,
-            response=response_cycles,
-            frequency_selection=self.frequency_selection
-        )
+    def add_data(self,data_exp):
 
         self.data_exp = data_exp
 
-        self.fit_reference = self.data_exp.frf
-
-        self.data_sim.samplingrate_Hz = samplingrate_Hz
-        self.data_sim.stimulus = data_exp.stimulus.average
-        self.data_sim.time = data_exp.time
-        self.data_sim.frequency_selection = data_exp.frequency_selection
-
-        self.data_sim.freq = data_exp.freq
-        self.data_sim.stimulus_spectrum = data_exp.stimulus_spectrum.average
-
-        self.simulate_FD()
-        self.simulate_TD()
+        self.fit()
         
 
-    def simulate_FD(self):
+    def freqresp(self,freq=None):
         
-        freq = self.data_sim.freq
+        if freq is not None:
+            self.freq = freq
+        elif self.data_exp is not None and self.data_exp.freq is not None:
+            freq = self.data_exp.freq
+        else:
+            freq = np.arange(0.01, 2.5, 0.01)
         
         tf = self.dynamics()
-        w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
+        _, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
 
-        self.data_sim.frf = frf_sim
-        # self.data_sim.gain = abs(frf_sim)
-        # self.data_sim.phase = bp.phase(frf_sim, freq)
+        self.data_sim = bp.stimulus_response_data(frf=frf_sim, freq=freq)
 
         return self.data_sim
 
-
-    def simulate_TD(self, stimulus=None, samplingrate_Hz=None):
+    def run_stimulus(self, stimulus, samplingrate_Hz, frequency_selection=None):
         """
         Simulate the time domain response of the system using the provided stimulus.
         Args:
             stimulus (ndarray): The input stimulus for the simulation.
             samplingrate_Hz (float): The sampling rate in Hz.
+            frequency_selection (ndarray): Selects frequencies represented in frequency domain representations.
         Returns:
-            TDsim (ndarray): The simulated time domain response.
+            data_sim (stimulus_response_data): The simulated time domain response.
         """
-        assert self.data_sim.stimulus is not None or stimulus is not None, "No stimulus provided for time domain simulation"
+        assert stimulus.ndim==1, "Stimulus must be a 1D array"
         
-        if stimulus is not None:
-            assert stimulus.ndim == 1, "Stimulus must be a 1D array"
-            self.data_sim.samplingrate_Hz = samplingrate_Hz if samplingrate_Hz is not None else self.samplingrate_Hz
-            self.data_sim.stimulus = stimulus
-            self.data_sim.time = np.arange(0, stimulus.shape[0]) / self.samplingrate_Hz
+        T = np.arange(0, stimulus.shape[0]) / samplingrate_Hz
         
         # Get the system response
-        time, response_sim, x_out = signal.lsim(self.dynamics(), U=self.data_sim.stimulus, T=self.data_sim.time)
+        _, response_sim, _ = signal.lsim(self.dynamics(), U=stimulus, T=T)
 
-        self.data_sim.response = response_sim
-        self.simulate_FD
+        self.data_sim = bp.stimulus_response_data(
+            samplingrate_Hz=samplingrate_Hz,
+            stimulus=stimulus,
+            response=response_sim,
+            frequency_selection=frequency_selection
+        )
 
         return self.data_sim
 
@@ -220,7 +183,7 @@ class balancepyModel:
         w, frf_sim = signal.freqresp(self.dynamics(), w=self.freq*2*np.pi)
 
         #calculate objective
-        err = np.sum( np.abs(frf_sim - self.reference_frf) / np.abs(frf_sim) )
+        err = np.sum( np.abs(frf_sim - self.data_exp.frf) / np.abs(frf_sim) )
 
         return err
     
@@ -234,13 +197,16 @@ class balancepyModel:
         bounds = self.params.bounds()
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
 
-        fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+        self.fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
     
-        params_fit = fit_output.x
+        params_fit = self.fit_output.x
 
         self.params.set_values(params_fit, only_free=True)
-        self.simulate_FD()
-        self.simulate_TD()
+
+        if self.data_exp.stimulus is not None:
+            self.run_stimulus(self.data_exp.stimulus.average, self.data_exp.samplingrate_Hz, self.data_exp.frequency_selection)
+        else:
+            self.freqresp() 
 
     
     def plot(self):

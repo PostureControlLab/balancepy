@@ -11,15 +11,12 @@ from .base_model import balancepyModel
 
 class P18(balancepyModel):
     default_config = {
-        "ModelName": "Peterka2018",
+        "ModelName": None,
         "mass_kg": None,
         "height_m": None,
-        "stimulus_cycles": None,
-        "response_cycles": None,
-        "frequencies_Hz": np.arange(0.01, 2.51, 0.01),
-        "frequency_selection": 'prts',
-        "samplingrate_Hz": 90,
-    }
+        "data_exp": None,
+        "freq": None
+        }
 
     def create_parameters(self, mass_kg: Number, height_m: Number):
         """
@@ -34,8 +31,8 @@ class P18(balancepyModel):
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.45 * WT.mgh / 180*np.pi
-        Kd = 0.44 * WT.mgh / 180*np.pi
+        Kp = 1.4 * WT.mgh / 180*np.pi
+        Kd = 0.4 * WT.mgh / 180*np.pi
 
         params = bp.ParameterSet()
         params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
@@ -43,7 +40,7 @@ class P18(balancepyModel):
         params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
         params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
         params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
-        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
+        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.4), fixed=False))
         params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.05), fixed=False))
 
         return params
@@ -86,7 +83,10 @@ class P18(balancepyModel):
         Returns:
             err: Objective function value.
         """
-        assert (self.fit_reference is not None), "No reference data available for fitting"
+        assert (self.data_exp is not None 
+                and self.data_exp.freq is not None
+                and self.data_exp.frf is not None
+                ), "No reference data available for fitting"
 
         # Set parameters if changed e.g. during fitting
         if params_free is not None:
@@ -94,11 +94,11 @@ class P18(balancepyModel):
 
         #calculate model frequency response
         tf = self.dynamics()
-        w, frf_sim = signal.freqresp(tf, w=self.data_sim.freq*2*np.pi)
+        w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
 
         #smooth frequency response functions
-        frf_sim = frf_smoothing(frf_sim, self.data_sim.freq)
-        frf_exp = frf_smoothing(self.fit_reference, self.data_sim.freq)
+        frf_sim = frf_smoothing(frf_sim, self.data_exp.freq)
+        frf_exp = frf_smoothing(self.data_exp.frf, self.data_exp.freq)
 
         #calculate objective
         err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))

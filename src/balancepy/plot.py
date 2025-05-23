@@ -37,7 +37,7 @@ def bode_plot(data, fig=None, line_name=None, line=None):
 
     # Time domain plots
     if data.stimulus is not None:
-        if isinstance(data, bp.stimulus_response_data):
+        if data.stimulus.cycles.ndim==2:
             for i in range(data.stimulus.cycles.shape[1]):
                 fig.add_trace(go.Scatter(x=data.time, y=data.stimulus.cycles[:, i], 
                     mode='lines', line=dict(color='lightgray', width=1), 
@@ -51,7 +51,7 @@ def bode_plot(data, fig=None, line_name=None, line=None):
                 row=1, col=1)
         
     if data.response is not None:
-        if isinstance(data, bp.stimulus_response_data):
+        if data.response.cycles.ndim==2:
             for i in range(data.response.cycles.shape[1]):
                 fig.add_trace(go.Scatter(x=data.time, y=data.response.cycles[:, i], 
                     mode='lines', line=dict(color='lightgray', width=1), 

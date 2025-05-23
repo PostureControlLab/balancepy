@@ -80,10 +80,14 @@ def frf(yi,yo):
     yoi = yo * np.conjugate(yi)
     yii = yi * np.conjugate(yi)
 
-    yoi_mean=np.mean(yoi,1)
-    yii_mean=np.mean(yii,1)
+    
+    if yoi.ndim == 1:
+        H = yoi / yii
+    else:
+        yoi_mean = np.mean(yoi, 1)
+        yii_mean = np.mean(yii, 1)
 
-    H = yoi_mean / yii_mean
+        H = yoi_mean / yii_mean
 
     return H
 
