@@ -217,7 +217,11 @@ class balancepyModel:
         
         if data_sim.stimulus is not None:
             # simulate response of the system with fitted parameters
-            _, data_sim.response, _ = signal.lsim(self.dynamics(), U=data_sim.stimulus, T=data_sim.time)
+            # Repeat stimulus to run twice and discard the first half to remove transient
+            stimulus_double = np.concatenate([data_sim.stimulus, data_sim.stimulus])
+            time_double = np.arange(0, stimulus_double.shape[0]) / data_sim.samplingrate_Hz
+            _, response_double, _ = signal.lsim(self.dynamics(), U=stimulus_double, T=time_double)
+            data_sim.response = response_double[stimulus_double.shape[0] // 2:]
 
             # calculate response spectrum
             response_spectrum,_,_ = bp.spectrum(data_sim.response, data_sim.samplingrate_Hz)
