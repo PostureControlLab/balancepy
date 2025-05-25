@@ -3,99 +3,63 @@ import numpy as np
 from numpy.typing import NDArray
 import numpy.lib.recfunctions as rfn
 import balancepy as bp
+from dataclasses import dataclass, field
 
-
-
-class stimulus_response_data:
+@dataclass
+class sr_data:
+    samplingrate_Hz: Optional[int] = None
+    stimulus: Optional[NDArray] = None
+    response: Optional[NDArray] = None
+    frequency_selection: str = 'all'
     """
-    Class for handling balancepy stimulus-response data in the frequency domain.
-    This class is used to calculate the frequency response function (FRF), gain, phase, and coherence of a system based on the input stimulus and output response data.
-    
-    This class can be initialized in two ways:
-      1. By providing `samplingrate_Hz`, `stimulus`, and `response` (and optionally `frequency_selection`)
-      2. By providing `frf` and `freq` directly
-    Args:
-        samplingrate_Hz (int, optional): Sampling rate in Hz.
-        stimulus (NDArray[np.number], optional): Stimulus data as 1D or 2D array for 1 or multiple cycles.
-        response (NDArray[np.number], optional): Response data as 1D or 2D array for 1 or multiple cycles.
-        frequency_selection (str or list, optional): Type of frequency selection ('all', 'prts', 'double_prts', or a list of indices).
-        frf (NDArray[np.number], optional): Precomputed frequency response function. Required if initializing from frequency-domain data.
-        freq (NDArray[np.number], optional): Frequency vector. Required if initializing from frequency-domain data.
+    A class to hold stimulus and response data for balancepy models.
+    Use add_data method to retrieve all attributes from stimulus and response data.
     Attributes:
-        samplingrate_Hz (int): Sampling rate in Hz.
-
-        stimulus (NDArray[np.number]): Returns stimulus.
-        response (NDArray[np.number]): Returns response.
-            stimulus and response allow the use of .average and .average_0 (mean around 0)
-
-        time (NDArray[np.number]): Time vector calculated from the stimulus data.
-        
-        frequency_selection (str or list): Type of frequency selection. Options are 'all' (default), 'prts', 'double_prts', or a list of indices.
-        freq (NDArray[np.number]): Frequency vector.
-        stimulus_spectrum (NDArray[np.number]): Spectrum of the input stimulus data.
-        response_spectrum (NDArray[np.number]): Spectrum of the output response data.
-        frf: Returns the frequency response function.
-        gain: Returns the gain of the frf.
-        phase: Returns the phase of the frf.
-        coherence: Returns the coherence.
-    Methods:
-        frequency_domain_recarray: Returns a numpy recarray with all frequency domain outputs.
-        time_domain_recarray: Returns a numpy recarray with all time domain outputs.
-    Raises:
-        ValueError: If neither (frf and freq) nor (samplingrate_Hz, stimulus, and response) are provided.
-    Notes:
-        The class uses the balancepy library for frequency domain analysis.
-        The frequency selection can be customized using the `frequency_selection` parameter.
-        The function can also be initialized with pre-computed frequency response function (frf) and frequency vector (freq).
+        samplingrate_Hz (Optional[int]): Sampling rate in Hz.
+        time (Optional[NDArray]): Time vector corresponding to the stimulus and response.
+        stimulus (Optional[NDArray]): Stimulus data in cycles.
+        response (Optional[NDArray]): Response data in cycles.
+        frequency_selection (str): Method for frequency selection, e.g., 'all', 'prts', 'double_prts'.
+        freq (Optional[NDArray]): Frequencies corresponding to the spectra.
+        stimulus_spectrum (Optional[NDArray]): Spectrum of the stimulus.
+        response_spectrum (Optional[NDArray]): Spectrum of the response.
+        frf (Optional[NDArray]): Frequency response function.
     """
 
-    def __init__(
-        self,
-        samplingrate_Hz: int = None,
-        stimulus: NDArray[np.number] = None,
-        response: NDArray[np.number] = None,
-        frequency_selection: str = 'all',
-        frf: NDArray[np.number] = None,
-        freq: NDArray[np.number] = None
-    ):
-        # Case 1: Initialize from time-domain data
-        if samplingrate_Hz is not None and stimulus is not None and response is not None:
-            assert isinstance(samplingrate_Hz, int) and samplingrate_Hz > 0, "Samplingrate must be a positive integer."
-            assert stimulus.shape[0] == response.shape[0], "Stimulus and response must have the same number of samples."
-            
-            self.samplingrate_Hz = samplingrate_Hz
-            self.stimulus = TD(stimulus)
-            self.response = TD(response)
-            self.frequency_selection = frequency_selection
-            
-            self.time = np.arange(0, len(stimulus)) / samplingrate_Hz
+    @property
+    def stimulus_mean(self):
+        """Returns the mean of the stimulus across cycles."""
+        assert self.stimulus is not None, "Stimulus must be set."
+        if self.stimulus.ndim == 1:
+            return self.stimulus
+        elif self.stimulus.ndim == 2:
+            return np.mean(self.stimulus, axis=1)
 
-            stimulus_spectrum, _, freq = bp.spectrum(stimulus, samplingrate_Hz)
-            self.stimulus_spectrum = FD(self.select_frequencies(stimulus_spectrum))
-            self.freq = self.select_frequencies(freq)
-            response_spectrum, _, _ = bp.spectrum(response, samplingrate_Hz)
-            self.response_spectrum = FD(self.select_frequencies(response_spectrum))
-            self.frf = bp.frf(self.stimulus_spectrum.cycles, self.response_spectrum.cycles)
-        
-        # Case 2: Initialize from FRF and freq
-        # typically just used for simulation data without stimulus. 
-        elif frf is not None and freq is not None:
-            self.frf = frf
-            self.freq = freq
-            self.samplingrate_Hz = None
-            self.stimulus = None
-            self.response = None
-            self.frequency_selection = None
-            self.time = None
-            self.stimulus_spectrum = None
-            self.response_spectrum = None
+    @property
+    def stimulus_mean0(self):
+        """Returns the mean of the stimulus, centered around 0."""
+        return self.stimulus_mean - np.mean(self.stimulus_mean)
 
-        else:
-            raise ValueError(
-                "You must provide either (frf and freq) or (samplingrate_Hz, stimulus, and response)."
-            )
+    @property
+    def response_mean(self):
+        """Returns the mean of the response across cycles."""
+        assert self.response is not None, "Response must be set."
+        if self.response.ndim == 1:
+            return self.response
+        elif self.response.ndim == 2:
+            return np.mean(self.response, axis=1)
 
-    # definition of class properties; properties are only calculated when called
+    @property
+    def response_mean0(self):
+        """Returns the mean of the response, centered around 0."""
+        return self.response_mean - np.mean(self.response_mean)
+
+    frequency_selection: str = 'all'
+    freq: Optional[NDArray] = None
+    stimulus_spectrum: Optional[NDArray] = None
+    response_spectrum: Optional[NDArray] = None
+    frf: Optional[NDArray] = None
+
     @property
     def gain(self):
         return abs(self.frf)
@@ -104,13 +68,79 @@ class stimulus_response_data:
     def phase(self):
         return bp.phase(self.frf, self.freq)
     
-
     @property
     def coherence(self):
-        if not self.response_spectrum.cycles.ndim == 2 or not isinstance(self.response_spectrum, FD):
+        if (self.response_spectrum is None or self.stimulus_spectrum is None
+            or not self.response_spectrum.ndim == 2):
             return None
         else:
-            return bp.coherence(self.stimulus_spectrum.cycles, self.response_spectrum.cycles)
+            return bp.coherence(self.stimulus_spectrum, self.response_spectrum)
+
+    @property
+    def stimulus_spectrum_mean(self):
+        """Returns the mean of the stimulus spectrum across cycles."""
+        assert self.stimulus_spectrum is not None, "Stimulus spectrum must be set."
+        if self.stimulus_spectrum.ndim == 1:
+            return self.stimulus_spectrum
+        elif self.stimulus_spectrum.ndim == 2:
+            return np.mean(self.stimulus_spectrum, axis=1)
+
+    @property
+    def response_spectrum_mean(self):
+        """Returns the mean of the response spectrum across cycles."""
+        assert self.response_spectrum is not None, "Response spectrum must be set."
+        if self.response_spectrum.ndim == 1:
+            return self.response_spectrum
+        elif self.response_spectrum.ndim == 2:
+            return np.mean(self.stimulus_spectrum, axis=1)
+
+    @property
+    def stimulus_spectrum_PSD(self):
+        """Returns the power spectral density (PSD) of the stimulus spectrum.
+            The PSD is scaled such that sum(PSD*df) = np.mean(stimulus_mean^2)"""
+        assert self.samplingrate_Hz is not None, "Sampling rate must be set."
+        assert self.stimulus_spectrum is not None, "Stimulus spectrum must be set."
+        
+        return 1 / (self.samplingrate_Hz*2) * abs(self.stimulus_spectrum_mean)**2
+
+    @property
+    def response_spectrum_PSD(self):
+        """Returns the power spectral density (PSD) of the response spectrum.
+            The PSD is scaled such that sum(PSD*df) = np.mean(response_mean^2)"""
+        assert self.samplingrate_Hz is not None, "Sampling rate must be set."
+        assert self.response_spectrum is not None, "Response spectrum must be set."
+        
+        return 1 / (self.samplingrate_Hz*2) * abs(self.response_spectrum_mean)**2
+
+    # @property    
+    # def remnants(self):
+    #     # Returns the difference between each cycle and the average cycle
+    #     avg = np.mean(self.cycles, axis=1, keepdims=True)
+    #     return self.cycles - avg
+
+    def add_timedomain_data(
+        self,
+        samplingrate_Hz: int,
+        stimulus: NDArray[np.number],
+        response: NDArray[np.number],
+        frequency_selection: str = 'all'
+    ):
+        assert isinstance(samplingrate_Hz, int) and samplingrate_Hz > 0, "Samplingrate must be a positive integer."
+        assert stimulus.shape[0] == response.shape[0], "Stimulus and response must have the same number of samples."
+        
+        self.samplingrate_Hz = samplingrate_Hz
+        self.stimulus = stimulus
+        self.response = response
+        self.frequency_selection = frequency_selection
+        
+        self.time = np.arange(0, len(stimulus)) / samplingrate_Hz
+
+        stimulus_spectrum, _, freq = bp.spectrum(stimulus, samplingrate_Hz)
+        self.stimulus_spectrum = self.select_frequencies(stimulus_spectrum)
+        self.freq = self.select_frequencies(freq)
+        response_spectrum, _, _ = bp.spectrum(response, samplingrate_Hz)
+        self.response_spectrum = self.select_frequencies(response_spectrum)
+        self.frf = bp.frf(self.stimulus_spectrum, self.response_spectrum)
 
 
     def frequency_domain_recarray(self):
@@ -168,7 +198,7 @@ class stimulus_response_data:
         type = self.frequency_selection
 
         # Get duration of the stimulus in seconds
-        T = self.stimulus.cycles.shape[0] / self.samplingrate_Hz
+        T = self.stimulus.shape[0] / self.samplingrate_Hz
 
         if isinstance(type, (list, np.ndarray)):
             selected_frequencies_index = np.array(type)
@@ -199,56 +229,3 @@ class stimulus_response_data:
             raise ValueError("Data must be 1D or 2D array.")
 
         return data
-
-
-class FD:
-    def __init__(self, cycles: NDArray):
-        self.cycles = cycles
-
-    @property
-    def average(self):
-        return np.asarray(np.mean(self.cycles, axis=1))
-
-    @property
-    def PSD(self):
-        avg = np.mean(self.cycles, axis=1)
-        PSD = 1 / (self.samplingrate_Hz*2) * abs(avg)**2
-        return np.asarray(np.sum(np.abs(self.cycles) ** 2))
-    
-    # def remnants(self):
-    #     # Returns the difference between each cycle and the average cycle
-    #     avg = np.mean(self.cycles, axis=1, keepdims=True)
-    #     return self.cycles - avg
-
-    def __getattr__(self, name):
-        # Forward attribute access to the underlying array
-        return getattr(self.cycles, name)
-
-    def __array__(self, dtype=None):
-        return np.asarray(self.cycles, dtype=dtype)
-class TD:
-    def __init__(self, cycles: NDArray):
-        self.cycles = cycles
-
-    @property
-    def average(self):
-        if self.cycles.ndim == 2:
-            avg = np.mean(self.cycles, axis=1)
-        else:
-            avg = self.cycles
-        return np.asarray(avg)
-
-    @property
-    def average_0(self):
-        if self.cycles.ndim == 2:
-            avg = np.mean(self.cycles, axis=1)
-        else:
-            avg = self.cycles
-        return np.asarray(avg - np.mean(avg))
-
-    def __getattr__(self, name):
-        # Forward attribute access to the underlying array
-        return getattr(self.cycles, name)
-
-    def __array__(self, dtype=None):
-        return np.asarray(self.cycles, dtype=dtype)

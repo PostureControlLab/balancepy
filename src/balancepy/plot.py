@@ -37,12 +37,12 @@ def bode_plot(data, fig=None, line_name=None, line=None):
 
     # Time domain plots
     if data.stimulus is not None:
-        if data.stimulus.cycles.ndim==2:
-            for i in range(data.stimulus.cycles.shape[1]):
-                fig.add_trace(go.Scatter(x=data.time, y=data.stimulus.cycles[:, i], 
+        if data.stimulus.ndim==2:
+            for i in range(data.stimulus.shape[1]):
+                fig.add_trace(go.Scatter(x=data.time, y=data.stimulus[:, i], 
                     mode='lines', line=dict(color='lightgray', width=1), 
                     name=None, showlegend=False), row=1, col=1)
-                fig.add_trace(go.Scatter(x=data.time, y=data.stimulus.average, 
+                fig.add_trace(go.Scatter(x=data.time, y=data.stimulus_mean, 
                     mode='lines', line=line, name=None, showlegend=False), 
                     row=1, col=1)
         else:
@@ -51,12 +51,12 @@ def bode_plot(data, fig=None, line_name=None, line=None):
                 row=1, col=1)
         
     if data.response is not None:
-        if data.response.cycles.ndim==2:
-            for i in range(data.response.cycles.shape[1]):
-                fig.add_trace(go.Scatter(x=data.time, y=data.response.cycles[:, i], 
+        if data.response.ndim==2:
+            for i in range(data.response.shape[1]):
+                fig.add_trace(go.Scatter(x=data.time, y=data.response[:, i], 
                     mode='lines', line=dict(color='lightgray', width=1), 
                     name=None, showlegend=False), row=1, col=2)
-                fig.add_trace(go.Scatter(x=data.time, y=data.response.average, 
+                fig.add_trace(go.Scatter(x=data.time, y=data.response_mean, 
                     mode='lines', line=line, name=None, showlegend=False), 
                     row=1, col=2)
         else:

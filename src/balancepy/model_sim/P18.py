@@ -40,7 +40,7 @@ class P18(balancepyModel):
         params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
         params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
         params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
-        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.4), fixed=False))
+        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
         params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.05), fixed=False))
 
         return params
