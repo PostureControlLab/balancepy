@@ -7,59 +7,56 @@ from numbers import Number
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-class balancepyModel:
+class BaseModel:
     """
-    balancepyModel is a base class for balancepy model simulations, providing a framework for parameter management, data handling, simulation, and model fitting.
+    Base class for balancepy model simulations.
 
-    Attributes:
-        default_config (dict): Default configuration for the model, including keys such as "ModelName", "mass_kg", "height_m", and "data_exp".
-        params (ParameterSet): Model parameters, created by the subclass implementation of create_parameters().
-        ModelName (str or None): Name of the model.
-        data_exp (sr_data or None): Experimental data object.
-        data_sim (sr_data or None): Simulated data object.
-        fit_output (object or None): Output of the fitting procedure.
+    Provides a framework for parameter management, data handling, simulation, and model fitting.
 
-    Methods:
-        __init__(self, mass_kg: Number = None, height_m: Number = None, data_exp = None, ModelName: str = None)
-            Initializes the balancepyModel with mass, height, and optional experimental data and model name.
-        __repr__(self)
-            Returns a detailed string representation of the balancepyModel object.
-        create_parameters(self, mass_kg: Number, height_m: Number)
-            Abstract method to create a set of parameters for the model. Must be implemented by subclasses.
-        dynamics(self)
-            Abstract method to define the system dynamics. Must be implemented by subclasses.
-        add_data(self, data_exp)
-            Adds experimental data to the model and triggers fitting.
-        freqresp(self)
-            Simulates the frequency domain response of the system.
-        run_stimulus(self, stimulus, samplingrate_Hz, frequency_selection=None)
-            Simulates the time domain response of the system using the provided stimulus.
-        objective(self, params_free = None)
-            Objective function for model fitting, comparing simulated and reference frequency responses.
-        fit(self)
-            Fits the model parameters to the reference data using optimization.
-        plot(self)
-            Plots the experimental and simulated frequency response data.
+    Attributes
+    ----------
+
+    ModelName : str or None
+        Name of the model.
+    mass_kg : Number
+        Mass in kilograms.
+    height_m : Number
+        Height in meters.
+    data_exp : sr_data or None
+        Experimental data object.
+    data_sim : sr_data or None
+        Simulated data object.
+    params : ParameterSet
+        Model parameters, created by the subclass implementation of _create_parameters().
+    fit_output : object or None
+        Output of the fitting procedure.
+
+        
+    Methods
+    -------
+
+    dynamics()
+        Defines the system dynamics. Should be implemented by subclasses.
+    frf(freq=None)
+        Computes the frequency response function (FRF) of the system for given input frequencies.
+    simulate_timedomain(stimulus, samplingrate_Hz)
+        Simulates the time domain response of the system using the provided stimulus and sampling rate.
+    objective(params_free = None)
+        Objective function for optimization, comparing simulated and experimental frequency responses.
+    fit(data_exp=None)
+        Fits the model parameters to the reference experimental data using optimization.
+    plot()
+        Plots the experimental and simulated data, if available.  
     """
     default_config = {
         "ModelName": None,
         "mass_kg": None,
         "height_m": None,
-        "data_exp": None,
-        "freq": None
+        "data_exp": None
         }
 
     def __init__(self, mass_kg: Number = None, height_m: Number = None, data_exp = None, ModelName: str = None, config: dict = None):
-        """
-        Initialize the balancepyModel with mass and height.
-        Args:
-            ModelName (str, optional, can also be provided via config): Name of the model.
-            mass_kg (Number): Mass in kilograms (optional, can also be provided via config).
-            height_m (Number): Height in meters (optional, can also be provided via config).
-            data_exp (sr_data, optional, can also be provided via config): Experimental data object.
-            config (dict, optional): Configuration dictionary with optional parameters.
-        """
-
+        
         # Merge the default configuration with the user-provided config
         config = {**self.default_config, **(config or {})}
 
@@ -68,31 +65,40 @@ class balancepyModel:
         # Resolve mass and height
         self.mass_kg = mass_kg if mass_kg is not None else config["mass_kg"]
         self.height_m = height_m if height_m is not None else config["height_m"]
-        assert mass_kg is not None or height_m is not None, "Both mass_kg and height_m must be provided."
+        assert self.mass_kg is not None and self.height_m is not None, "Both mass_kg and height_m must be provided."
 
         # Initialize parameters
-        self.params = self.create_parameters(mass_kg, height_m)
+        self.params = self._create_parameters(self.mass_kg, self.height_m)
 
         self.data_exp = data_exp if data_exp is not None else config["data_exp"]
         assert isinstance(self.data_exp, (bp.sr_data, type(None))), "data_exp must be a sr_data object or None"
 
+        self.data_sim = None
         self.fit_output = None
 
         if self.data_exp is not None and self.data_exp.frf is not None:
             self.fit()
         else:
-            self.data_sim = None
+            self.data_sim = self.frf()
 
 
     def __repr__(self):
-        """
-        Provide a detailed string representation of the balancepyModel object.
-        Includes ModelName, ParameterSet, frequencies_Hz, fit_reference, and samplingrate_Hz.
-        """
-        param_summary = repr(self.params) if hasattr(self, 'params') else "No parameters defined"
-        frequencies_summary = f"{len(self.data_sim.freq)} frequencies from {self.freq[0]} to {self.freq[-1]}" if self.freq is not None else "No frequencies defined"
-        fit_reference_summary = "Defined as data_exp.frf" if self.data_exp.frf is not None else "Not defined"
-        samplingrate_summary = f"{self.samplingrate_Hz} Hz" if self.samplingrate_Hz is not None else "Not defined"
+
+        if hasattr(self, 'params'):
+            param_summary = repr(self.params)  
+        else: 
+            param_summary = "No parameters defined"
+        if (self.data_sim is not None and self.data_sim.freq is not None):
+            frequencies_summary = f"{len(self.data_sim.freq)} frequencies from {self.data_sim.freq[0]} to {self.data_sim.freq[-1]}"  
+        else: frequencies_summary = "No frequencies defined"
+        if (self.data_exp is not None and self.data_exp.frf is not None):
+            fit_reference_summary = "Defined as data_exp.frf" 
+        else: 
+            fit_reference_summary = "Not defined"
+        if self.data_sim is not None and self.data_sim.samplingrate_Hz is not None:
+            samplingrate_summary = f"{self.data_sim.samplingrate_Hz} Hz" 
+        else: 
+            samplingrate_summary = "Not defined"
 
         return (
             f"balancepyModel(ModelName={self.ModelName},\n"
@@ -103,15 +109,8 @@ class balancepyModel:
         )
 
 
-    def create_parameters(self, mass_kg: Number, height_m: Number):
-        """
-        Create a set of parameters for the model.
-        Args:
-            mass_kg (Number): Mass in kilograms.
-            height_m (Number): Height in meters.
-        Returns:
-            ParameterSet: A set of parameters for the model.
-        """
+    def _create_parameters(self, mass_kg: Number, height_m: Number):
+
         raise NotImplementedError("Subclasses should implement this method.")
         # Example implementation for a specific model
         # WT = bp.WinterTable(mass_kg, height_m)
@@ -129,22 +128,29 @@ class balancepyModel:
 
     def frf(self,freq=None):
         """
-        Outputs stimulus response data object with the frequency response function (FRF)
-        of the system for given input frequencies.
-        If freq is not input, output is data_sim.frf or calculated frf using default freq.
-        Args:
-            freq (ndarray, optional): Frequencies in Hz for which to calculate the FRF. If None, uses the frequencies from data_exp or defaults to a range.
-        Returns:
-            frf (ndarray): The frequency response function of the system.
+        Returns the frequency response function (FRF) of the system for given input frequencies.
+
+        Parameters
+        ----------
+        freq : ndarray, optional
+            Frequencies in Hz for which to calculate the FRF. If None, uses the frequencies from
+            experimental data or defaults to a predefined range.
+
+        Returns
+        -------
+        frf : ndarray
+            The frequency response function of the system.
         """
         if freq is not None:
             data_sim = bp.sr_data()
-            data_sim.freq, data_sim.frf = signal.freqresp(self.dynamics(), w=freq*2*np.pi)
-        if freq is None and self.data_sim is not None and self.data_sim.frf is not None:
+            data_sim.freq = freq
+            _, data_sim.frf = signal.freqresp(self.dynamics(), w=data_sim.freq*2*np.pi)
+        elif freq is None and self.data_sim is not None and self.data_sim.frf is not None:
             data_sim = self.data_sim.frf
         else:
-            freq = np.arange(0.01, 2.5, 0.01)
-            data_sim.freq, data_sim.frf = signal.freqresp(self.dynamics(), w=freq*2*np.pi)
+            data_sim = bp.sr_data()
+            data_sim.freq = np.arange(0.01, 2.5, 0.01)
+            _, data_sim.frf = signal.freqresp(self.dynamics(), w=data_sim.freq*2*np.pi)
 
         return data_sim
 
@@ -152,11 +158,23 @@ class balancepyModel:
     def simulate_timedomain(self, stimulus, samplingrate_Hz):
         """
         Simulate the time domain response of the system using the provided stimulus.
-        Args:
-            stimulus (ndarray): The input stimulus for the simulation.
-            samplingrate_Hz (float): The sampling rate in Hz.
-        Returns:
-            data_sim: balancepy.sr_data object with the simulated time domain response.
+        
+        Parameters
+        ----------
+        stimulus : ndarray
+            The input stimulus for the simulation. Must be a 1D array.
+        samplingrate_Hz : float
+            The sampling rate in Hz.
+
+        Returns
+        -------
+        data_sim : balancepy.sr_data
+            An object containing the simulated time domain response, including time, stimulus, response, and sampling rate.
+        
+        Raises
+        ------
+        AssertionError
+            If `stimulus` is not a 1D array.
         """
         assert stimulus.ndim==1, "Stimulus must be a 1D array"
         
@@ -168,9 +186,12 @@ class balancepyModel:
         # Get the system response
         _, data_sim.response, _ = signal.lsim(self.dynamics(), U=stimulus, T=data_sim.time)
 
-        return self.data_sim
+        return data_sim
 
     def objective(self, params_free = None):
+        """
+        Objective function for optimization.
+        """
         assert (self.fit_reference is not None), "No reference data available for fitting"
 
         # Set parameters if changed e.g. during fitting
@@ -186,12 +207,33 @@ class balancepyModel:
         return err
     
 
-    def fit(self):
+    def fit(self, data_exp=None):
         """
-        Fits the model parameters to the reference data_exp.frf using optimization.
-        This method uses the basinhopping algorithm to minimize the objective function defined by the model.
-        Updates data_sim with the simulated response after fitting.
+        Fit the model parameters to the reference experimental frequency response data.
+
+        Uses the basinhopping algorithm to minimize the objective function defined by the model.
+        After fitting, updates `data_sim` with the simulated response using the fitted parameters.
+
+        Parameters
+        ----------
+        data_exp : balancepy.sr_data, optional
+            Experimental data object containing frequency response data to fit to.
+            If not provided, uses the object's current `data_exp` attribute.
+
+        Returns
+        -------
+        None
+            Updates the model's parameters and `data_sim` attribute in place.
         """
+        if data_exp is not None:
+            assert isinstance(data_exp, bp.sr_data), "data_exp must be a balancepy.sr_data object"
+            self.data_exp = data_exp
+
+        assert (self.data_exp is not None
+                and self.data_exp.freq is not None
+                and self.data_exp.frf is not None
+                ), "No reference data available for fitting"
+
         # Set initial guess for free paramss
         theta_free_init = self.params.values(only_free=True)
 
@@ -234,16 +276,29 @@ class balancepyModel:
         self.data_sim = data_sim
     
     def plot(self):
+        """
+        Plot experimental and simulated data.
+        
+        This method generates plots for both experimental and simulated data, if available.
+        If experimental data is present, it is plotted first. If simulated data is present,
+        it is plotted on the same figure as the experimental data. If either dataset is not
+        available, a message is printed to notify the user.
 
+        Returns
+        -------
+        figure : matplotlib.figure.Figure or None
+        """
         figure = None
 
         if self.data_exp is not None:
-            figure = bp.bode_plot(self.data_exp,line_name='Experimental')
+            if self.data_exp.name is None: self.data_exp.name = 'Experimental' 
+            figure = self.data_exp.plot()
         else:
             print('No experimental data available for plotting')
 
-        if self.data_sim is not None:    
-           figure = bp.bode_plot(self.data_sim,fig = figure, line_name='Simulated')#, params_names=self.params_names, params=self.params)
+        if self.data_sim is not None:
+           if self.data_sim.name is None: self.data_sim.name = 'Simulated'
+           figure = self.data_sim.plot(fig = figure) #, params_names=self.params_names, params=self.params)
         else:
             print('No simulated data available for plotting')
 

@@ -8,90 +8,228 @@ from joblib import Parallel, delayed
 import numpy.lib.recfunctions as rfn
 
 
-from .base_model import balancepyModel
+from .base_model import BaseModel
 
-class A23(balancepyModel):
+class A23(BaseModel):
+    default_config = {
+        "ModelName": 'Asslaender 2023',
+        "mass_kg": None,
+        "height_m": None,
+        "data_exp": None
+        }
 
-
-    def __init__(self, mass_kg: Number, height_m: Number):
+    def _create_parameters(self, mass_kg: Number, height_m: Number):
+        """
+        Create a set of parameters for the model.
+        Args:
+            mass_kg (Number): Mass in kilograms.
+            height_m (Number): Height in meters.
+        Returns:
+            ParameterSet: A set of parameters for the model.
+        """
         WT = bp.WinterTable(mass_kg, height_m)
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.3 * WT.mgh / 180*np.pi
-        Kd = 0.48 * WT.mgh / 180*np.pi
+        Kp = 1.4 * WT.mgh / 180*np.pi
+        Kd = 0.4 * WT.mgh / 180*np.pi
 
-        self.params = np.array([mgh,    J,      Kp,     Kd,     0.05,    0.17,   0.1, 20,   1])
-        self.params_names =        ['mgh',  'J',    'Kp',   'Kd',   'W',    'T',   'Kt', 'Ft', 'b']
-        self.parfit_ub = np.array([20, 0, 2*mgh, 1*mgh, 1, 0.3, 0.3, 30, 10])
-        self.parfit_lb = np.array([10, 0, mgh, 0, 0.01, 0.05, 0, 3, 0.0001])
-        self.parfit_fix_mask = [True, True, False, False, False, False, False, True, False]
-        self.dynamics = A23.get_transfer_function(self.params)
-        
-        self.stimulus = None
-        self.response = None
+        params = bp.ParameterSet()
+        params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
+        params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
+        params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
+        params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
+        params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
+        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
+        params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.05), fixed=False))
+        params.add(bp.Parameter("Ft", 20, bounds=(3, 30), fixed=True))
+        params.add(bp.Parameter("b", 1, bounds=(0.0001, 10), fixed=False))
 
-        self.FDexp = None
-        self.TDexp = None        
-        self.FDsim = None
-        self.TDsim = None        
+        return params
 
-        self.params_uCb = None
-        self.params_lCb = None
-        self.fit_output = None
-
-        self.selected_freq = 'prts'
-        self.frfSmoothing = lambda x, f: bp.logspace_manual_20s(x,f)
-
-        self.samplingrate: float = 90
-
-        self.simulate_FD()
-
-
-    @staticmethod
-    def get_transfer_function(params):
+    def dynamics(self):
         # implemanted as static method to allow efficient use during bootstrapping
-        G, J, Kp, Kd, W, T, Kt, Ft, b = params
+        p = self.params.to_value_dict()
 
-        num = [ -0.5*T*W*Kd*Ft, 
-               (W*Kd*Ft - 0.5*W*Kp*Ft*T - 0.5*T*W*Kd), 
-               W*Kp*Ft + W*Kd - 0.5*W*Kp*T, 
-               W*Kp ]
+        num = [
+            -0.5 * p['dt'] * p['W'] * p['Kd'] * p['Ft'],
+            (p['W'] * p['Kd'] * p['Ft'] - 0.5 * p['W'] * p['Kp'] * p['Ft'] * p['dt'] - 0.5 * p['dt'] * p['W'] * p['Kd']),
+            p['W'] * p['Kp'] * p['Ft'] + p['W'] * p['Kd'] - 0.5 * p['W'] * p['Kp'] * p['dt'],
+            p['W'] * p['Kp']
+        ]
 
-        den = [ (0.5*Ft*J*T + 0.5*Kt*Kd*J*T ), 
-                (Ft*J + 0.5*Kt*Kp*J*T - Kt*Kd*J - 0.5*Kd*T),
-                (-0.5*G*Ft*T + J - Kt*Kp*J - 0.5*Kt*Kd*G*T - 0.5*Kp*Ft*T + Kd*Ft - 0.5*Kd*T),
-                (-Ft*G -0.5*G*T - 0.5*Kt*Kp*G*T + Kt*Kd*G + Kp*Ft - 0.5*Kp*T + Kd), 
-                (-G + Kt*Kp*G + Kp) ]
-
+        den = [
+            (0.5 * p['Ft'] * p['J'] * p['dt'] + 0.5 * p['Kt'] * p['Kd'] * p['J'] * p['dt']),
+            (p['Ft'] * p['J'] + 0.5 * p['Kt'] * p['Kp'] * p['J'] * p['dt'] - p['Kt'] * p['Kd'] * p['J'] - 0.5 * p['Kd'] * p['dt']),
+            (-0.5 * p['mgh'] * p['Ft'] * p['dt'] + p['J'] - p['Kt'] * p['Kp'] * p['J'] - 0.5 * p['Kt'] * p['Kd'] * p['mgh'] * p['dt'] - 0.5 * p['Kp'] * p['Ft'] * p['dt'] + p['Kd'] * p['Ft'] - 0.5 * p['Kd'] * p['dt']),
+            (-p['Ft'] * p['mgh'] - 0.5 * p['mgh'] * p['dt'] - 0.5 * p['Kt'] * p['Kp'] * p['mgh'] * p['dt'] + p['Kt'] * p['Kd'] * p['mgh'] + p['Kp'] * p['Ft'] - 0.5 * p['Kp'] * p['dt'] + p['Kd']),
+            (-p['mgh'] + p['Kt'] * p['Kp'] * p['mgh'] + p['Kp'])
+        ]
         transfer_function = signal.TransferFunction(num, den)
+
+        # Regularize small values in the numerator and denominator
+        num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
+        den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
 
         return transfer_function
 
 
     def objective(self, params_free = None, freq = None, reference_frf = None):
-        assert (self.FDexp['freq'] is not None or freq is not None), "Please provide a frequency vector for the objective function"
-        assert (self.FDexp['frf'] is not None or reference_frf is not None), "Please provide a reference frequency response function for the objective function"
+        r"""
+        Objective function for optimization.
+        Applies a smoothing of the frf across frequencies.
 
-        # Set default parameters
-        if params_free is None:
-            params = self.params
-        else:
-            params = self.wrap_params(params_free)
+        Args:
+            params_free: Parameters to be optimized.
 
-        if freq is None:
-            freq = self.FDexp['freq']
-        if reference_frf is None:
-            reference_frf = self.FDexp['frf']
+        Returns:
+            err: Objective function value.
+        """
+        #    The error shown here is not correct yet!!
 
-        assert len(freq) == len(reference_frf), "The lengths of freq and reference_frf must be the same"
-        
+        # .. math::
+
+        #    \mathrm{err} = \sum_{i} \frac{ \left| H_{\mathrm{sim},i} - H_{\mathrm{exp},i} \right| }{ \left| H_{\mathrm{sim},i} \right| }
+
+        # where :math:`H_{\mathrm{sim},i}` is the smoothed simulated FRF at frequency index :math:`i`, and :math:`H_{\mathrm{exp},i}` is the smoothed experimental/reference FRF.
+
+        assert (self.data_exp is not None 
+                and self.data_exp.freq is not None
+                and self.data_exp.frf is not None
+                ), "No reference data available for fitting"
+
+        # Set parameters if changed e.g. during fitting
+        if params_free is not None:
+            self.params.set_values(params_free, only_free=True)
+
+
         #calculate model frequency response
-        tf = self.get_transfer_function(params)
-        w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
+        tf = self.dynamics()
+        w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
+
+        #smooth frequency response functions
+        frf_sim = self.frf_smoothing(frf_sim, self.data_exp.freq)
+        frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
 
         #calculate objective
-        err = sum(np.log(2 * params[8] * abs(frf_sim))) + sum(abs(frf_sim - reference_frf) / (params[8] * abs(frf_sim)))
+        b = self.params['b']
+        err = sum(np.log(2 * b * abs(frf_sim))) + sum(abs(frf_sim - frf_exp) / (b * abs(frf_sim)))
 
         return err
     
+
+    # smoothing function for the frequency response function
+    # is applied during the calculation of the objective function
+    @staticmethod
+    def frf_smoothing(frf, freq):
+        index = np.searchsorted(freq, 2.51, side='left')
+        if index < 20:
+            return _logspace_manual_10s(frf)
+        elif index < 75:
+            return _logspace_manual_20s(frf)
+        else:
+            return _logspace_manual_60s(frf)
+
+def _logspace_manual_10s(x):
+    if x.ndim == 1:
+        reduced_x = np.array([
+            x[0],               # :,1
+            np.mean(x[0:2]),    # :,1:2
+            x[1],               # :,2
+            np.mean(x[1:3]),    # :,2:3
+            np.mean(x[2:4]),    # :,3:4
+            np.mean(x[3:5]),    # :,4:5
+            np.mean(x[4:7]),    # :,5:7
+            np.mean(x[5:9]),    # :,6:9
+            np.mean(x[7:10])    # :,8:10
+        ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[:,0],
+            np.mean(x[:,0:2], axis=1),
+            x[:,1],
+            np.mean(x[:,1:3], axis=1),
+            np.mean(x[:,2:4], axis=1),
+            np.mean(x[:,3:5], axis=1),
+            np.mean(x[:,4:7], axis=1),
+            np.mean(x[:,5:9], axis=1),
+            np.mean(x[:,7:10], axis=1)
+        ])
+    return reduced_x
+
+
+def _logspace_manual_20s(x):
+    if x.ndim == 1:
+        reduced_x = np.array([
+            x[0],                # :,1
+            np.mean(x[0:2]),     # :,1:2
+            x[1],                # :,2
+            np.mean(x[1:3]),     # :,2:3
+            np.mean(x[2:4]),     # :,3:4
+            np.mean(x[3:5]),     # :,4:5
+            np.mean(x[4:7]),     # :,5:7
+            np.mean(x[5:9]),     # :,6:9
+            np.mean(x[7:11]),    # :,8:11
+            np.mean(x[9:13]),    # :,10:13
+            np.mean(x[11:16]),   # :,12:16
+            np.mean(x[15:20])    # :,16:20
+        ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[:,0],
+            np.mean(x[:,0:2], axis=1),
+            x[:,1],
+            np.mean(x[:,1:3], axis=1),
+            np.mean(x[:,2:4], axis=1),
+            np.mean(x[:,3:5], axis=1),
+            np.mean(x[:,4:7], axis=1),
+            np.mean(x[:,5:9], axis=1),
+            np.mean(x[:,7:11], axis=1),
+            np.mean(x[:,9:13], axis=1),
+            np.mean(x[:,11:16], axis=1),
+            np.mean(x[:,15:20], axis=1)
+        ])
+    return reduced_x
+
+def _logspace_manual_60s(x):
+    if x.ndim == 1:
+        reduced_x = np.array([
+            x[0],                 # :,1
+            x[1],                 # :,2
+            np.mean(x[2:4]),      # :,3:4
+            np.mean(x[3:5]),      # :,4:5
+            np.mean(x[4:7]),      # :,5:7
+            np.mean(x[5:9]),      # :,6:9
+            np.mean(x[7:11]),     # :,8:11
+            np.mean(x[9:13]),     # :,10:13
+            np.mean(x[11:16]),    # :,12:16
+            np.mean(x[15:20]),    # :,16:20
+            np.mean(x[19:25]),    # :,20:25
+            np.mean(x[24:32]),    # :,25:32
+            np.mean(x[31:40]),    # :,32:40
+            np.mean(x[39:49]),    # :,40:49
+            np.mean(x[48:59]),    # :,49:59
+            np.mean(x[53:66]),    # :,54:66
+            np.mean(x[60:75])     # :,61:75
+        ])
+    elif x.ndim == 2:
+        reduced_x = np.array([
+            x[:,0],
+            x[:,1],
+            np.mean(x[:,2:4], axis=1),
+            np.mean(x[:,3:5], axis=1),
+            np.mean(x[:,4:7], axis=1),
+            np.mean(x[:,5:9], axis=1),
+            np.mean(x[:,7:11], axis=1),
+            np.mean(x[:,9:13], axis=1),
+            np.mean(x[:,11:16], axis=1),
+            np.mean(x[:,15:20], axis=1),
+            np.mean(x[:,19:25], axis=1),
+            np.mean(x[:,24:32], axis=1),
+            np.mean(x[:,31:40], axis=1),
+            np.mean(x[:,39:49], axis=1),
+            np.mean(x[:,48:59], axis=1),
+            np.mean(x[:,53:66], axis=1),
+            np.mean(x[:,60:75], axis=1)
+        ])
+    return reduced_x

@@ -13,20 +13,48 @@ def getdata_anaropia(
     filename: str,
     body_height: float=0,
     resample: bool=True,
+    samplingrate_Hz: int = 90, # numer gives desired sampling rate; 0 means no resampling
     stimulus: str='stim_tz',
     cut_to_cycles: bool=True,
-    sampling_rate: int = 90, # numer gives desired sampling rate; 0 means no resampling
     end_time: float = 260,
     cycle_start_samples: int = 20*90,
     cycle_length_samples: int = 20*90
 ) -> NDArray:
-    """get time domain stimulus and sway response data for a prts experiment
+    """
+    Access and format data from balance experiments recorded with Anaropia.
 
-    Args:
-        fname (str): path and filename to be analyzed
+    Reads data recorded using the Anaropia virtual-reality application for 
+    balance experiments. Calculates stimulus and center of mass (COM) data.
 
-    Returns:
-        NDArray: experimental time domain data
+    Parameters
+    ----------
+    filename : str
+        Path and filename to be analyzed.
+    body_height : float, optional
+        Height of subject in meters.
+    resample : bool, optional
+        If True, resample data to samplingrate_Hz.
+    samplingrate_Hz : int, optional
+        Desired sampling rate in Hz.
+    stimulus : str, optional
+        Name of the stimulus column in the data file.
+    cut_to_cycles : bool, optional
+        If True, cut data to cycles.
+    end_time : float, optional
+        End time of the experiment in seconds for resampling.
+    cycle_start_samples : int, optional
+        Start of the first cycle in samples.
+    cycle_length_samples : int, optional
+        Cycle length in samples.
+
+    Returns
+    -------
+    com : NDArray
+        Experimental center of mass sway in anterior-posterior direction.
+    stim : NDArray
+        Stimulus data.
+    time : NDArray
+        Time data.
     """
 
     # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
@@ -37,17 +65,17 @@ def getdata_anaropia(
     if stimulus in data.dtype.names:
         time = data['time']
         stim = data[stimulus]
-        com = bm.calculate_com_2segmentmodel(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
+        com = bm.get_com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
     else:    
         time = data['time']
         stim = -data['analog4']
-        com = bm.calculate_com_2segmentmodel(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+        com = bm.get_com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
 
     if resample == True:
-        com = ts.resample(time, com, sampling_rate, end_time)
-        stim = ts.resample(time, stim, sampling_rate, end_time)
-        time = ts.resample(time, time, sampling_rate, end_time)
+        com = ts.resample(time, com, samplingrate_Hz, end_time)
+        stim = ts.resample(time, stim, samplingrate_Hz, end_time)
+        time = ts.resample(time, time, samplingrate_Hz, end_time)
 
     if cut_to_cycles == True:
         com = ts.cut_to_cycles(com, cycle_start_samples, cycle_length_samples)
@@ -67,22 +95,41 @@ def getdata_legacy(
     cycle_length_samples: int = 20*90,
     stimulus: str='stim_pitch'
 ) -> NDArray:
-    """This script reads in the data from the legacy balance experiments and returns the time domain data for the COM and the stimulus
+    """
+    Access and format data from balance experiments recorded with Anaropia legacy.
 
-    Args:
-        filename (str): path and filename to be analyzed
-        body_height (float): height of subject
-        resample (bool): resample data to 90 Hz
-        cut_to_cycles (bool): cut data to cycles
-        sampling_rate (int): desired sampling rate
-        end_time (float): end time of the experiment
-        cycle_start_samples (int): start of the cycle
-        cycle_length_samples (int): length of the cycle
+    Reads data recorded using the legacy software version of Anaropia for 
+    balance experiments. Calculates stimulus and center of mass (COM) data.
 
-    Returns:
-        NDArray: experimental center of mass sway in anterior-posterior direction
-        NDArray: stimulus data
-        NDArray: time data
+    Parameters
+    ----------
+    filename : str
+        Path and filename to be analyzed.
+    body_height : float
+        Height of subject in meters.
+    resample : bool, optional
+        If True, resample data to sampling_rate.
+    cut_to_cycles : bool, optional
+        If True, cut data to cycles.
+    sampling_rate : int, optional
+        Desired sampling rate in Hz.
+    end_time : float, optional
+        End time of the experiment in seconds for resampling.
+    cycle_start_samples : int, optional
+        Start of the first cycle in samples.
+    cycle_length_samples : int, optional
+        Cycle length in samples.
+    stimulus : str, optional
+        Name of the stimulus column in the data file.
+
+    Returns
+    -------
+    com : NDArray
+        Experimental center of mass sway in anterior-posterior direction.
+    stim : NDArray
+        Stimulus data.
+    time : NDArray
+        Time data.
     """
     
     data = np.genfromtxt(filename, delimiter=',', names=True)
@@ -90,7 +137,7 @@ def getdata_legacy(
     time = data['time']
     stim = data[stimulus]
     
-    com = bm.calculate_com_2segmentmodel(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+    com = bm.get_com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
     if resample == True:
         com = ts.resample(time, com, sampling_rate, end_time)
@@ -104,7 +151,7 @@ def getdata_legacy(
 
     return com, stim, time
 
-def getdata_lifespan(
+def _getdata_lifespan(
     filename: str,
     body_height: float,
     resample: bool=True,
@@ -114,23 +161,43 @@ def getdata_lifespan(
     cycle_start_samples: int = 20*90,
     cycle_length_samples: int = 20*90
 ) -> NDArray:
-    """This function reads in the data from the lifespan balance experiments and returns the time domain data for the COM, visual stimulus, and proprioceptive stimulus.
+    """
+    Access and format data from the lifespan dataset.
 
-    Args:
-        filename (str): path and filename to be analyzed
-        body_height (float): height of the subject
-        resample (bool): resample data to 90 Hz
-        cut_to_cycles (bool): cut data to cycles
-        sampling_rate (int): desired sampling rate
-        end_time (float): end time of the experiment
-        cycle_start_samples (int): start of the cycle
-        cycle_length_samples (int): length of the cycle
+    Reads data recorded from lifespan balance experiments and returns the time
+    domain data for the center of mass (COM), visual stimulus, and 
+    proprioceptive stimulus. Note that for this dataset, surface tilts and
+    visual scene tilts were applied.
 
-    Returns:
-        NDArray: experimental center of mass sway in anterior-posterior direction
-        NDArray: visual stimulus data
-        NDArray: proprioceptive stimulus data
-        NDArray: time data
+    Parameters
+    ----------
+    filename : str
+        Path and filename to be analyzed.
+    body_height : float
+        Height of subject in meters.
+    resample : bool, optional
+        If True, resample data to sampling_rate.
+    cut_to_cycles : bool, optional
+        If True, cut data to cycles.
+    sampling_rate : int, optional
+        Desired sampling rate in Hz.
+    end_time : float, optional
+        End time of the experiment in seconds for resampling.
+    cycle_start_samples : int, optional
+        Start of the first cycle in samples.
+    cycle_length_samples : int, optional
+        Cycle length in samples.
+
+    Returns
+    -------
+    com : NDArray
+        Experimental center of mass sway in anterior-posterior direction.
+    stim_vis : NDArray
+        Visual stimulus data.
+    stim_prop : NDArray
+        Proprioceptive stimulus data.
+    time : NDArray
+        Time data.
     """
 
     data = np.genfromtxt(filename, delimiter=',', names=True)
@@ -139,7 +206,7 @@ def getdata_lifespan(
     stim_vis = data['stim_pitch']
     stim_surf = -data['analog4']
     
-    com = bm.calculate_com_2segmentmodel(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+    com = bm.get_com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
 
     if resample == True:
         com = ts.resample(time, com, sampling_rate, end_time)

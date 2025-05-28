@@ -1,34 +1,90 @@
 from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
-import numpy.lib.recfunctions as rfn
 import balancepy as bp
-from dataclasses import dataclass, field
-
+from dataclasses import dataclass
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 @dataclass
 class sr_data:
+    """
+    Class to hold stimulus and response data for balancepy models.
+
+    Use `add_timedomain_data` to populate all attributes from stimulus and response data.
+
+    Parameters
+    ----------
+    samplingrate_Hz : int, optional
+        Sampling rate in Hz.
+    stimulus : ndarray, optional
+        Stimulus data in cycles (1D or 2D array).
+    response : ndarray, optional
+        Response data in cycles (1D or 2D array).
+    frequency_selection : str or list, optional
+        Method for frequency selection, e.g., 'all', 'prts', 'double_prts', or a list of indices.
+    name : str, optional
+        Name of the data set.
+
+        
+    Time Domain Attributes
+    ----------------------
+    time : ndarray
+        Time vector corresponding to the stimulus and response.
+    stimulus : ndarray
+        Stimulus data in cycles (1D or 2D array).
+    response : ndarray
+        Response data in cycles (1D or 2D array).
+    stimulus_mean : ndarray
+        Mean of the stimulus across cycles (property).
+    response_mean : ndarray
+        Mean of the response across cycles (property).
+    stimulus_mean0 : ndarray
+        Mean of the stimulus, centered around 0 (property).
+    response_mean0 : ndarray
+        Mean of the response, centered around 0 (property).
+
+        
+    Frequency Domain Attributes
+    ---------------------------
+    freq : ndarray
+        Frequencies corresponding to the spectra.
+    stimulus_spectrum : ndarray
+        Spectrum of the stimulus.
+    response_spectrum : ndarray
+        Spectrum of the response.
+    frf : ndarray
+        Frequency response function.
+    gain : ndarray
+        Magnitude of the frequency response function (property).
+    phase : ndarray
+        Phase of the frequency response function (property).
+    coherence : ndarray
+        Coherence between stimulus and response (property).
+    stimulus_spectrum_mean : ndarray
+        Mean of the stimulus spectrum across cycles (property).
+    response_spectrum_mean : ndarray
+        Mean of the response spectrum across cycles (property).
+    stimulus_spectrum_PSD : ndarray
+        Power spectral density of the stimulus spectrum (property).
+    response_spectrum_PSD : ndarray
+        Power spectral density of the response spectrum (property).
+    """
     samplingrate_Hz: Optional[int] = None
     stimulus: Optional[NDArray] = None
     response: Optional[NDArray] = None
-    frequency_selection: str = 'all'
-    """
-    A class to hold stimulus and response data for balancepy models.
-    Use add_data method to retrieve all attributes from stimulus and response data.
-    Attributes:
-        samplingrate_Hz (Optional[int]): Sampling rate in Hz.
-        time (Optional[NDArray]): Time vector corresponding to the stimulus and response.
-        stimulus (Optional[NDArray]): Stimulus data in cycles.
-        response (Optional[NDArray]): Response data in cycles.
-        frequency_selection (str): Method for frequency selection, e.g., 'all', 'prts', 'double_prts'.
-        freq (Optional[NDArray]): Frequencies corresponding to the spectra.
-        stimulus_spectrum (Optional[NDArray]): Spectrum of the stimulus.
-        response_spectrum (Optional[NDArray]): Spectrum of the response.
-        frf (Optional[NDArray]): Frequency response function.
-    """
+    frequency_selection: Optional[str] = 'all'
+    name: Optional[str] = None
 
     @property
     def stimulus_mean(self):
-        """Returns the mean of the stimulus across cycles."""
+        """
+        Mean of the stimulus across cycles.
+
+        Returns
+        -------
+        ndarray
+            The mean stimulus.
+        """
         assert self.stimulus is not None, "Stimulus must be set."
         if self.stimulus.ndim == 1:
             return self.stimulus
@@ -37,12 +93,26 @@ class sr_data:
 
     @property
     def stimulus_mean0(self):
-        """Returns the mean of the stimulus, centered around 0."""
+        """
+        Mean of the stimulus, centered around zero.
+
+        Returns
+        -------
+        numpy.ndarray
+            The mean stimulus, centered around zero.
+        """
         return self.stimulus_mean - np.mean(self.stimulus_mean)
 
     @property
     def response_mean(self):
-        """Returns the mean of the response across cycles."""
+        """
+        Mean of the response across cycles.
+
+        Returns
+        -------
+        ndarray
+            The mean response.
+        """
         assert self.response is not None, "Response must be set."
         if self.response.ndim == 1:
             return self.response
@@ -51,10 +121,16 @@ class sr_data:
 
     @property
     def response_mean0(self):
-        """Returns the mean of the response, centered around 0."""
+        """
+        Mean of the response, centered around zero.
+
+        Returns
+        -------
+        numpy.ndarray
+            The mean response, centered around zero.
+        """
         return self.response_mean - np.mean(self.response_mean)
 
-    frequency_selection: str = 'all'
     freq: Optional[NDArray] = None
     stimulus_spectrum: Optional[NDArray] = None
     response_spectrum: Optional[NDArray] = None
@@ -117,6 +193,21 @@ class sr_data:
     #     # Returns the difference between each cycle and the average cycle
     #     avg = np.mean(self.cycles, axis=1, keepdims=True)
     #     return self.cycles - avg
+
+    def __post_init__(self):
+        # Only run add_timedomain_data if all required arguments are provided
+        if (
+            self.samplingrate_Hz is not None and
+            self.stimulus is not None and
+            self.response is not None and
+            self.frequency_selection is not None
+        ):
+            self.add_timedomain_data(
+                samplingrate_Hz=self.samplingrate_Hz,
+                stimulus=self.stimulus,
+                response=self.response,
+                frequency_selection=self.frequency_selection
+            )
 
     def add_timedomain_data(
         self,
@@ -229,3 +320,104 @@ class sr_data:
             raise ValueError("Data must be 1D or 2D array.")
 
         return data
+    
+
+
+    def plot(data, fig=None, line_name=None, line=None):
+        """
+        Plot Bode diagram of a sr_data object using Plotly.
+
+        Parameters
+        ----------
+        data : sr_data
+            The sr_data object containing the stimulus and response data.
+        fig : plotly.graph_objects.Figure, optional
+            An existing figure to which the traces will be added. If None, a new figure will be created.
+        line_name : str, optional
+            Name for the line in the plot legend. If None, a default name will be used.
+        line : dict, optional
+            Dictionary containing line style properties (e.g., color, width). If None, a default color will be used.
+        
+        Returns
+        -------
+        fig : plotly.graph_objects.Figure
+            The figure containing the Bode plot with time series, frequency response, and coherence plots.
+        """
+        
+        if fig is None:
+            fig = make_subplots(rows=3, cols=2, 
+                        subplot_titles=("Stimulus Time Series", "Response Time Series", "Bode Magnitude Plot", "Coherence Plot", "Bode Phase Plot", "Parameters"),
+                        specs=  [[{"type": "xy"}, {"type": "xy"}],
+                                [{"type": "xy"}, {"type": "xy"}],
+                                [{"type": "xy"}, {"type": "table"}]])
+
+
+        if line is None:
+            # Define a palette of 10 colors
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+
+            # Check how many traces are in the subplot with title "Bode Magnitude Plot"
+            n_traces = len([trace for trace in fig['data'] if trace['name'] != None])
+
+            # Select the index for the color as n_traces % 10
+            color_index = n_traces % 10
+
+            line = dict(color=colors[color_index])
+
+        # add name for legend
+        if line_name is not None:
+            pass
+        elif data.name is not None:
+            line_name = data.name
+        else:
+            line_name = f"Line {color_index + 1}"
+
+
+        # Time domain plots
+        if data.stimulus is not None:
+            if data.stimulus.ndim==2:
+                for i in range(data.stimulus.shape[1]):
+                    fig.add_trace(go.Scatter(x=data.time, y=data.stimulus[:, i], 
+                        mode='lines', line=dict(color='lightgray', width=1), 
+                        name=None, showlegend=False), row=1, col=1)
+                    fig.add_trace(go.Scatter(x=data.time, y=data.stimulus_mean, 
+                        mode='lines', line=line, name=None, showlegend=False), 
+                        row=1, col=1)
+            else:
+                fig.add_trace(go.Scatter(x=data.time, y=data.stimulus, 
+                    mode='lines', line=line, name=None, showlegend=False), 
+                    row=1, col=1)
+            
+        if data.response is not None:
+            if data.response.ndim==2:
+                for i in range(data.response.shape[1]):
+                    fig.add_trace(go.Scatter(x=data.time, y=data.response[:, i], 
+                        mode='lines', line=dict(color='lightgray', width=1), 
+                        name=None, showlegend=False), row=1, col=2)
+                    fig.add_trace(go.Scatter(x=data.time, y=data.response_mean, 
+                        mode='lines', line=line, name=None, showlegend=False), 
+                        row=1, col=2)
+            else:
+                fig.add_trace(go.Scatter(x=data.time, y=data.response, 
+                    mode='lines', line=line, name=None, showlegend=False), 
+                    row=1, col=2)
+
+        # Frequency domain plots
+        if data.frf is not None:
+            fig.add_trace(go.Scatter(x=data.freq, y=data.gain, mode='lines', line=line, name=line_name, showlegend=True), row=2, col=1)
+            fig.update_xaxes(type="log", row=2, col=1)
+            fig.add_trace(go.Scatter(x=data.freq, y=data.phase, mode='lines', line=line, name=None, showlegend=False), row=3, col=1)
+            fig.update_xaxes(type="log", row=3, col=1)
+
+        if data.coherence is not None:
+            fig.add_trace(go.Scatter(x=data.freq, y=data.coherence, mode='lines', line=line, name=None, showlegend=False), row=2, col=2)
+            fig.update_xaxes(type="log", row=2, col=2)
+
+
+        # if params_names is not None and params is not None:
+        #     rounded_params = [round(param, 3) for param in params]
+        #     fig.add_trace(go.Table(header=dict(values=params_names), cells=dict(values=np.array(rounded_params))), row=3, col=2)
+
+        fig.update_layout(height=800, width=1000, title_text="Bode Plot")
+
+        return fig

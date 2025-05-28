@@ -7,27 +7,34 @@ import balancepy as bp
 
 def spectrum(
     data: NDArray[np.number],
-    sr: float,
-) -> NDArray:
-    """calculates properly scaled amplitude and power spectra of a time domain signal
-        Spectra are calculated along columns of the input data array.
-        Sx is scaled such that the amplitude of a sine input is given by abs(Sx)
-        Sxx is scaled such that the integrated power density Sxx is equal to the 
-        mean power of the time domain input. sum(Sxx*df) = mean(data^2). 
-        df is the frequency bandwidth accounted for by each frequency point.
+    samplingrate_Hz: float
+    ):
+    """Calculate scaled amplitude and power spectra of a time domain signal.
 
-    Args:
-        data (NDArray[np.number]): 1D or 2D data array
-        sr (float): sampling rate in samples/second
+        Amplitude spectrum is scaled such that the amplitude of a sine input 
+        is given by abs(Sx)
+        Power spectrum Sxx is scaled such that sum(Sxx*df) = mean(data^2), 
+        where df is the frequency spacing.
 
-    Returns:
-        NDArray[np.number]: scaled amplitude spectrum
-        NDArray[np.number]: scaled power spectrum
-        NDArray[np.number]: frequencies in Hz
+    Parameters
+    ----------
+        data : array_like 
+            time domain signal, can be 1D or 2D.
+        samplingrate_Hz : float
+            Sampling rate in Hz
+
+    Returns
+    -------
+        Sx : array_like
+            Scaled amplitude spectrum. 1D array for 1D input, 2D array for 2D input.
+        Sxx : array_like
+            Scaled power spectrum. 1D array for 1D input, 2D array for 2D input.
+        freq : array_like
+            Frequencies in Hz.
     """
     
     N=np.size(data,0)              # number of samples in time axis
-    f=np.arange(1,N/2+1) /N*sr  # frequency points for the output
+    freq=np.arange(1,N/2+1) /N*samplingrate_Hz  # frequency points for the output
 
     fk = np.fft.fft(data, axis=0)
 
@@ -39,19 +46,24 @@ def spectrum(
 
     Sx=1/N*y        # scaling to yield Sx, such that abs(Sx) = A
 
-    Sxx = 1 / (sr*2*N) * abs(y)**2   # scaling to yield Sxx
+    Sxx = 1 / (samplingrate_Hz*2*N) * abs(y)**2   # scaling to yield Sxx
 
-    return Sx, Sxx, f
+    return Sx, Sxx, freq
 
 def coherence(yi,yo):
-    """calculates coherence between two signals in the frequency domain
+    """Calculate the coherence between two signals in the frequency domain.
 
-    Args:
-        yi (NDArray[np.number]): input signal spectrum across cycles
-        yo (NDArray[np.number]): output signal spectrum across cycles
+    Parameters
+    ----------
+        yi : NDArray[np.number]
+            Spectrum of multiple cycles of the stimulus.
+        yo : NDArray[np.number]
+            Spectrum of multiple cycles of the response.
         
-    Returns:
-        NDArray[np.number]: coherence
+    Returns
+    -------
+        coh : NDArray[np.number]
+            Coherence between the two signals.
     """
     
     # calculate cross-power spectrum
@@ -66,14 +78,19 @@ def coherence(yi,yo):
     return coh
 
 def frf(yi,yo):
-    """calculates frequency response function (FRF) between two signals in the frequency domain
+    """Calculate the frequency response function (FRF).
 
-    Args:
-        yi (NDArray[np.number]): input signal spectrum across cycles
-        yo (NDArray[np.number]): output signal spectrum across cycles
+    Parameters
+    ----------
+        yi : array_like
+            Complex stimulus spectrum; can be multiple cycles.
+        yo : array_like
+            Complex response spectrum; can be multiple cycles.
         
-    Returns:
-        NDArray[np.number]: FRF
+    Returns
+    -------
+        frf : array_like
+            Complex frequency response function (FRF).
     """
             
     # Calculate cross-power spectrum
@@ -93,12 +110,25 @@ def frf(yi,yo):
 
 
 def phase(frf,f):
-    # calculate phase of frequency response function
+    """Calculate the phase of the frequency response function (FRF).
+
+        Function performs additional phase unwrapping.
+
+    Parameters
+    ----------
+        frf : array_like
+            Complex frequency response function (FRF).
+        f : array_like
+            Frequencies corresponding to the FRF.
+    Returns
+    -------
+        pha : array_like
+            Phase of the frequency response function (FRF) in degrees.
+    """
     pha = np.angle(frf,deg=True)
 
     # create polynom roughly following a typical Phase curve of human sway responses + 180deg for modulo of 360deg
-    # p_ref = 100-400*f+80*f**2 - 180
-    p_ref = 20-100*f-30*f**2 - 180
+    p_ref = 20-100*f-26*f**2 - 180
 
     pha = np.mod(pha-p_ref,360) + p_ref
     

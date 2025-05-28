@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def calculate_com_2segmentmodel(
+def get_com(
     shoulder_t: NDArray[np.number],
     shoulder_marker_height: np.number,
     hip_t: NDArray[np.number],
@@ -13,21 +13,30 @@ def calculate_com_2segmentmodel(
     height_m: float,
     rotation: bool = True,
 ) -> NDArray:
-    """Calculates center of mass from hip and shoulder movement using a 2 segment model and anthropometric tables.
-
-    Args:
-        shoulder_t (NDArray[np.number]): 1D shoulder translation in meters
-        shoulder_marker_height (np.number): shoulder marker height above support surface in meters
-        hip_t (NDArray[np.number]): 1D hip AP translation in meters
-        hip_t_height (np.number): hip marker height above support surface in meters
-        height_m (float): Height of subject in meters
-        rotation (bool): False: COM translation in m; True COM rotation about ankle joints in degrees
-
-    Returns:
-        NDArray: 1D center of mass
     """
-    """
-    This function calculates the center of mass (COM) using a 2-segment model based on anthropometric data.
+    Calculate center of mass (COM) from hip and shoulder movement.
+
+    The function uses a 2-segment model and anthropometric tables.
+
+    Parameters
+    ----------
+    shoulder_t : NDArray[np.number]
+        1D array of shoulder translation in meters.
+    shoulder_marker_height : np.number
+        Shoulder marker height above support surface in meters. Can be a single value or an array.
+    hip_t : NDArray[np.number]
+        1D array of hip anterior-posterior translation in meters.
+    hip_marker_height : np.number
+        Hip marker height above support surface in meters. Can be a single value or an array.
+    height_m : float
+        Height of subject in meters.
+    rotation : bool, optional
+        If False, returns COM translation in meters. If True, returns COM rotation about ankle joints in degrees.
+
+    Returns
+    -------
+    NDArray
+        1D array of center of mass (COM) values.
     """
     assert shoulder_t.ndim == 1
     assert hip_t.ndim == 1
@@ -40,7 +49,7 @@ def calculate_com_2segmentmodel(
 
     # Needs to be in meters (m) for correct moment of inertia calculations
     # mass cancels out in com calculation and is set to one here.
-    wt = WinterTable(1, height_m)
+    wt = _WinterTable(1, height_m)
 
     sho = shoulder_t - np.mean(shoulder_t)
     hip = hip_t - np.mean(hip_t)
@@ -67,7 +76,7 @@ def calculate_com_2segmentmodel(
 
 
 @dataclass
-class WinterTable:
+class _WinterTable:
     """
     Based on the anthropometric table as published in 'Biomechanics and Motor Control of Human Movement', second Ed. (1990) by David A. Winter
 

@@ -10,17 +10,14 @@ from .timeseries import *
 from . import frequency
 from .frequency import *
 
-from . import plot
-from .plot import *
-
 from . import make_stimulus
 from .make_stimulus import *
 
 from .model_sim import base_model
 from .model_sim.base_model import *
 
-from .model_sim import parameters
-from .model_sim.parameters import *
+from .model_sim import parameter
+from .model_sim.parameter import *
 
 from . import model_tests
 from .model_tests import *

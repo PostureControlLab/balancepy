@@ -7,18 +7,17 @@ import balancepy as bp
 from joblib import Parallel, delayed
 import numpy.lib.recfunctions as rfn
 import balancepy as bp
-from .base_model import balancepyModel
+from .base_model import BaseModel
 
-class P18(balancepyModel):
+class P18(BaseModel):
     default_config = {
-        "ModelName": None,
+        "ModelName": 'Peterka 2018',
         "mass_kg": None,
         "height_m": None,
-        "data_exp": None,
-        "freq": None
+        "data_exp": None
         }
 
-    def create_parameters(self, mass_kg: Number, height_m: Number):
+    def _create_parameters(self, mass_kg: Number, height_m: Number):
         """
         Create a set of parameters for the model.
         Args:
@@ -97,8 +96,8 @@ class P18(balancepyModel):
         w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
 
         #smooth frequency response functions
-        frf_sim = frf_smoothing(frf_sim, self.data_exp.freq)
-        frf_exp = frf_smoothing(self.data_exp.frf, self.data_exp.freq)
+        frf_sim = self.frf_smoothing(frf_sim, self.data_exp.freq)
+        frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
 
         #calculate objective
         err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))
@@ -106,19 +105,19 @@ class P18(balancepyModel):
         return err
 
 
-# smoothing function for the frequency response function
-# is applied during the calculation of the objective function
-def frf_smoothing(frf, freq):
+    # smoothing function for the frequency response function
+    # is applied during the calculation of the objective function
+    @staticmethod
+    def frf_smoothing(frf, freq):
+        index = np.searchsorted(freq, 2.51, side='left')
+        if index < 20:
+            return _logspace_manual_10s(frf)
+        elif index < 75:
+            return _logspace_manual_20s(frf)
+        else:
+            return _logspace_manual_60s(frf)
 
-    index = np.searchsorted(freq, 2.51, side='left')
-    if index < 20:
-        return logspace_manual_10s(frf)
-    elif index < 75:
-        return logspace_manual_20s(frf)
-    else:
-        return logspace_manual_60s(frf)
-
-def logspace_manual_10s(x):
+def _logspace_manual_10s(x):
     if x.ndim == 1:
         reduced_x = np.array([
             x[0],               # :,1
@@ -146,7 +145,7 @@ def logspace_manual_10s(x):
     return reduced_x
 
 
-def logspace_manual_20s(x):
+def _logspace_manual_20s(x):
     if x.ndim == 1:
         reduced_x = np.array([
             x[0],                # :,1
@@ -179,7 +178,7 @@ def logspace_manual_20s(x):
         ])
     return reduced_x
 
-def logspace_manual_60s(x):
+def _logspace_manual_60s(x):
     if x.ndim == 1:
         reduced_x = np.array([
             x[0],                 # :,1
@@ -221,6 +220,3 @@ def logspace_manual_60s(x):
             np.mean(x[:,60:75], axis=1)
         ])
     return reduced_x
-
-
-

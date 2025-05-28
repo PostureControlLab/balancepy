@@ -6,68 +6,30 @@
 BalancePy documentation
 =======================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+This Python package provides a set of tools for simulating and analyzing
+balance behavior in humans using systems identification methods. It accompanies 
+the virtual reality software package Anaropia, which can be used with standard 
+VR devices to collect the data that can be analzed using this Python package.
+The package is developed by Lorenz Assländer and Matthias Albrecht from the 
+University of Konstanz.
+It builds on the work of Peterka et al. [1]_ and Assländer et al. [2]_.
 
+.. `Balance Cybernetics Website <https://www.balance-cybernetics.de>`
+
+.. [1] Peterka, R. J., Murchison, C. F., Parrington, L., Fino, P. C., & King, L. A. (2018). Implementation of a central sensorimotor integration test for characterization of human balance control during stance. Frontiers in neurology, 9, 1045.
+.. [2] Assländer, L., Albrecht, M., Diehl, M., Missen, K. J., Carpenter, M. G., & Streuber, S. (2023). Estimation of the visual contribution to standing balance using virtual reality. Scientific Reports, 13(1), 2594.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: balancepy
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: balancepy.model_sim.base_model
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: balancepy.model_sim.P18
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: balancepy.frequency
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: balancepy.timeseries
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: balancepy.anaropia
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autofunction:: balancepy.biomechanics.calculate_com_2segmentmodel
-
-.. autoclass:: balancepy.biomechanics.WinterTable
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. .. autoclass:: balancepy.data_class
-..    :members:
-..    :undoc-members:
-..    :show-inheritance:
+   analysis
+   models
+   anaropia
 
 .. automodule:: balancepy.make_stimulus
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: balancepy.model_sim
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
-.. automodule:: balancepy.plot
-   :members:
-   :undoc-members:
-   :show-inheritance:

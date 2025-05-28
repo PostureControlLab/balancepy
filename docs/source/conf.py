@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'BalancePy'
-copyright = '2025, Lorenz Asslaender'
+copyright = '2025, Lorenz Asslaender and Matthias Albrecht'
 author = 'Lorenz Asslaender and Matthias Albrecht'
-release = '0.0.1'
+release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -18,7 +18,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',  # For Google/NumPy docstrings
     'sphinx_autodoc_typehints',
-    'sphinx.ext.mathjax'
+    'sphinx.ext.mathjax',
 ]
 
 templates_path = ['_templates']
