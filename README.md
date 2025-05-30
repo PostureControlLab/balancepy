@@ -6,12 +6,4 @@ This package implements a series of publish modeling approaches, where systems i
 
 Furthermore, the package integrates with the virtual reality balance analysis software [anaropia](https://github.com/PostureControlLab/anaropia-rfm). Data recorded with anaropia can be directly analyzed using BalancePy.
 
-
-model_sim/
-├── base_model.py
-├── parameters.py
-├── models/
-│   ├── __init__.py
-│   ├── model_a.py
-│   └── model_b.py
-└── main.py
+The documentation can be found here: [Documentation](https://posturecontrollab.github.io/balancepy/)
