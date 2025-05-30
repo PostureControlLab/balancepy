@@ -123,11 +123,11 @@ Methods
 | bounds()                    | List of bounds for free (not fixed) parameters.               |
 +-----------------------------+---------------------------------------------------------------+
 | set_values(values,          | Set parameter values from a list, optionally only for free    |
-| only_free=True)             |parameters.                                                    |
+| only_free=True)             | parameters.                                                   |
 +-----------------------------+---------------------------------------------------------------+
 | set_defaults()              | Reset all parameter values to their defaults.                 |
 +-----------------------------+---------------------------------------------------------------+
 | to_value_dict(              | Dictionary of parameter values, optionally only for free      |
-| only_free=False)            |parameters.                                                    |
+| only_free=False)            | parameters.                                                   |
 +-----------------------------+---------------------------------------------------------------+
 
