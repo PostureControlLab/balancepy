@@ -30,7 +30,6 @@ dependencies = [
   "statsmodels",
   "joblib",
   "ipywidgets",
-  "kaleido",
   "scikits-bootstrap"
 ]
 

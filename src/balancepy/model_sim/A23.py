@@ -107,7 +107,7 @@ class A23(BaseModel):
 
 
         #calculate model frequency response
-        tf = self.dynamics()
+        tf = self.dynamics
         w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
 
         #smooth frequency response functions

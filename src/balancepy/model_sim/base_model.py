@@ -122,13 +122,13 @@ class BaseModel:
         if freq is not None:
             data_sim = bp.sr_data()
             data_sim.freq = freq
-            _, data_sim.frf = signal.freqresp(self.dynamics(), w=data_sim.freq*2*np.pi)
+            _, data_sim.frf = signal.freqresp(self.dynamics, w=data_sim.freq*2*np.pi)
         elif freq is None and self.data_sim is not None and self.data_sim.frf is not None:
             data_sim = self.data_sim.frf
         else:
             data_sim = bp.sr_data()
             data_sim.freq = np.arange(0.01, 2.5, 0.01)
-            _, data_sim.frf = signal.freqresp(self.dynamics(), w=data_sim.freq*2*np.pi)
+            _, data_sim.frf = signal.freqresp(self.dynamics, w=data_sim.freq*2*np.pi)
 
         return data_sim
 
@@ -162,7 +162,7 @@ class BaseModel:
         data_sim.stimulus = stimulus
 
         # Get the system response
-        _, data_sim.response, _ = signal.lsim(self.dynamics(), U=stimulus, T=data_sim.time)
+        _, data_sim.response, _ = signal.lsim(self.dynamics, U=stimulus, T=data_sim.time)
 
         return data_sim
 
@@ -177,7 +177,7 @@ class BaseModel:
             params = self.params.set_values(params_free, only_free=True)
 
         #calculate model frequency response
-        w, frf_sim = signal.freqresp(self.dynamics(), w=self.freq*2*np.pi)
+        w, frf_sim = signal.freqresp(self.dynamics, w=self.freq*2*np.pi)
 
         #calculate objective
         err = np.sum( np.abs(frf_sim - self.data_exp.frf) / np.abs(frf_sim) )
@@ -240,7 +240,7 @@ class BaseModel:
             # Repeat stimulus to run twice and discard the first half to remove transient
             stimulus_double = np.concatenate([data_sim.stimulus, data_sim.stimulus])
             time_double = np.arange(0, stimulus_double.shape[0]) / data_sim.samplingrate_Hz
-            _, response_double, _ = signal.lsim(self.dynamics(), U=stimulus_double, T=time_double)
+            _, response_double, _ = signal.lsim(self.dynamics, U=stimulus_double, T=time_double)
             data_sim.response = response_double[stimulus_double.shape[0] // 2:]
 
             # calculate response spectrum
@@ -249,7 +249,7 @@ class BaseModel:
             data_sim.response_spectrum = response_spectrum
 
         # get frequency response function from dynamnics with fitted parameters
-        _, data_sim.frf = signal.freqresp(self.dynamics(), w=data_sim.freq*2*np.pi)
+        _, data_sim.frf = signal.freqresp(self.dynamics, w=data_sim.freq*2*np.pi)
         
         self.data_sim = data_sim
     
