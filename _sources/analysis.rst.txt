@@ -9,8 +9,7 @@ calculations as well as signal processing methods.
    :undoc-members:
    :show-inheritance:
 
-Attributes
-~~~~~~~~~~
+**Attributes**
 
 +-------------------------+---------------------------------------------------------------+
 | Name                    | Description                                                   |

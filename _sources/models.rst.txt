@@ -8,8 +8,7 @@ BaseModel
    :undoc-members:
    :show-inheritance:
 
-Attributes
-~~~~~~~~~~
+**Attributes**
 
 +----------------+-----------------------------------------------+
 | Name           | Description                                   |
@@ -31,8 +30,7 @@ Attributes
 | dynamics       | Defines the system dynamics (callable).       |
 +----------------+-----------------------------------------------+
 
-Methods
-~~~~~~~
+**Methods**
 
 +------------------------+-------------------------------------------------------------+
 | Name                   | Description                                                 |
@@ -71,8 +69,7 @@ Parameter Classes
    :undoc-members:
    :show-inheritance:
 
-Attributes
-~~~~~~~~~~
+**Attributes**
 
 +-------------------+---------------------------------------------------------------+
 | Name              | Description                                                   |
@@ -100,8 +97,7 @@ Attributes
    :undoc-members:
    :show-inheritance:
 
-Methods
-~~~~~~~
+**Methods**
 
 +-----------------------------+---------------------------------------------------------------+
 | Name                        | Description                                                   |
