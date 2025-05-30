@@ -1,0 +1,231 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Stimulus &mdash; BalancePy 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Anaropia" href="anaropia.html" />
+    <link rel="prev" title="BalancePy documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BalancePy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Create Stimulus</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.make_stimulus.make_prts"><code class="docutils literal notranslate"><span class="pre">make_prts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.make_stimulus.make_sine"><code class="docutils literal notranslate"><span class="pre">make_sine()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.make_stimulus.mseq"><code class="docutils literal notranslate"><span class="pre">mseq()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.make_stimulus.saveas_anaropia_legacy_stimulus"><code class="docutils literal notranslate"><span class="pre">saveas_anaropia_legacy_stimulus()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="anaropia.html">Anaropia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Model simulations</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BalancePy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Create Stimulus</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/stimulus.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="create-stimulus">
+<h1>Create Stimulus<a class="headerlink" href="#create-stimulus" title="Link to this heading"></a></h1>
+<p>This module provides functionality to create stimulus sequences for sensory
+perturbations. The stimulus sequences can be exportet in a format that is
+readable in Anaropia and Anaropia legacy Virtual Reality experimental setups.</p>
+<dl class="py function" id="module-balancepy.make_stimulus">
+<dt class="sig sig-object py" id="balancepy.make_stimulus.make_prts">
+<span class="sig-prename descclassname"><span class="pre">balancepy.make_stimulus.</span></span><span class="sig-name descname"><span class="pre">make_prts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mseq'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncyc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ampl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samplingrate_Hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.make_stimulus.make_prts" title="Link to this definition"></a></dt>
+<dd><p>Generate a stimulus based on m-sequence or other types.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of stimulus (‘Peterka2002’, ‘prts_20s’, ‘mseq’, etc.).</p></li>
+<li><p><strong>ncyc</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of cycles to repeat the stimulus.</p></li>
+<li><p><strong>ampl</strong> (<em>float</em><em>, </em><em>optional</em>) – Amplitude of the stimulus.</p></li>
+<li><p><strong>vel</strong> (<em>float</em><em>, </em><em>optional</em>) – Velocity scaling factor.</p></li>
+<li><p><strong>samplingrate_Hz</strong> (<em>int</em><em>, </em><em>optional</em>) – Sampling rate in Hz.</p></li>
+<li><p><strong>t_state</strong> (<em>float</em><em>, </em><em>optional</em>) – Time per state in seconds.</p></li>
+<li><p><strong>base</strong> (<em>int</em><em>, </em><em>optional</em>) – Base for m-sequence generation.</p></li>
+<li><p><strong>power</strong> (<em>int</em><em>, </em><em>optional</em>) – Power for m-sequence generation.</p></li>
+<li><p><strong>seq</strong> (<em>int</em><em>, </em><em>optional</em>) – Sequence instantiation to use.</p></li>
+<li><p><strong>shift</strong> (<em>int</em><em>, </em><em>optional</em>) – Cyclical shift of the sequence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>stim</strong> – Generated stimulus.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.make_stimulus.make_sine">
+<span class="sig-prename descclassname"><span class="pre">balancepy.make_stimulus.</span></span><span class="sig-name descname"><span class="pre">make_sine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frequency_Hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncyc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ampl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samplingrate_Hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.make_stimulus.make_sine" title="Link to this definition"></a></dt>
+<dd><p>Generate a sine wave stimulus.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frequency_Hz</strong> (<em>float</em><em>, </em><em>optional</em>) – Frequency of the sine wave in Hz.</p></li>
+<li><p><strong>ncyc</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of cycles to repeat the sine wave.</p></li>
+<li><p><strong>ampl</strong> (<em>float</em><em>, </em><em>optional</em>) – Amplitude of the sine wave.</p></li>
+<li><p><strong>samplingrate_Hz</strong> (<em>int</em><em>, </em><em>optional</em>) – Sampling rate in Hz.</p></li>
+<li><p><strong>phase</strong> (<em>float</em><em>, </em><em>optional</em>) – Phase shift in radians.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>stim</strong> – Generated sine wave stimulus.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.make_stimulus.mseq">
+<span class="sig-prename descclassname"><span class="pre">balancepy.make_stimulus.</span></span><span class="sig-name descname"><span class="pre">mseq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">which_seq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.make_stimulus.mseq" title="Link to this definition"></a></dt>
+<dd><p>Generate a maximum length sequence (m-sequence).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_val</strong> (<em>int</em>) – Number of sequence levels (2, 3, or 5 allowed).</p></li>
+<li><p><strong>power_val</strong> (<em>int</em>) – Power, so that sequence length is base_val**power_val - 1.</p></li>
+<li><p><strong>which_seq</strong> (<em>int</em><em>, </em><em>optional</em>) – Sequence instantiation to use (default is 1).</p></li>
+<li><p><strong>shift</strong> (<em>int</em><em>, </em><em>optional</em>) – Cyclical shift of the sequence (default is 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Generated maximum length sequence.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Adapted from the MATLAB code by Giedrius T. Buracas, SNL-B, Salk Institute.</p>
+<p class="rubric">References</p>
+<p>Davies, W.D.T. (1970). System Identification for Self-Adaptive Control. Wiley-Interscience.
+Buracas, G.T. &amp; Boynton, G.M. (2002). Efficient Design of Event-Related fMRI Experiments Using M-sequences. NeuroImage, 16, 801–813.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.make_stimulus.saveas_anaropia_legacy_stimulus">
+<span class="sig-prename descclassname"><span class="pre">balancepy.make_stimulus.</span></span><span class="sig-name descname"><span class="pre">saveas_anaropia_legacy_stimulus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stim_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pitch'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.make_stimulus.saveas_anaropia_legacy_stimulus" title="Link to this definition"></a></dt>
+<dd><p>Save a stimulus in the legacy Anaropia format.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Stimulus data must be sampled at 1000 Hz.
+Strict name conventions apply (see Parameters).</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stim</strong> (<em>np.ndarray</em>) – Stimulus data to save. Can be 1D or 2D.</p></li>
+<li><p><strong>stim_name</strong> (<em>str</em><em> or </em><em>list</em><em> of </em><em>str</em>) – <dl class="simple">
+<dt>Name(s) of the stimulus. Options are:</dt><dd><ul>
+<li><p>’pitch’: anterior-posterior rotation in degrees (default for 1D)</p></li>
+<li><p>’roll’: lateral-medial rotation in degrees</p></li>
+<li><p>’yaw’: vertical rotation in degrees</p></li>
+<li><p>’trans_ap’: anterior-posterior translation in meters</p></li>
+<li><p>’trans_ml’: lateral-medial translation in meters</p></li>
+<li><p>’trans_ud’: vertical translation in meters</p></li>
+</ul>
+</dd>
+</dl>
+<p>Can also be a list of strings for multi-dimensional stimuli.</p>
+</p></li>
+<li><p><strong>stimulus_index</strong> (<em>int</em><em>, </em><em>optional</em>) – Index for the filename. Output will be ‘vr_stim_[stimulus_index].csv’.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="BalancePy documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="anaropia.html" class="btn btn-neutral float-right" title="Anaropia" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Lorenz Asslaender and Matthias Albrecht.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

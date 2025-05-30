@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analysis &mdash; BalancePy 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model simulations" href="models.html" />
+    <link rel="prev" title="Anaropia" href="anaropia.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BalancePy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stimulus.html">Create Stimulus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="anaropia.html">Anaropia</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.data_class.sr_data"><code class="docutils literal notranslate"><span class="pre">sr_data</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#attributes">Attributes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.frequency.coherence"><code class="docutils literal notranslate"><span class="pre">coherence()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.frequency.frf"><code class="docutils literal notranslate"><span class="pre">frf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.frequency.phase"><code class="docutils literal notranslate"><span class="pre">phase()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.frequency.spectrum"><code class="docutils literal notranslate"><span class="pre">spectrum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.timeseries.cut_to_cycles"><code class="docutils literal notranslate"><span class="pre">cut_to_cycles()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.timeseries.resample"><code class="docutils literal notranslate"><span class="pre">resample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.timeseries.time_domain_analysis"><code class="docutils literal notranslate"><span class="pre">time_domain_analysis()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Model simulations</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BalancePy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Analysis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/analysis.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="analysis">
+<h1>Analysis<a class="headerlink" href="#analysis" title="Link to this heading"></a></h1>
+<p>This module provides basic time-domain and frequency-domain analysis
+tools tailored for balance data. This comprises biomechanical
+calculations as well as signal processing methods.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="balancepy.data_class.sr_data">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">balancepy.data_class.</span></span><span class="sig-name descname"><span class="pre">sr_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samplingrate_Hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency_selection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus_spectrum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_spectrum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.data_class.sr_data" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to hold stimulus and response data for balancepy models.</p>
+<p>Use <cite>add_timedomain_data</cite> to populate all attributes from stimulus and response data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>samplingrate_Hz</strong> (<em>int</em><em>, </em><em>optional</em>) – Sampling rate in Hz.</p></li>
+<li><p><strong>stimulus</strong> (<em>ndarray</em><em>, </em><em>optional</em>) – Stimulus data in cycles (1D or 2D array).</p></li>
+<li><p><strong>response</strong> (<em>ndarray</em><em>, </em><em>optional</em>) – Response data in cycles (1D or 2D array).</p></li>
+<li><p><strong>frequency_selection</strong> (<em>str</em><em> or </em><em>list</em><em>, </em><em>optional</em>) – Method for frequency selection, e.g., ‘all’, ‘prts’, ‘double_prts’, or a list of indices.</p></li>
+<li><p><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the data set.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>samplingrate_Hz</p></td>
+<td><p>Sampling rate in Hz.</p></td>
+</tr>
+<tr class="row-odd"><td><p>stimulus</p></td>
+<td><p>Stimulus data in cycles (1D or 2D array).</p></td>
+</tr>
+<tr class="row-even"><td><p>response</p></td>
+<td><p>Response data in cycles (1D or 2D array).</p></td>
+</tr>
+<tr class="row-odd"><td><p>frequency_selection</p></td>
+<td><p>Frequency selection method or indices.</p></td>
+</tr>
+<tr class="row-even"><td><p>name</p></td>
+<td><p>Name of the data set.</p></td>
+</tr>
+<tr class="row-odd"><td><p>time</p></td>
+<td><p>Time vector corresponding to the stimulus and response.</p></td>
+</tr>
+<tr class="row-even"><td><p>freq</p></td>
+<td><p>Frequencies corresponding to the spectra.</p></td>
+</tr>
+<tr class="row-odd"><td><p>stimulus_spectrum</p></td>
+<td><p>Spectrum of the stimulus.</p></td>
+</tr>
+<tr class="row-even"><td><p>response_spectrum</p></td>
+<td><p>Spectrum of the response.</p></td>
+</tr>
+<tr class="row-odd"><td><p>frf</p></td>
+<td><p>Frequency response function.</p></td>
+</tr>
+<tr class="row-even"><td><p>stimulus_mean</p></td>
+<td><p>Mean of the stimulus across cycles (property).</p></td>
+</tr>
+<tr class="row-odd"><td><p>response_mean</p></td>
+<td><p>Mean of the response across cycles (property).</p></td>
+</tr>
+<tr class="row-even"><td><p>stimulus_mean0</p></td>
+<td><p>Mean of the stimulus, centered around 0 (property).</p></td>
+</tr>
+<tr class="row-odd"><td><p>response_mean0</p></td>
+<td><p>Mean of the response, centered around 0 (property).</p></td>
+</tr>
+<tr class="row-even"><td><p>gain</p></td>
+<td><p>Magnitude of the frequency response function (property).</p></td>
+</tr>
+<tr class="row-odd"><td><p>phase</p></td>
+<td><p>Phase of the frequency response function (property).</p></td>
+</tr>
+<tr class="row-even"><td><p>coherence</p></td>
+<td><p>Coherence between stimulus and response (property).</p></td>
+</tr>
+<tr class="row-odd"><td><p>stimulus_spectrum_mean</p></td>
+<td><p>Mean of the stimulus spectrum across cycles (property).</p></td>
+</tr>
+<tr class="row-even"><td><p>response_spectrum_mean</p></td>
+<td><p>Mean of the response spectrum across cycles (property).</p></td>
+</tr>
+<tr class="row-odd"><td><p>stimulus_spectrum_PSD</p></td>
+<td><p>Power spectral density of the stimulus spectrum (property).</p></td>
+</tr>
+<tr class="row-even"><td><p>response_spectrum_PSD</p></td>
+<td><p>Power spectral density of the response spectrum (property).</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function" id="module-balancepy.frequency">
+<dt class="sig sig-object py" id="balancepy.frequency.coherence">
+<span class="sig-prename descclassname"><span class="pre">balancepy.frequency.</span></span><span class="sig-name descname"><span class="pre">coherence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">yi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yo</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.frequency.coherence" title="Link to this definition"></a></dt>
+<dd><p>Calculate the coherence between two signals in the frequency domain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>yi</strong> (<em>NDArray</em><em>[</em><em>np.number</em><em>]</em>) – Spectrum of multiple cycles of the stimulus.</p></li>
+<li><p><strong>yo</strong> (<em>NDArray</em><em>[</em><em>np.number</em><em>]</em>) – Spectrum of multiple cycles of the response.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>coh<span class="classifier">NDArray[np.number]</span></dt><dd><p>Coherence between the two signals.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.frequency.frf">
+<span class="sig-prename descclassname"><span class="pre">balancepy.frequency.</span></span><span class="sig-name descname"><span class="pre">frf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">yi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yo</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.frequency.frf" title="Link to this definition"></a></dt>
+<dd><p>Calculate the frequency response function (FRF).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>yi</strong> (<em>array_like</em>) – Complex stimulus spectrum; can be multiple cycles.</p></li>
+<li><p><strong>yo</strong> (<em>array_like</em>) – Complex response spectrum; can be multiple cycles.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>frf<span class="classifier">array_like</span></dt><dd><p>Complex frequency response function (FRF).</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.frequency.phase">
+<span class="sig-prename descclassname"><span class="pre">balancepy.frequency.</span></span><span class="sig-name descname"><span class="pre">phase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.frequency.phase" title="Link to this definition"></a></dt>
+<dd><p>Calculate the phase of the frequency response function (FRF).</p>
+<blockquote>
+<div><p>Function performs additional phase unwrapping.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frf</strong> (<em>array_like</em>) – Complex frequency response function (FRF).</p></li>
+<li><p><strong>f</strong> (<em>array_like</em>) – Frequencies corresponding to the FRF.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>pha<span class="classifier">array_like</span></dt><dd><p>Phase of the frequency response function (FRF) in degrees.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.frequency.spectrum">
+<span class="sig-prename descclassname"><span class="pre">balancepy.frequency.</span></span><span class="sig-name descname"><span class="pre">spectrum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samplingrate_Hz</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.frequency.spectrum" title="Link to this definition"></a></dt>
+<dd><p>Calculate scaled amplitude and power spectra of a time domain signal.</p>
+<blockquote>
+<div><p>Amplitude spectrum is scaled such that the amplitude of a sine input
+is given by abs(Sx)
+Power spectrum Sxx is scaled such that sum(Sxx*df) = mean(data^2),
+where df is the frequency spacing.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>array_like</em>) – time domain signal, can be 1D or 2D.</p></li>
+<li><p><strong>samplingrate_Hz</strong> (<em>float</em>) – Sampling rate in Hz</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Sx<span class="classifier">array_like</span></dt><dd><p>Scaled amplitude spectrum. 1D array for 1D input, 2D array for 2D input.</p>
+</dd>
+<dt>Sxx<span class="classifier">array_like</span></dt><dd><p>Scaled power spectrum. 1D array for 1D input, 2D array for 2D input.</p>
+</dd>
+<dt>freq<span class="classifier">array_like</span></dt><dd><p>Frequencies in Hz.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function" id="module-balancepy.timeseries">
+<dt class="sig sig-object py" id="balancepy.timeseries.cut_to_cycles">
+<span class="sig-prename descclassname"><span class="pre">balancepy.timeseries.</span></span><span class="sig-name descname"><span class="pre">cut_to_cycles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_start_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_length_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discard_cycles_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.timeseries.cut_to_cycles" title="Link to this definition"></a></dt>
+<dd><p>Cuts the data into cycles based on the provided cycle length, number of cycles, and a given start sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>NDArray</em>) – 1D data array to be cut into cycles</p></li>
+<li><p><strong>cycle_length_samples</strong> (<em>int</em>) – Length of cycles in samples</p></li>
+<li><p><strong>cycle_start_sample</strong> (<em>int</em><em>, </em><em>optional</em>) – Index of first sample of the first cycle</p></li>
+<li><p><strong>discard_cycles_list</strong> (<em>NDArray</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – List of cycles to discard starting at 0 for first cycle</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>2D array with cycles in columns</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NDArray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.timeseries.resample">
+<span class="sig-prename descclassname"><span class="pre">balancepy.timeseries.</span></span><span class="sig-name descname"><span class="pre">resample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_rate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.timeseries.resample" title="Link to this definition"></a></dt>
+<dd><p>resamples to fixed sample rate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_s</strong> (<em>np.ndarray</em>) – 1D timestamps of original recording in seconds</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – 1D or 2D data array to be resampled</p></li>
+<li><p><strong>sr</strong> (<em>int</em>) – sampling rate in samples/second</p></li>
+<li><p><strong>end_time_seconds</strong> (<em>float</em><em>, </em><em>optional</em>) – optional end time of resampled data in seconds. Defaults to 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>1D or 2D with resampled data input</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NDArray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.timeseries.time_domain_analysis">
+<span class="sig-prename descclassname"><span class="pre">balancepy.timeseries.</span></span><span class="sig-name descname"><span class="pre">time_domain_analysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samplingrate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bootstrap_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.timeseries.time_domain_analysis" title="Link to this definition"></a></dt>
+<dd><p>analyse time domain input/output data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xi</strong> (<em>NDArray</em>) – stimulus data</p></li>
+<li><p><strong>xo</strong> (<em>NDArray</em>) – response data</p></li>
+<li><p><strong>samplingrate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_ScalarType_co</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">generic</span></code>, covariant=True)]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="anaropia.html" class="btn btn-neutral float-left" title="Anaropia" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="models.html" class="btn btn-neutral float-right" title="Model simulations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Lorenz Asslaender and Matthias Albrecht.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
