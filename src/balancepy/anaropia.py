@@ -1,6 +1,4 @@
 # this submodule contains functions to analyze the data from anaropia balance experiments
-# 
-
 import numpy as np
 import balancepy as bp
 import balancepy.biomechanics as bm

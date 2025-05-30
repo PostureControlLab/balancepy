@@ -17,27 +17,6 @@ class Parameter:
         The unit of the parameter, if applicable.
     description : str, optional
         A description of the parameter, if applicable.
-
-    Attributes
-    ----------
-    name : str
-        The name of the parameter.
-    value : float
-        The current value of the parameter.
-    default : float
-        The default value of the parameter.
-    bounds : tuple
-        The lower and upper bounds of the parameter.
-    fixed : bool
-        Whether the parameter is fixed (not optimized).
-    fit_result : object or None
-        Result from fitting, if applicable.
-    confidencebounds : object or None
-        Confidence bounds for the parameter, if applicable.
-    unit : str or None
-        The unit of the parameter, if applicable.
-    description : str or None
-        A description of the parameter, if applicable.
     """
     def __init__(self, name, default, bounds=(None, None), fixed=False, unit=None, description=None):
         self.name = name
@@ -61,36 +40,6 @@ class ParameterSet:
     and retrieving parameter information such as values, bounds, units, and descriptions. It supports
     operations for both fixed and free parameters, making it suitable for parameter management in
     modeling and simulation tasks.
-
-    Attributes
-    ----------
-    _params : dict
-        Dictionary mapping parameter names to Parameter instances.
-
-    Methods
-    -------
-    add(param)
-        Add a Parameter object to the set.
-    items()
-        Return (name, Parameter) pairs.
-    names()
-        List of parameter names.
-    defaults()
-        Dictionary of default values for all parameters.
-    units()
-        Dictionary of parameter units.
-    descriptions()
-        Dictionary of parameter descriptions.
-    values(only_free=True)
-        List of parameter values, optionally only for free (not fixed) parameters.
-    bounds()
-        List of bounds for free (not fixed) parameters.
-    set_values(values, only_free=True)
-        Set parameter values from a list, optionally only for free parameters.
-    set_defaults()
-        Reset all parameter values to their defaults.
-    to_value_dict(only_free=False)
-        Dictionary of parameter values, optionally only for free parameters.
     """
     def __init__(self):
         self._params = {}

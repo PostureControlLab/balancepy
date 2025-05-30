@@ -1,8 +1,5 @@
 from numpy.typing import NDArray
-import numpy.lib.recfunctions as rfn
 import numpy as np
-import skrf as rf
-import balancepy as bp
 
 
 def spectrum(

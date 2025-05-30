@@ -1,11 +1,7 @@
 import numpy as np
-from scipy.optimize import Bounds, basinhopping
 from numbers import Number
 import scipy.signal as signal
-from scipy.signal import convolve as conv
 import balancepy as bp
-from joblib import Parallel, delayed
-import numpy.lib.recfunctions as rfn
 import balancepy as bp
 from .base_model import BaseModel
 
@@ -44,6 +40,7 @@ class P18(BaseModel):
 
         return params
 
+    @property
     def dynamics(self):
         
         p = self.params.to_value_dict()

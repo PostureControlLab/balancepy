@@ -24,50 +24,6 @@ class sr_data:
         Method for frequency selection, e.g., 'all', 'prts', 'double_prts', or a list of indices.
     name : str, optional
         Name of the data set.
-
-        
-    Time Domain Attributes
-    ----------------------
-    time : ndarray
-        Time vector corresponding to the stimulus and response.
-    stimulus : ndarray
-        Stimulus data in cycles (1D or 2D array).
-    response : ndarray
-        Response data in cycles (1D or 2D array).
-    stimulus_mean : ndarray
-        Mean of the stimulus across cycles (property).
-    response_mean : ndarray
-        Mean of the response across cycles (property).
-    stimulus_mean0 : ndarray
-        Mean of the stimulus, centered around 0 (property).
-    response_mean0 : ndarray
-        Mean of the response, centered around 0 (property).
-
-        
-    Frequency Domain Attributes
-    ---------------------------
-    freq : ndarray
-        Frequencies corresponding to the spectra.
-    stimulus_spectrum : ndarray
-        Spectrum of the stimulus.
-    response_spectrum : ndarray
-        Spectrum of the response.
-    frf : ndarray
-        Frequency response function.
-    gain : ndarray
-        Magnitude of the frequency response function (property).
-    phase : ndarray
-        Phase of the frequency response function (property).
-    coherence : ndarray
-        Coherence between stimulus and response (property).
-    stimulus_spectrum_mean : ndarray
-        Mean of the stimulus spectrum across cycles (property).
-    response_spectrum_mean : ndarray
-        Mean of the response spectrum across cycles (property).
-    stimulus_spectrum_PSD : ndarray
-        Power spectral density of the stimulus spectrum (property).
-    response_spectrum_PSD : ndarray
-        Power spectral density of the response spectrum (property).
     """
     samplingrate_Hz: Optional[int] = None
     stimulus: Optional[NDArray] = None

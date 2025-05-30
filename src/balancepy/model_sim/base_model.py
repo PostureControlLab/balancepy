@@ -1,7 +1,6 @@
 import numpy as np
 import balancepy as bp
 import scipy.signal as signal
-import numpy.lib.recfunctions as rfn
 from scipy.optimize import basinhopping
 from numbers import Number
 import warnings
@@ -13,40 +12,18 @@ class BaseModel:
 
     Provides a framework for parameter management, data handling, simulation, and model fitting.
 
-    Attributes
+    Parameters
     ----------
-
-    ModelName : str or None
-        Name of the model.
-    mass_kg : Number
-        Mass in kilograms.
-    height_m : Number
-        Height in meters.
-    data_exp : sr_data or None
-        Experimental data object.
-    data_sim : sr_data or None
-        Simulated data object.
-    params : ParameterSet
-        Model parameters, created by the subclass implementation of _create_parameters().
-    fit_output : object or None
-        Output of the fitting procedure.
-
-        
-    Methods
-    -------
-
-    dynamics()
-        Defines the system dynamics. Should be implemented by subclasses.
-    frf(freq=None)
-        Computes the frequency response function (FRF) of the system for given input frequencies.
-    simulate_timedomain(stimulus, samplingrate_Hz)
-        Simulates the time domain response of the system using the provided stimulus and sampling rate.
-    objective(params_free = None)
-        Objective function for optimization, comparing simulated and experimental frequency responses.
-    fit(data_exp=None)
-        Fits the model parameters to the reference experimental data using optimization.
-    plot()
-        Plots the experimental and simulated data, if available.  
+    mass_kg : Number, optional
+        Mass of the model in kilograms. Must be provided.
+    height_m : Number, optional
+        Height of the model in meters. Must be provided.
+    data_exp : balancepy.sr_data, optional
+        Experimental data object containing frequency response data.
+    ModelName : str, optional
+        Name of the model. If not provided, defaults to None.
+    config : dict, optional
+        Configuration dictionary to override default settings. If not provided, defaults to None.
     """
     default_config = {
         "ModelName": None,
@@ -122,6 +99,7 @@ class BaseModel:
         # params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
         # self.params = params
 
+    @property
     def dynamics(self):
         pass
         

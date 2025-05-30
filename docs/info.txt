@@ -1,6 +1,0 @@
-To update documentation navigate to docs folder in Terminal
-clean built html files using
-poetry run make clean
-
-To build new html code from the docstring in the code run
-poetry run make html

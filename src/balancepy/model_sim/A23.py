@@ -1,11 +1,7 @@
 import numpy as np
-from scipy.optimize import Bounds, basinhopping
 from numbers import Number
 import scipy.signal as signal
-from scipy.signal import convolve as conv
 import balancepy as bp
-from joblib import Parallel, delayed
-import numpy.lib.recfunctions as rfn
 
 
 from .base_model import BaseModel
@@ -21,10 +17,14 @@ class A23(BaseModel):
     def _create_parameters(self, mass_kg: Number, height_m: Number):
         """
         Create a set of parameters for the model.
-        Args:
+        
+        Parameters
+        ----------
             mass_kg (Number): Mass in kilograms.
             height_m (Number): Height in meters.
-        Returns:
+        
+        Returns
+        -------
             ParameterSet: A set of parameters for the model.
         """
         WT = bp.WinterTable(mass_kg, height_m)
@@ -47,6 +47,7 @@ class A23(BaseModel):
 
         return params
 
+    @property
     def dynamics(self):
         # implemanted as static method to allow efficient use during bootstrapping
         p = self.params.to_value_dict()
@@ -79,10 +80,12 @@ class A23(BaseModel):
         Objective function for optimization.
         Applies a smoothing of the frf across frequencies.
 
-        Args:
+        Parameters
+        ----------
             params_free: Parameters to be optimized.
 
-        Returns:
+        Returns
+        -------
             err: Objective function value.
         """
         #    The error shown here is not correct yet!!

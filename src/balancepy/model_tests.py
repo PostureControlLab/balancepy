@@ -7,10 +7,12 @@ def run_model_simulation(args):
     """
     Run a single model simulation.
 
-    Args:
+    Parameters
+    ----------
         args (tuple): A tuple containing (model_class, frequencies, weight, height).
 
-    Returns:
+    Returns
+    -------
         tuple: set_values, fit_result
     """
     model_class, config, weight, height = args
