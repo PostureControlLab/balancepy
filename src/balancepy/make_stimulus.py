@@ -2,36 +2,72 @@ import numpy as np
 import warnings
 
 
-def make_stimulus(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state=0.25, power=4, base=3, seq=1, shift=0):
+def make_sine(frequency_Hz=1, ncyc=1, ampl=1, samplingrate_Hz=1000, phase=0):
+    """
+    Generate a sine wave stimulus.
+
+    Parameters
+    ----------
+    frequency_Hz : float, optional
+        Frequency of the sine wave in Hz.
+    ncyc : int, optional
+        Number of cycles to repeat the sine wave.
+    ampl : float, optional
+        Amplitude of the sine wave.
+    samplingrate_Hz : int, optional
+        Sampling rate in Hz.
+    phase : float, optional
+        Phase shift in radians.
+
+    Returns
+    -------
+    stim : np.ndarray
+        Generated sine wave stimulus.
+    """
+    t = np.arange(0, ncyc / frequency_Hz, 1 / samplingrate_Hz)
+    stim = ampl * np.sin(2 * np.pi * frequency_Hz * t + phase)
+    return stim
+
+
+
+def make_prts(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate_Hz=1000, t_state=0.25, base=3, power=4, seq=1, shift=0):
     """
     Generate a stimulus based on m-sequence or other types.
 
-    Args:
-        type (str): Type of stimulus ('Peterka2002', 'prts80', 'mseq', etc.).
-        ncyc (int): Number of cycles to repeat the stimulus.
-        ampl (float): Amplitude of the stimulus.
-        ampl2 (float): Secondary amplitude (not used in this implementation).
-        vel (float): Velocity scaling factor.
-        samprate (int): Sampling rate in Hz.
-        t_state (float): Time per state in seconds.
-        power (int): Power for m-sequence generation.
-        base (int): Base for m-sequence generation.
-        seq (int): Sequence instantiation to use.
-        shift (int): Cyclical shift of the sequence.
+    Parameters
+    ----------
+    type : str, optional
+        Type of stimulus ('Peterka2002', 'prts_20s', 'mseq', etc.).
+    ncyc : int, optional
+        Number of cycles to repeat the stimulus.
+    ampl : float, optional
+        Amplitude of the stimulus.
+    vel : float, optional
+        Velocity scaling factor.
+    samplingrate_Hz : int, optional
+        Sampling rate in Hz.
+    t_state : float, optional
+        Time per state in seconds.
+    base : int, optional
+        Base for m-sequence generation.
+    power : int, optional
+        Power for m-sequence generation.
+    seq : int, optional
+        Sequence instantiation to use.
+    shift : int, optional
+        Cyclical shift of the sequence.
 
-    Returns:
-        np.ndarray: Generated stimulus.
+    Returns
+    -------
+    stim : np.ndarray
+        Generated stimulus.
     """
     if type == 'Peterka2002':
-        ms = mseq(3, 5, shift=37, which_seq=2)  # Peterka 2002 stimulus
+        ms = mseq(3, 5, which_seq=2, shift=37)  # Peterka 2002 stimulus
     elif type == 'prts_20s':
-        ms = mseq(3, 4, shift=59, which_seq=1)  # Standard 20s stimulus
+        ms = mseq(3, 4, which_seq=1, shift=59)  # Standard 20s stimulus
     elif type == 'mseq':
-        ms = mseq(base, power, shift=shift, which_seq=seq)
-    elif type == 'dual':
-        raise NotImplementedError("Dual type is not implemented.")
-    elif type == 'sine':
-        raise NotImplementedError("Sine type is not implemented.")
+        ms = mseq(base, power, which_seq=seq, shift=shift)
     else:
         raise ValueError(f"Unknown type: {type}")
 
@@ -40,9 +76,9 @@ def make_stimulus(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state
         ms = ms * vel
 
     # integrate the m-sequence to get the position sequence of the stimulus
-    if not (t_state * samplingrate).is_integer():
+    if not (t_state * samplingrate_Hz).is_integer():
         warnings.warn("samplingrate does not allow duration of individual prts states")
-    stim = np.cumsum(np.repeat(ms, int(t_state * samplingrate)) / samplingrate)
+    stim = np.cumsum(np.repeat(ms, int(t_state * samplingrate_Hz)) / samplingrate_Hz)
 
     # 
     if vel == 0:
@@ -52,23 +88,34 @@ def make_stimulus(type='mseq', ncyc=1, ampl=1, vel=0, samplingrate=1000, t_state
     return stim
 
 
-def mseq(base_val, power_val, shift=1, which_seq=1):
+def mseq(base_val, power_val, which_seq=1, shift=1):
     """
     Generate a maximum length sequence (m-sequence).
 
-    Args:
-        base_val (int): Number of sequence levels (2, 3, or 5 allowed).
-        power_val (int): Power, so that sequence length is base_val^power_val - 1.
-        shift (int): Cyclical shift of the sequence.
-        which_seq (int): Sequence instantiation to use.
+    Parameters
+    ----------
+    base_val : int
+        Number of sequence levels (2, 3, or 5 allowed).
+    power_val : int
+        Power, so that sequence length is base_val**power_val - 1.
+    which_seq : int, optional
+        Sequence instantiation to use (default is 1).
+    shift : int, optional
+        Cyclical shift of the sequence (default is 1).
 
-    Returns:
-        np.ndarray: Generated maximum length sequence.
+    Returns
+    -------
+    np.ndarray
+        Generated maximum length sequence.
 
+    Notes
+    -----
     Adapted from the MATLAB code by Giedrius T. Buracas, SNL-B, Salk Institute.
-    Reference:
-    - Davies, W.D.T. (1970). *System Identification for Self-Adaptive Control*. Wiley-Interscience.
-    - Buracas, G.T. & Boynton, G.M. (2002). Efficient Design of Event-Related fMRI Experiments Using M-sequences. NeuroImage, 16, 801–813.
+
+    References
+    ----------
+    Davies, W.D.T. (1970). System Identification for Self-Adaptive Control. Wiley-Interscience.
+    Buracas, G.T. & Boynton, G.M. (2002). Efficient Design of Event-Related fMRI Experiments Using M-sequences. NeuroImage, 16, 801–813.
     """
 
     if base_val not in [2, 3, 5]:
@@ -204,3 +251,54 @@ def mseq(base_val, power_val, shift=1, which_seq=1):
         raise ValueError("Invalid base_val!")
 
     return ms
+
+
+
+def saveas_anaropia_legacy_stimulus(stim, stim_name='pitch', stimulus_index=1):
+    """
+    Save a stimulus in the legacy Anaropia format.
+
+    .. note::
+        Stimulus data must be sampled at 1000 Hz.
+        Strict name conventions apply (see Parameters).
+
+    Parameters
+    ----------
+    stim : np.ndarray
+        Stimulus data to save. Can be 1D or 2D.
+    stim_name : str or list of str
+        Name(s) of the stimulus. Options are:
+            - 'pitch': anterior-posterior rotation in degrees (default for 1D)
+            - 'roll': lateral-medial rotation in degrees
+            - 'yaw': vertical rotation in degrees
+            - 'trans_ap': anterior-posterior translation in meters
+            - 'trans_ml': lateral-medial translation in meters
+            - 'trans_ud': vertical translation in meters
+
+        Can also be a list of strings for multi-dimensional stimuli.
+        
+    stimulus_index : int, optional
+        Index for the filename. Output will be 'vr_stim_[stimulus_index].csv'.
+    """
+    stim = np.atleast_2d(stim)
+    if stim.shape[0] < stim.shape[1]:
+        stim = stim.T
+
+    n_samples = stim.shape[0]
+    t = np.arange(n_samples) / 1000.0  # 1000 Hz sampling rate
+
+    if isinstance(stim_name, str):
+        col_names = ['time', stim_name]
+    elif isinstance(stim_name, (list, tuple, np.ndarray)):
+        col_names = ['time'] + list(stim_name)
+    else:
+        raise ValueError("stim_name must be a string or a list/tuple/array of strings.")
+
+    data = np.column_stack((t, stim))
+    filename = f"vr_stim_{stimulus_index}.csv"
+
+    header = ','.join(col_names)
+
+    np.savetxt(filename, data, delimiter=',', header=header, comments='')
+
+    print(f"Stimulus saved to {filename}")

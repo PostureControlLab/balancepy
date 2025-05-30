@@ -3,15 +3,16 @@ Model simulations
 
 
 .. autoclass:: balancepy.model_sim.base_model.BaseModel
-   :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: balancepy.model_sim.parameter
-   :members:
+.. autoclass:: balancepy.model_sim.parameter.Parameter
    :undoc-members:
    :show-inheritance:
 
+.. autoclass:: balancepy.model_sim.parameter.ParameterSet
+   :undoc-members:
+   :show-inheritance:
 
 .. autoclass:: balancepy.model_sim.p18.P18
    :members:

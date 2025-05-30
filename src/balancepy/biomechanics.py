@@ -49,7 +49,7 @@ def get_com(
 
     # Needs to be in meters (m) for correct moment of inertia calculations
     # mass cancels out in com calculation and is set to one here.
-    wt = _WinterTable(1, height_m)
+    wt = WinterTable(1, height_m)
 
     sho = shoulder_t - np.mean(shoulder_t)
     hip = hip_t - np.mean(hip_t)
@@ -76,7 +76,7 @@ def get_com(
 
 
 @dataclass
-class _WinterTable:
+class WinterTable:
     """
     Based on the anthropometric table as published in 'Biomechanics and Motor Control of Human Movement', second Ed. (1990) by David A. Winter
 

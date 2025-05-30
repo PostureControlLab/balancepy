@@ -23,13 +23,9 @@ It builds on the work of Peterka et al. [1]_ and Assländer et al. [2]_.
    :maxdepth: 2
    :caption: Contents:
 
+   stimulus
+   anaropia
    analysis
    models
-   anaropia
-
-.. automodule:: balancepy.make_stimulus
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 
