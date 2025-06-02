@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'BalancePy'
-copyright = '2025, Lorenz Asslaender and Matthias Albrecht'
+copyright = 'Lorenz Asslaender & Matthias Albrecht, MIT License'
 author = 'Lorenz Asslaender and Matthias Albrecht'
 release = '0.1.0'
 
@@ -19,7 +19,10 @@ extensions = [
     'sphinx.ext.napoleon',  # For Google/NumPy docstrings
     'sphinx_autodoc_typehints',
     'sphinx.ext.mathjax',
+    'myst_nb',
 ]
+
+nb_execution_mode = "off"
 
 templates_path = ['_templates']
 exclude_patterns = []

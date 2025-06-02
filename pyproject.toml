@@ -11,7 +11,7 @@ authors = [
 ]
 description = "Human balance analysis using Python"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12,<3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -47,4 +47,5 @@ sphinx = "^8.2.3"
 sphinx-rtd-theme = "^3.0.2"
 sphinx-autodoc-typehints = "^3.2.0"
 myst-parser = "^4.0.1"
+myst-nb = "^1.2.0"
 

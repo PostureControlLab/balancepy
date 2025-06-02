@@ -60,9 +60,9 @@ class ParameterSet:
         return iter(self._params.values())
 
     def __repr__(self):
-        # Create a summary of all parameters, each on a new line
+        # Create a summary of all parameters, each on a new line, with rounded values
         param_summaries = [
-            f"{name}: value={param.value}, bounds={param.bounds}, fixed={param.fixed}"
+            f"{name}: value={round(param.value, 2) if isinstance(param.value, (float, int)) else param.value}, bounds={param.bounds}, fixed={param.fixed}"
             for name, param in self._params.items()
         ]
         return "ParameterSet( \n    " + ",\n    ".join(param_summaries) + "\n    )"

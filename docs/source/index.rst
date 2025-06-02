@@ -26,6 +26,12 @@ It builds on the work of Peterka et al. [1]_ and Assländer et al. [2]_.
    stimulus
    anaropia
    analysis
+   model_simulations
    models
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Demos:
 
+   examples/model_simulations
+   examples/biomechanics

@@ -2,13 +2,12 @@ import numpy as np
 from numbers import Number
 import scipy.signal as signal
 import balancepy as bp
-
-
+import balancepy as bp
 from .base_model import BaseModel
 
-class A23(BaseModel):
+class Peterka18(BaseModel):
     default_config = {
-        "ModelName": 'Asslaender 2023',
+        "ModelName": 'Peterka 2018',
         "mass_kg": None,
         "height_m": None,
         "data_exp": None
@@ -17,14 +16,10 @@ class A23(BaseModel):
     def _create_parameters(self, mass_kg: Number, height_m: Number):
         """
         Create a set of parameters for the model.
-        
-        Parameters
-        ----------
+        Args:
             mass_kg (Number): Mass in kilograms.
             height_m (Number): Height in meters.
-        
-        Returns
-        -------
+        Returns:
             ParameterSet: A set of parameters for the model.
         """
         WT = bp.WinterTable(mass_kg, height_m)
@@ -42,30 +37,40 @@ class A23(BaseModel):
         params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
         params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
         params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.05), fixed=False))
-        params.add(bp.Parameter("Ft", 20, bounds=(3, 30), fixed=True))
-        params.add(bp.Parameter("b", 1, bounds=(0.0001, 10), fixed=False))
 
         return params
 
     @property
     def dynamics(self):
-        # implemanted as static method to allow efficient use during bootstrapping
+        r"""
+        Dynamics of the Peterka 2018 model. The function returns a transfer function of the model.
+        The function is given by
+
+        .. math::
+
+           TF = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }
+
+        where :math:`s = i\omega`, :math:`NC = K_p + s K_d`, :math:`NC = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`T = \frac{K_t}{s}`, .
+
+        For more details see Peterka et al. (2018).
+
+        Args:
+            params_free: Parameters to be optimized.
+
+        Returns:
+            err: Objective function value.
+        """
+
+        
         p = self.params.to_value_dict()
 
-        num = [
-            -0.5 * p['dt'] * p['W'] * p['Kd'] * p['Ft'],
-            (p['W'] * p['Kd'] * p['Ft'] - 0.5 * p['W'] * p['Kp'] * p['Ft'] * p['dt'] - 0.5 * p['dt'] * p['W'] * p['Kd']),
-            p['W'] * p['Kp'] * p['Ft'] + p['W'] * p['Kd'] - 0.5 * p['W'] * p['Kp'] * p['dt'],
-            p['W'] * p['Kp']
-        ]
+        num = [ -0.5*p['dt']*p['W']*p['Kd'], (p['W']*p['Kd'] - 0.5*p['W']*p['Kp']*p['dt']), p['W']*p['Kp'], 0 ]
 
-        den = [
-            (0.5 * p['Ft'] * p['J'] * p['dt'] + 0.5 * p['Kt'] * p['Kd'] * p['J'] * p['dt']),
-            (p['Ft'] * p['J'] + 0.5 * p['Kt'] * p['Kp'] * p['J'] * p['dt'] - p['Kt'] * p['Kd'] * p['J'] - 0.5 * p['Kd'] * p['dt']),
-            (-0.5 * p['mgh'] * p['Ft'] * p['dt'] + p['J'] - p['Kt'] * p['Kp'] * p['J'] - 0.5 * p['Kt'] * p['Kd'] * p['mgh'] * p['dt'] - 0.5 * p['Kp'] * p['Ft'] * p['dt'] + p['Kd'] * p['Ft'] - 0.5 * p['Kd'] * p['dt']),
-            (-p['Ft'] * p['mgh'] - 0.5 * p['mgh'] * p['dt'] - 0.5 * p['Kt'] * p['Kp'] * p['mgh'] * p['dt'] + p['Kt'] * p['Kd'] * p['mgh'] + p['Kp'] * p['Ft'] - 0.5 * p['Kp'] * p['dt'] + p['Kd']),
-            (-p['mgh'] + p['Kt'] * p['Kp'] * p['mgh'] + p['Kp'])
-        ]
+        den = [ (0.5*p['J']*p['dt'] + 0.5*p['Kt']*p['Kd']*p['J']*p['dt'] ), 
+                (p['J'] + 0.5*p['Kt']*p['Kp']*p['J']*p['dt'] - p['Kt']*p['Kd']*p['J'] - 0.5*p['Kd']*p['dt']),
+                (-0.5*p['mgh']*p['dt'] - p['Kt']*p['Kp']*p['J'] - 0.5*p['Kt']*p['Kd']*p['mgh']*p['dt'] - 0.5*p['Kp']*p['dt'] + p['Kd']),
+                (-p['mgh'] - 0.5*p['Kt']*p['Kp']*p['mgh']*p['dt'] + p['Kt']*p['Kd']*p['mgh'] + p['Kp']), 
+                p['Kt']*p['Kp']*p['mgh'] ]
         transfer_function = signal.TransferFunction(num, den)
 
         # Regularize small values in the numerator and denominator
@@ -75,27 +80,24 @@ class A23(BaseModel):
         return transfer_function
 
 
-    def objective(self, params_free = None, freq = None, reference_frf = None):
+    def objective(self, params_free = None):
         r"""
         Objective function for optimization.
         Applies a smoothing of the frf across frequencies.
+        The error is given by
 
-        Parameters
-        ----------
+        .. math::
+
+           \mathrm{err} = \sum_{i} \frac{ \left| H_{\mathrm{sim},i} - H_{\mathrm{exp},i} \right| }{ \left| H_{\mathrm{sim},i} \right| }
+
+        where :math:`H_{\mathrm{sim},i}` is the smoothed simulated FRF at frequency index :math:`i`, and :math:`H_{\mathrm{exp},i}` is the smoothed experimental/reference FRF.
+
+        Args:
             params_free: Parameters to be optimized.
 
-        Returns
-        -------
+        Returns:
             err: Objective function value.
         """
-        #    The error shown here is not correct yet!!
-
-        # .. math::
-
-        #    \mathrm{err} = \sum_{i} \frac{ \left| H_{\mathrm{sim},i} - H_{\mathrm{exp},i} \right| }{ \left| H_{\mathrm{sim},i} \right| }
-
-        # where :math:`H_{\mathrm{sim},i}` is the smoothed simulated FRF at frequency index :math:`i`, and :math:`H_{\mathrm{exp},i}` is the smoothed experimental/reference FRF.
-
         assert (self.data_exp is not None 
                 and self.data_exp.freq is not None
                 and self.data_exp.frf is not None
@@ -104,7 +106,6 @@ class A23(BaseModel):
         # Set parameters if changed e.g. during fitting
         if params_free is not None:
             self.params.set_values(params_free, only_free=True)
-
 
         #calculate model frequency response
         tf = self.dynamics
@@ -115,11 +116,10 @@ class A23(BaseModel):
         frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
 
         #calculate objective
-        b = self.params['b']
-        err = sum(np.log(2 * b * abs(frf_sim))) + sum(abs(frf_sim - frf_exp) / (b * abs(frf_sim)))
+        err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))
 
         return err
-    
+
 
     # smoothing function for the frequency response function
     # is applied during the calculation of the objective function
