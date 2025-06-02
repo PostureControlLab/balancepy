@@ -6,9 +6,10 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Model simulations &mdash; BalancePy 0.1.0 documentation</title>
+  <title>Models &mdash; BalancePy 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -16,10 +17,12 @@
       <script src="_static/documentation_options.js?v=01f34227"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Analysis" href="analysis.html" /> 
+    <link rel="next" title="Model simulation and fitting" href="examples/model_simulations.html" />
+    <link rel="prev" title="Model simulations" href="model_simulations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,19 +49,29 @@
 <li class="toctree-l1"><a class="reference internal" href="stimulus.html">Create Stimulus</a></li>
 <li class="toctree-l1"><a class="reference internal" href="anaropia.html">Anaropia</a></li>
 <li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Model simulations</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#basemodel">BaseModel</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.base_model.BaseModel"><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_simulations.html">Model simulations</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.model_sim.peterka18.Peterka18"><code class="docutils literal notranslate"><span class="pre">Peterka18</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.peterka18.Peterka18.default_config"><code class="docutils literal notranslate"><span class="pre">Peterka18.default_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.peterka18.Peterka18.dynamics"><code class="docutils literal notranslate"><span class="pre">Peterka18.dynamics</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.peterka18.Peterka18.frf_smoothing"><code class="docutils literal notranslate"><span class="pre">Peterka18.frf_smoothing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.peterka18.Peterka18.objective"><code class="docutils literal notranslate"><span class="pre">Peterka18.objective()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#specific-models">Specific Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#parameter-classes">Parameter Classes</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.parameter.Parameter"><code class="docutils literal notranslate"><span class="pre">Parameter</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.parameter.ParameterSet"><code class="docutils literal notranslate"><span class="pre">ParameterSet</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.model_sim.asslaender23.Asslaender23"><code class="docutils literal notranslate"><span class="pre">Asslaender23</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.asslaender23.Asslaender23.default_config"><code class="docutils literal notranslate"><span class="pre">Asslaender23.default_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.asslaender23.Asslaender23.dynamics"><code class="docutils literal notranslate"><span class="pre">Asslaender23.dynamics</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.asslaender23.Asslaender23.frf_smoothing"><code class="docutils literal notranslate"><span class="pre">Asslaender23.frf_smoothing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.model_sim.asslaender23.Asslaender23.objective"><code class="docutils literal notranslate"><span class="pre">Asslaender23.objective()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Demos:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/model_simulations.html">Model simulation and fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/biomechanics.html">Calculation of center of mass</a></li>
 </ul>
 
         </div>
@@ -75,7 +88,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Model simulations</li>
+      <li class="breadcrumb-item active">Models</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/models.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -85,224 +98,143 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="model-simulations">
-<h1>Model simulations<a class="headerlink" href="#model-simulations" title="Link to this heading"></a></h1>
-<section id="basemodel">
-<h2>BaseModel<a class="headerlink" href="#basemodel" title="Link to this heading"></a></h2>
+  <section id="models">
+<h1>Models<a class="headerlink" href="#models" title="Link to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="balancepy.model_sim.base_model.BaseModel">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">balancepy.model_sim.base_model.</span></span><span class="sig-name descname"><span class="pre">BaseModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mass_kg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ModelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.base_model.BaseModel" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Base class for balancepy model simulations.</p>
-<p>Provides a framework for parameter management, data handling, simulation, and model fitting.</p>
+<dt class="sig sig-object py" id="balancepy.model_sim.peterka18.Peterka18">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">balancepy.model_sim.peterka18.</span></span><span class="sig-name descname"><span class="pre">Peterka18</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mass_kg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ModelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.peterka18.Peterka18" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="model_simulations.html#balancepy.model_sim.base_model.BaseModel" title="balancepy.model_sim.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.model_sim.peterka18.Peterka18.default_config">
+<span class="sig-name descname"><span class="pre">default_config</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'ModelName':</span> <span class="pre">'Peterka</span> <span class="pre">2018',</span> <span class="pre">'data_exp':</span> <span class="pre">None,</span> <span class="pre">'height_m':</span> <span class="pre">None,</span> <span class="pre">'mass_kg':</span> <span class="pre">None}</span></em><a class="headerlink" href="#balancepy.model_sim.peterka18.Peterka18.default_config" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="balancepy.model_sim.peterka18.Peterka18.dynamics">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dynamics</span></span><a class="headerlink" href="#balancepy.model_sim.peterka18.Peterka18.dynamics" title="Link to this definition"></a></dt>
+<dd><p>Dynamics of the Peterka 2018 model. The function returns a transfer function of the model.
+The function is given by</p>
+<div class="math notranslate nohighlight">
+\[TF = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }\]</div>
+<p>where <span class="math notranslate nohighlight">\(s = i\omega\)</span>, <span class="math notranslate nohighlight">\(NC = K_p + s K_d\)</span>, <span class="math notranslate nohighlight">\(NC = \exp{-s\tau}\)</span>, <span class="math notranslate nohighlight">\(B = \frac{1}{J\cdot s^2 - mgh}\)</span>, and <span class="math notranslate nohighlight">\(T = \frac{K_t}{s}\)</span>, .</p>
+<p>For more details see Peterka et al. (2018).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>mass_kg</strong> (<em>Number</em><em>, </em><em>optional</em>) – Mass of the model in kilograms. Must be provided.</p></li>
-<li><p><strong>height_m</strong> (<em>Number</em><em>, </em><em>optional</em>) – Height of the model in meters. Must be provided.</p></li>
-<li><p><strong>data_exp</strong> (<em>balancepy.sr_data</em><em>, </em><em>optional</em>) – Experimental data object containing frequency response data.</p></li>
-<li><p><strong>ModelName</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the model. If not provided, defaults to None.</p></li>
-<li><p><strong>config</strong> (<em>dict</em><em>, </em><em>optional</em>) – Configuration dictionary to override default settings. If not provided, defaults to None.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>params_free</strong> – Parameters to be optimized.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Objective function value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>err</p>
 </dd>
 </dl>
 </dd></dl>
 
-<p><strong>Attributes</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Name</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>ModelName</p></td>
-<td><p>Name of the model.</p></td>
-</tr>
-<tr class="row-odd"><td><p>mass_kg</p></td>
-<td><p>Subject mass in kilograms.</p></td>
-</tr>
-<tr class="row-even"><td><p>height_m</p></td>
-<td><p>Subject height in meters.</p></td>
-</tr>
-<tr class="row-odd"><td><p>data_exp</p></td>
-<td><p>Experimental data object (<cite>sr_data</cite> or None).</p></td>
-</tr>
-<tr class="row-even"><td><p>data_sim</p></td>
-<td><p>Simulated data object (<cite>sr_data</cite> or None).</p></td>
-</tr>
-<tr class="row-odd"><td><p>params</p></td>
-<td><p>Model parameters (<cite>ParameterSet</cite>).</p></td>
-</tr>
-<tr class="row-even"><td><p>fit_output</p></td>
-<td><p>Output of the fitting procedure.</p></td>
-</tr>
-<tr class="row-odd"><td><p>dynamics</p></td>
-<td><p>Defines the system dynamics (callable).</p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Methods</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Name</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>frf(freq=None)</p></td>
-<td><p>Computes the frequency response function (FRF).</p></td>
-</tr>
-<tr class="row-odd"><td><p>simulate_timedomain
-(stimulus,
-samplingrate_Hz)</p></td>
-<td><p>Simulates the time domain response of the system.</p></td>
-</tr>
-<tr class="row-even"><td><p>objective(params_free)</p></td>
-<td><p>Objective function for optimization.</p></td>
-</tr>
-<tr class="row-odd"><td><p>fit(data_exp=None)</p></td>
-<td><p>Fits the model parameters to experimental data.</p></td>
-</tr>
-<tr class="row-even"><td><p>plot()</p></td>
-<td><p>Plots the experimental and simulated data, if available.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="specific-models">
-<h2>Specific Models<a class="headerlink" href="#specific-models" title="Link to this heading"></a></h2>
-</section>
-<section id="parameter-classes">
-<h2>Parameter Classes<a class="headerlink" href="#parameter-classes" title="Link to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="balancepy.model_sim.parameter.Parameter">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">balancepy.model_sim.parameter.</span></span><span class="sig-name descname"><span class="pre">Parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(None,</span> <span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.parameter.Parameter" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Represents a single parameter in a model.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="balancepy.model_sim.peterka18.Peterka18.frf_smoothing">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">frf_smoothing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.peterka18.Peterka18.frf_smoothing" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="balancepy.model_sim.peterka18.Peterka18.objective">
+<span class="sig-name descname"><span class="pre">objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_free</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.peterka18.Peterka18.objective" title="Link to this definition"></a></dt>
+<dd><p>Objective function for optimization.
+Applies a smoothing of the frf across frequencies.
+The error is given by</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{err} = \sum_{i} \frac{ \left| H_{\mathrm{sim},i} - H_{\mathrm{exp},i} \right| }{ \left| H_{\mathrm{sim},i} \right| }\]</div>
+<p>where <span class="math notranslate nohighlight">\(H_{\mathrm{sim},i}\)</span> is the smoothed simulated FRF at frequency index <span class="math notranslate nohighlight">\(i\)</span>, and <span class="math notranslate nohighlight">\(H_{\mathrm{exp},i}\)</span> is the smoothed experimental/reference FRF.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<em>str</em>) – The name of the parameter.</p></li>
-<li><p><strong>default</strong> (<em>float</em>) – The default value of the parameter.</p></li>
-<li><p><strong>bounds</strong> (<em>tuple</em><em>, </em><em>optional</em>) – A tuple representing the lower and upper bounds of the parameter (default is (None, None)).</p></li>
-<li><p><strong>fixed</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the parameter is fixed (not optimized). Default is False.</p></li>
-<li><p><strong>unit</strong> (<em>str</em><em>, </em><em>optional</em>) – The unit of the parameter, if applicable.</p></li>
-<li><p><strong>description</strong> (<em>str</em><em>, </em><em>optional</em>) – A description of the parameter, if applicable.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>params_free</strong> – Parameters to be optimized.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Objective function value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>err</p>
 </dd>
 </dl>
 </dd></dl>
 
-<p><strong>Attributes</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Name</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>name</p></td>
-<td><p>The name of the parameter.</p></td>
-</tr>
-<tr class="row-odd"><td><p>value</p></td>
-<td><p>The current value of the parameter.</p></td>
-</tr>
-<tr class="row-even"><td><p>default</p></td>
-<td><p>The default value of the parameter.</p></td>
-</tr>
-<tr class="row-odd"><td><p>bounds</p></td>
-<td><p>The lower and upper bounds of the parameter (tuple).</p></td>
-</tr>
-<tr class="row-even"><td><p>fixed</p></td>
-<td><p>Whether the parameter is fixed (not optimized).</p></td>
-</tr>
-<tr class="row-odd"><td><p>fit_result</p></td>
-<td><p>Result from fitting, if applicable.</p></td>
-</tr>
-<tr class="row-even"><td><p>confidencebounds</p></td>
-<td><p>Confidence bounds for the parameter, if applicable.</p></td>
-</tr>
-<tr class="row-odd"><td><p>unit</p></td>
-<td><p>The unit of the parameter, if applicable.</p></td>
-</tr>
-<tr class="row-even"><td><p>description</p></td>
-<td><p>A description of the parameter, if applicable.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py class">
-<dt class="sig sig-object py" id="balancepy.model_sim.parameter.ParameterSet">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">balancepy.model_sim.parameter.</span></span><span class="sig-name descname"><span class="pre">ParameterSet</span></span><a class="headerlink" href="#balancepy.model_sim.parameter.ParameterSet" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Manages a collection of Parameter objects for a model.</p>
-<p>This class enables organized handling of model parameters, including adding, accessing, updating,
-and retrieving parameter information such as values, bounds, units, and descriptions. It supports
-operations for both fixed and free parameters, making it suitable for parameter management in
-modeling and simulation tasks.</p>
 </dd></dl>
 
-<p><strong>Methods</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Name</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>add(param)</p></td>
-<td><p>Add a <cite>Parameter</cite> object to the set.</p></td>
-</tr>
-<tr class="row-odd"><td><p>items()</p></td>
-<td><p>Return (name, Parameter) pairs.</p></td>
-</tr>
-<tr class="row-even"><td><p>names()</p></td>
-<td><p>List of parameter names.</p></td>
-</tr>
-<tr class="row-odd"><td><p>defaults()</p></td>
-<td><p>Dictionary of default values for all parameters.</p></td>
-</tr>
-<tr class="row-even"><td><p>units()</p></td>
-<td><p>Dictionary of parameter units.</p></td>
-</tr>
-<tr class="row-odd"><td><p>descriptions()</p></td>
-<td><p>Dictionary of parameter descriptions.</p></td>
-</tr>
-<tr class="row-even"><td><p>values(only_free=True)</p></td>
-<td><p>List of parameter values, optionally only for free parameters.</p></td>
-</tr>
-<tr class="row-odd"><td><p>bounds()</p></td>
-<td><p>List of bounds for free (not fixed) parameters.</p></td>
-</tr>
-<tr class="row-even"><td><p>set_values(values,
-only_free=True)</p></td>
-<td><p>Set parameter values from a list, optionally only for free
-parameters.</p></td>
-</tr>
-<tr class="row-odd"><td><p>set_defaults()</p></td>
-<td><p>Reset all parameter values to their defaults.</p></td>
-</tr>
-<tr class="row-even"><td><p>to_value_dict(
-only_free=False)</p></td>
-<td><p>Dictionary of parameter values, optionally only for free
-parameters.</p></td>
-</tr>
-</tbody>
-</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="balancepy.model_sim.asslaender23.Asslaender23">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">balancepy.model_sim.asslaender23.</span></span><span class="sig-name descname"><span class="pre">Asslaender23</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mass_kg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ModelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.asslaender23.Asslaender23" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="model_simulations.html#balancepy.model_sim.base_model.BaseModel" title="balancepy.model_sim.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.model_sim.asslaender23.Asslaender23.default_config">
+<span class="sig-name descname"><span class="pre">default_config</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'ModelName':</span> <span class="pre">'Asslaender</span> <span class="pre">2023',</span> <span class="pre">'data_exp':</span> <span class="pre">None,</span> <span class="pre">'height_m':</span> <span class="pre">None,</span> <span class="pre">'mass_kg':</span> <span class="pre">None}</span></em><a class="headerlink" href="#balancepy.model_sim.asslaender23.Asslaender23.default_config" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="balancepy.model_sim.asslaender23.Asslaender23.dynamics">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dynamics</span></span><a class="headerlink" href="#balancepy.model_sim.asslaender23.Asslaender23.dynamics" title="Link to this definition"></a></dt>
+<dd><p>Dynamics of the Peterka 2023 model. The function returns a transfer function of the model.
+The function is given by</p>
+<div class="math notranslate nohighlight">
+\[TF = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }\]</div>
+<p>where <span class="math notranslate nohighlight">\(s = i\omega\)</span>, <span class="math notranslate nohighlight">\(NC = K_p + s K_d\)</span>, <span class="math notranslate nohighlight">\(NC = \exp{-s\tau}\)</span>, <span class="math notranslate nohighlight">\(B = \frac{1}{J\cdot s^2 - mgh}\)</span>, and <span class="math notranslate nohighlight">\(T = \frac{K_t}{F_{lp}s + 1}\)</span>, .</p>
+<p>For more details see Asslaender et al. (2023).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params_free</strong> – Parameters to be optimized.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Objective function value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>err</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="balancepy.model_sim.asslaender23.Asslaender23.frf_smoothing">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">frf_smoothing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.asslaender23.Asslaender23.frf_smoothing" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="balancepy.model_sim.asslaender23.Asslaender23.objective">
+<span class="sig-name descname"><span class="pre">objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_free</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_frf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.model_sim.asslaender23.Asslaender23.objective" title="Link to this definition"></a></dt>
+<dd><p>Objective function for optimization.
+Applies a smoothing of the frf across frequencies.
+The error is given by</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{err} = \sum_{k=0}^{N-1} \log\left(2\beta \left| H_m(\theta, k) \right|\right)
++ \sum_{k=0}^{N-1} \frac{ \left| H_e(k) - H_m(\theta, k) \right| }{ \beta \left| H_m(\theta, k) \right| }\]</div>
+<p>where <span class="math notranslate nohighlight">\(H_m(\theta, k)\)</span> is the simulated FRF at frequency index <span class="math notranslate nohighlight">\(k\)</span> and parameter set <span class="math notranslate nohighlight">\(\theta\)</span>, <span class="math notranslate nohighlight">\(H_e(k)\)</span> is the experimental/reference FRF, and <span class="math notranslate nohighlight">\(\beta\)</span> is the scale of the laplace distribution.</p>
+<section id="parameter">
+<h2>Parameter<a class="headerlink" href="#parameter" title="Link to this heading"></a></h2>
+<blockquote>
+<div><p>params_free: Parameters to be optimized.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>err: Objective function value.</p>
+</dd>
+</dl>
 </section>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="analysis.html" class="btn btn-neutral float-left" title="Analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="model_simulations.html" class="btn btn-neutral float-left" title="Model simulations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples/model_simulations.html" class="btn btn-neutral float-right" title="Model simulation and fitting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Lorenz Asslaender and Matthias Albrecht.</p>
+    <p>&#169; Copyright Lorenz Asslaender &amp; Matthias Albrecht, MIT License.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

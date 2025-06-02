@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model simulation and fitting &mdash; BalancePy 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Calculation of center of mass" href="biomechanics.html" />
+    <link rel="prev" title="Models" href="../models.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            BalancePy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../stimulus.html">Create Stimulus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anaropia.html">Anaropia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_simulations.html">Model simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models.html">Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Demos:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model simulation and fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biomechanics.html">Calculation of center of mass</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">BalancePy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Model simulation and fitting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/model_simulations.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="model-simulation-and-fitting">
+<h1>Model simulation and fitting<a class="headerlink" href="#model-simulation-and-fitting" title="Link to this heading"></a></h1>
+<p>This Notebook demonstrate the use and basic functionality of the model simulation and parameter fitting capabilities of BalancePy.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import balancepy and necessary libraries</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">balancepy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">balancepy.model_sim.peterka18</span><span class="w"> </span><span class="kn">import</span> <span class="n">Peterka18</span> <span class="k">as</span> <span class="n">P18</span>
+
+<span class="c1"># render plots as static image - only needed for documentation</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.io</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pio</span>
+<span class="n">pio</span><span class="o">.</span><span class="n">renderers</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="s2">&quot;svg&quot;</span>
+
+<span class="c1"># Set the path containing example data</span>
+<span class="n">data_path</span> <span class="o">=</span> <span class="s1">&#39;data/&#39;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>To initialize a model instance height and weight are required.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define subject antrhopometry</span>
+<span class="n">weight</span> <span class="o">=</span> <span class="mi">53</span>
+<span class="n">height</span> <span class="o">=</span> <span class="mf">1.66</span>
+
+<span class="c1"># create a model instance for the subject</span>
+<span class="n">model_surf</span> <span class="o">=</span> <span class="n">P18</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+
+<span class="c1"># show default model parameters (not tuned to experimental data)</span>
+<span class="n">model_surf</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>balancepyModel(ModelName=Peterka 2018,
+  ParameterSet( 
+    mgh: value=8.05, bounds=(10, 20), fixed=True,
+    J: value=0.9, bounds=(0, 0), fixed=True,
+    Kp: value=11.28, bounds=(8.457096571348341, 20.13594421749605), fixed=False,
+    Kd: value=3.22, bounds=(0.805437768699842, 8.05437768699842), fixed=False,
+    W: value=0.45, bounds=(0.01, 1), fixed=False,
+    dt: value=0.16, bounds=(0.1, 0.3), fixed=False,
+    Kt: value=0.01, bounds=(0, 0.05), fixed=False
+    ),
+  Frequencies=250 frequencies from 0.01 to 2.5,
+  Fit Reference=Not defined,
+  Sampling Rate=Not defined)
+</pre></div>
+</div>
+</div>
+</div>
+<p>As no further information was given, the model contains only the frequency response function for the default parameters, which depend on the subjects height and weight. Calling a plot of the model displays the frequency response function.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_surf</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>No experimental data available for plotting
+</pre></div>
+</div>
+<img alt="../_images/6a3b3a38896ea5ee837be39d7daa95671e2e767dfd25a9597fae78e5e1ccc2cd.svg" src="../_images/6a3b3a38896ea5ee837be39d7daa95671e2e767dfd25a9597fae78e5e1ccc2cd.svg" />
+</div>
+</div>
+<p>The model can be used to run a stimulus in the time domain using self.simulate_timedomain(stimulus, samplingrate). The function outputs a stimulus-response dataclass object (sr_data), which can be used to generate a plot of the output.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run time domain simulations</span>
+
+<span class="c1"># Define a stimulus</span>
+<span class="n">samplingrate</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># Hz</span>
+<span class="n">stim</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">make_prts</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;prts_20s&quot;</span><span class="p">,</span> <span class="n">samplingrate_Hz</span><span class="o">=</span><span class="n">samplingrate</span><span class="p">)</span>
+<span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span> <span class="o">/</span> <span class="n">samplingrate</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">samplingrate</span><span class="p">)</span>
+
+<span class="c1"># Run time domain simulation</span>
+<span class="n">data_sim</span> <span class="o">=</span> <span class="n">model_surf</span><span class="o">.</span><span class="n">simulate_timedomain</span><span class="p">(</span><span class="n">stim</span><span class="p">,</span> <span class="n">samplingrate</span><span class="p">)</span>
+
+<span class="n">data_sim</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/8526b97d87b0d422fa269463ce4ba8b249b97fee39dd03fae00c74cd2b06e4e3.svg" src="../_images/8526b97d87b0d422fa269463ce4ba8b249b97fee39dd03fae00c74cd2b06e4e3.svg" />
+</div>
+</div>
+<p>In the following example, experimental data is added to the model and the model parameters are fitted to this reference dataset.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Experiment consisted of a simultaneous visual and surface tilt perturbation</span>
+<span class="c1"># here, only the surface tilt is analyzed and used for fitting</span>
+
+<span class="c1"># Load experimental data</span>
+<span class="n">com</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis1_surf1.csv&#39;</span><span class="p">),</span> 
+    <span class="n">height</span><span class="p">,</span> 
+    <span class="n">resample</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+    <span class="n">cut_to_cycles</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="mi">220</span><span class="p">,</span>
+    <span class="n">cycle_start_samples</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
+    <span class="n">cycle_length_samples</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
+    <span class="c1"># stimulus = &#39;stim_pitch&#39;,</span>
+    <span class="n">stimulus</span> <span class="o">=</span> <span class="s1">&#39;analog4&#39;</span>
+    <span class="p">)</span>
+
+<span class="c1"># create a sr_data object instance</span>
+<span class="n">data_exp</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">sr_data</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span><span class="o">-</span><span class="n">stim</span><span class="p">,</span> <span class="n">com</span><span class="p">,</span> <span class="s1">&#39;prts&#39;</span><span class="p">)</span>
+
+<span class="c1"># Create model instance</span>
+<span class="n">model_surf</span> <span class="o">=</span> <span class="n">P18</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+
+<span class="c1"># Add experimental data to model and perform fit</span>
+<span class="n">model_surf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_exp</span><span class="p">)</span>
+
+<span class="c1"># Create figure</span>
+<span class="n">figure</span> <span class="o">=</span> <span class="n">model_surf</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+<span class="c1"># show model details after fitting</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">model_surf</span><span class="p">)</span>
+
+<span class="c1"># Show figure with experimental data and simulations using fit results</span>
+<span class="n">figure</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>balancepyModel(ModelName=Peterka 2018,
+  ParameterSet( 
+    mgh: value=8.05, bounds=(10, 20), fixed=True,
+    J: value=0.9, bounds=(0, 0), fixed=True,
+    Kp: value=10.83, bounds=(8.457096571348341, 20.13594421749605), fixed=False,
+    Kd: value=3.89, bounds=(0.805437768699842, 8.05437768699842), fixed=False,
+    W: value=0.58, bounds=(0.01, 1), fixed=False,
+    dt: value=0.16, bounds=(0.1, 0.3), fixed=False,
+    Kt: value=0.01, bounds=(0, 0.05), fixed=False
+    ),
+  Frequencies=25 frequencies from 0.05 to 2.4499999999999997,
+  Fit Reference=Defined as data_exp.frf,
+  Sampling Rate=90 Hz)
+</pre></div>
+</div>
+<img alt="../_images/9e7aec9c8d6f3ddefc01d2c7d2019c3df13c582ebfe9749616adcaf20b472a4c.svg" src="../_images/9e7aec9c8d6f3ddefc01d2c7d2019c3df13c582ebfe9749616adcaf20b472a4c.svg" />
+</div>
+</div>
+<p>In this example, a visual stimulus is added to the model and a fit is performed.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Data analysis and model fit for 10s long visual prts stimulus</span>
+<span class="c1"># Define subject antrhopometry</span>
+<span class="n">weight</span> <span class="o">=</span> <span class="mi">53</span>
+<span class="n">height</span> <span class="o">=</span> <span class="mf">1.66</span>
+
+<span class="c1"># create a model instance for the subject</span>
+<span class="n">model_vis</span> <span class="o">=</span> <span class="n">P18</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+<span class="c1"># Load experimental data</span>
+<span class="n">com</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis2.csv&#39;</span><span class="p">),</span> 
+    <span class="n">height</span><span class="p">,</span> 
+    <span class="n">resample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+    <span class="n">cut_to_cycles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">end_time</span><span class="o">=</span><span class="mi">220</span><span class="p">,</span>
+    <span class="n">cycle_start_samples</span><span class="o">=</span><span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
+    <span class="n">cycle_length_samples</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
+    <span class="n">stimulus</span> <span class="o">=</span> <span class="s1">&#39;stim_pitch&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="n">model_vis</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">data_exp</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">sr_data</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">com</span><span class="p">,</span> <span class="s1">&#39;prts&#39;</span><span class="p">)</span>
+
+<span class="n">model_vis</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_exp</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">model_vis</span><span class="p">)</span>
+
+<span class="n">figure</span> <span class="o">=</span> <span class="n">model_vis</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">figure</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>balancepyModel(ModelName=Peterka 2018,
+  ParameterSet( 
+    mgh: value=8.05, bounds=(10, 20), fixed=True,
+    J: value=0.9, bounds=(0, 0), fixed=True,
+    Kp: value=8.46, bounds=(8.457096571348341, 20.13594421749605), fixed=False,
+    Kd: value=3.83, bounds=(0.805437768699842, 8.05437768699842), fixed=False,
+    W: value=0.06, bounds=(0.01, 1), fixed=False,
+    dt: value=0.25, bounds=(0.1, 0.3), fixed=False,
+    Kt: value=0.02, bounds=(0, 0.05), fixed=False
+    ),
+  Frequencies=13 frequencies from 0.1 to 2.5,
+  Fit Reference=Defined as data_exp.frf,
+  Sampling Rate=90 Hz)
+</pre></div>
+</div>
+<img alt="../_images/c4f103bcf329d90553c2a47a601885a72866162f7ed24967dafdb1a59f2ae435.svg" src="../_images/c4f103bcf329d90553c2a47a601885a72866162f7ed24967dafdb1a59f2ae435.svg" />
+</div>
+</div>
+<p>In this example a model instance is created using a config file.
+The alternative use of a config file can be useful for batch processing and to ensure consistent model parameters and settings across different runs.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;ModelName&quot;</span><span class="p">:</span> <span class="s2">&quot;Peterka2018&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;samplingrate_Hz&quot;</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span>
+    <span class="s2">&quot;mass_kg&quot;</span><span class="p">:</span> <span class="mi">53</span><span class="p">,</span>
+    <span class="s2">&quot;height_m&quot;</span><span class="p">:</span> <span class="mf">1.66</span><span class="p">,</span>
+    <span class="s2">&quot;data_exp&quot;</span><span class="p">:</span> <span class="n">data_exp</span>
+<span class="p">}</span>
+
+<span class="n">model_config</span> <span class="o">=</span> <span class="n">P18</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+<span class="n">figure</span> <span class="o">=</span> <span class="n">model_config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">model_config</span><span class="p">)</span>
+
+<span class="n">figure</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>balancepyModel(ModelName=Peterka2018,
+  ParameterSet( 
+    mgh: value=8.05, bounds=(10, 20), fixed=True,
+    J: value=0.9, bounds=(0, 0), fixed=True,
+    Kp: value=8.46, bounds=(8.457096571348341, 20.13594421749605), fixed=False,
+    Kd: value=3.83, bounds=(0.805437768699842, 8.05437768699842), fixed=False,
+    W: value=0.06, bounds=(0.01, 1), fixed=False,
+    dt: value=0.25, bounds=(0.1, 0.3), fixed=False,
+    Kt: value=0.02, bounds=(0, 0.05), fixed=False
+    ),
+  Frequencies=13 frequencies from 0.1 to 2.5,
+  Fit Reference=Defined as data_exp.frf,
+  Sampling Rate=90 Hz)
+</pre></div>
+</div>
+<img alt="../_images/4e90d5df68a99d2c5cb28dd5acf57af340edcac9b0333a4583abbbe6bfd6753f.svg" src="../_images/4e90d5df68a99d2c5cb28dd5acf57af340edcac9b0333a4583abbbe6bfd6753f.svg" />
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../models.html" class="btn btn-neutral float-left" title="Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="biomechanics.html" class="btn btn-neutral float-right" title="Calculation of center of mass" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Lorenz Asslaender &amp; Matthias Albrecht, MIT License.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
