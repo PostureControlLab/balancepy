@@ -50,14 +50,9 @@ class BaseModel:
         self.data_exp = data_exp if data_exp is not None else config["data_exp"]
         assert isinstance(self.data_exp, (bp.sr_data, type(None))), "data_exp must be a sr_data object or None"
 
-        self.data_sim = None
+        self._update_data_sim()
+
         self.fit_output = None
-
-        if self.data_exp is not None and self.data_exp.frf is not None:
-            self.fit()
-        else:
-            self.data_sim = self.frf()
-
 
     def __repr__(self):
 
@@ -124,7 +119,7 @@ class BaseModel:
             data_sim.freq = freq
             _, data_sim.frf = signal.freqresp(self.dynamics, w=data_sim.freq*2*np.pi)
         elif freq is None and self.data_sim is not None and self.data_sim.frf is not None:
-            data_sim = self.data_sim.frf
+            data_sim = self.data_sim
         else:
             data_sim = bp.sr_data()
             data_sim.freq = np.arange(0.01, 2.5, 0.01)
@@ -157,7 +152,6 @@ class BaseModel:
         assert stimulus.ndim==1, "Stimulus must be a 1D array"
         
         data_sim = bp.sr_data()
-        data_sim.time = np.arange(0, stimulus.shape[0]) / samplingrate_Hz
         data_sim.samplingrate_Hz = samplingrate_Hz
         data_sim.stimulus = stimulus
 
@@ -225,33 +219,43 @@ class BaseModel:
 
         self.params.set_values(params_fit, only_free=True)
 
-        # create data_sim object with system behavior after fitting
-        data_sim = bp.sr_data()
-        # Assign values from data_exp to data_sim
-        data_sim.samplingrate_Hz = self.data_exp.samplingrate_Hz
-        data_sim.time = self.data_exp.time
-        data_sim.stimulus = self.data_exp.stimulus_mean
-        data_sim.frequency_selection = self.data_exp.frequency_selection
-        data_sim.freq = self.data_exp.freq
-        data_sim.stimulus_spectrum = self.data_exp.stimulus_spectrum_mean
-        
-        if data_sim.stimulus is not None:
-            # simulate response of the system with fitted parameters
-            # Repeat stimulus to run twice and discard the first half to remove transient
-            stimulus_double = np.concatenate([data_sim.stimulus, data_sim.stimulus])
-            time_double = np.arange(0, stimulus_double.shape[0]) / data_sim.samplingrate_Hz
-            _, response_double, _ = signal.lsim(self.dynamics, U=stimulus_double, T=time_double)
-            data_sim.response = response_double[stimulus_double.shape[0] // 2:]
+        # Update the simulated data object with the system behavior after fitting
+        self._update_data_sim()
 
-            # calculate response spectrum
-            response_spectrum,_,_ = bp.spectrum(data_sim.response, data_sim.samplingrate_Hz)
-            response_spectrum = data_sim.select_frequencies(response_spectrum)
-            data_sim.response_spectrum = response_spectrum
+    def _update_data_sim(self):
+        """ Update the simulated data object with the system behavior after fitting."""
 
-        # get frequency response function from dynamnics with fitted parameters
-        _, data_sim.frf = signal.freqresp(self.dynamics, w=data_sim.freq*2*np.pi)
-        
-        self.data_sim = data_sim
+        if self.data_exp is None:
+            self.data_sim = None
+            return
+        else:
+            # create data_sim object with system behavior after fitting
+            data_sim = bp.sr_data()
+            # Assign values from data_exp to data_sim
+            data_sim.samplingrate_Hz = self.data_exp.samplingrate_Hz
+            data_sim.frequency_selection = self.data_exp.frequency_selection
+            data_sim.freq = self.data_exp.freq
+            data_sim.stimulus_spectrum = self.data_exp.stimulus_spectrum_mean if self.data_exp.stimulus_spectrum is not None else None
+            
+            data_sim.stimulus = self.data_exp.stimulus_mean if self.data_exp.stimulus is not None else None
+
+            if data_sim.stimulus is not None:
+                # simulate response of the system with fitted parameters
+                # Repeat stimulus to run twice and discard the first half to remove transient
+                stimulus_double = np.concatenate([data_sim.stimulus, data_sim.stimulus])
+                time_double = np.arange(0, stimulus_double.shape[0]) / data_sim.samplingrate_Hz
+                _, response_double, _ = signal.lsim(self.dynamics, U=stimulus_double, T=time_double)
+                data_sim.response = response_double[stimulus_double.shape[0] // 2:]
+
+                # calculate response spectrum
+                response_spectrum,_,_ = bp.spectrum(data_sim.response, data_sim.samplingrate_Hz)
+                response_spectrum = data_sim.select_frequencies(response_spectrum)
+                data_sim.response_spectrum = response_spectrum
+
+            # get frequency response function from dynamnics with fitted parameters
+            _, data_sim.frf = signal.freqresp(self.dynamics, w=data_sim.freq*2*np.pi)
+            
+            self.data_sim = data_sim
     
     def plot(self):
         """

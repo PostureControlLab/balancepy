@@ -12,7 +12,8 @@ def getdata_anaropia(
     body_height: float=0,
     resample: bool=True,
     samplingrate_Hz: int = 90, # numer gives desired sampling rate; 0 means no resampling
-    stimulus: str='stim_tz',
+    stimulus: str='Screen',
+    direction: str='ap',
     cut_to_cycles: bool=True,
     end_time: float = 260,
     cycle_start_samples: int = 20*90,
@@ -60,15 +61,23 @@ def getdata_anaropia(
 
     data = np.genfromtxt(filename, delimiter=',', names=True)
 
-    if stimulus in data.dtype.names:
-        time = data['time']
-        stim = data[stimulus]
-        com = bm.get_com(data['sho_tz'], np.mean(data['sho_ty']), data['hip_tz'], np.mean(data['hip_ty']),body_height,True)
-    else:    
-        time = data['time']
-        stim = -data['analog4']
-        com = bm.get_com(data['shld_zpos'], np.mean(data['shld_ypos']), data['hip_zpos'], np.mean(data['hip_ypos']),body_height,True)
+    if direction == 'ap':
+        sho = data['LeftShoulder_pos_z']
+        hip = data['RightShoulder_pos_z']
+        if stimulus == 'Screen': stimulus = 'Screen_rot_x'
+    elif direction == 'ml':
+        if stimulus == 'Screen': stimulus = 'Screen_rot_z'
+        sho = data['LeftShoulder_pos_x']
+        hip = data['RightShoulder_pos_x']
+    
+    assert stimulus in data.dtype.names, f"Stimulus '{stimulus}' not found in data."
 
+    sho_height = np.mean(data['LeftShoulder_pos_y'])
+    hip_height = np.mean(data['RightShoulder_pos_y'])
+
+    time = data['Time']
+    stim = data[stimulus]
+    com = bm.get_com(sho, sho_height, hip, hip_height, body_height,True)
 
     if resample == True:
         com = ts.resample(time, com, samplingrate_Hz, end_time)

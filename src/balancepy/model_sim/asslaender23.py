@@ -133,7 +133,7 @@ class Asslaender23(BaseModel):
         frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
 
         #calculate objective
-        b = self.params['b']
+        b = self.params['b'].value
         err = sum(np.log(2 * b * abs(frf_sim))) + sum(abs(frf_sim - frf_exp) / (b * abs(frf_sim)))
 
         return err

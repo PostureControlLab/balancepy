@@ -32,6 +32,24 @@ class sr_data:
     name: Optional[str] = None
 
     @property
+    def time(self):
+        """
+        Time vector corresponding to the stimulus and response data.
+
+        Returns
+        -------
+        ndarray
+            The time vector.
+        """
+        assert self.samplingrate_Hz is not None, "Sampling rate must be set."
+        if self.stimulus is not None:
+            return np.arange(0, len(self.stimulus)) / self.samplingrate_Hz
+        elif self.response is not None:
+            return np.arange(0, len(self.response)) / self.samplingrate_Hz
+        else:
+            raise ValueError("Either stimulus or response must be set to compute time.")
+
+    @property
     def stimulus_mean(self):
         """
         Mean of the stimulus across cycles.
@@ -180,8 +198,6 @@ class sr_data:
         self.response = response
         self.frequency_selection = frequency_selection
         
-        self.time = np.arange(0, len(stimulus)) / samplingrate_Hz
-
         stimulus_spectrum, _, freq = bp.spectrum(stimulus, samplingrate_Hz)
         self.stimulus_spectrum = self.select_frequencies(stimulus_spectrum)
         self.freq = self.select_frequencies(freq)
@@ -201,17 +217,17 @@ class sr_data:
             ('frf', self.frf.dtype),
             ('gain', self.gain.dtype),
             ('phase', self.phase.dtype),
-            ('coherence', self.coherence.dtype)
+            ('coherence', self.coherence.dtype) if self.coherence is not None else ('coherence', 'f8')
         ]
         arr = np.rec.fromarrays(
             [
                 self.freq,
-                self.stimulus_spectrum.average,
-                self.response_spectrum.average,
+                np.mean(self.stimulus_spectrum, axis=1) if self.stimulus_spectrum.ndim == 2 else self.stimulus_spectrum,
+                np.mean(self.response_spectrum, axis=1) if self.response_spectrum.ndim == 2 else self.response_spectrum,
                 self.frf,
                 self.gain,
                 self.phase,
-                self.coherence
+                self.coherence if self.coherence is not None else np.zeros_like(self.freq)
             ],
             dtype=dtype
         )
@@ -229,8 +245,8 @@ class sr_data:
         arr = np.rec.fromarrays(
             [
                 self.time,
-                self.stimulus.average,
-                self.response.average if self.response is not None else np.full_like(self.stimulus, np.nan)
+                np.mean(self.stimulus, axis=1) if self.stimulus.ndim == 2 else self.stimulus,
+                np.mean(self.response, axis=1) if self.response.ndim == 2 else self.response
             ],
             dtype=dtype
         )

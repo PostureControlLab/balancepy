@@ -28,6 +28,7 @@ class Parameter:
         self.confidencebounds = None
         self.unit = unit
         self.description = description
+        self.multicond_name = name # For multi-condition models, this can be used to differentiate parameters
 
     def __repr__(self):
         return f"Parameter(name={self.name}, value={self.value}, bounds={self.bounds}, fixed={self.fixed}, unit={self.unit}, description={self.description})"
@@ -43,9 +44,17 @@ class ParameterSet:
     """
     def __init__(self):
         self._params = {}
+        self._multicond_lookup = {}
 
     def add(self, param: Parameter):
         self._params[param.name] = param
+        self._multicond_lookup[param.multicond_name] = param
+
+    def get_by_multicond_name(self, multicond_name):
+        return self._multicond_lookup[multicond_name]
+
+    def set_by_multicond_name(self, multicond_name, value):
+        self._multicond_lookup[multicond_name].value = value
 
     def __getitem__(self, name):
         return self._params[name]
@@ -72,7 +81,7 @@ class ParameterSet:
 
     def names(self):
         return list(self._params.keys())
-
+    
     def defaults(self):
         return {name: param.default for name, param in self._params.items()}
 
@@ -109,3 +118,11 @@ class ParameterSet:
         if only_free:
             return {name: float(p.value) for name, p in self._params.items() if not p.fixed}
         return {name: float(p.value) for name, p in self._params.items()}
+    
+    def update_multicond_name(self, old_name, new_name):
+        # Remove old mapping
+        param = self._multicond_lookup.pop(old_name)
+        # Update the parameter's multicond_name attribute
+        param.multicond_name = new_name
+        # Add new mapping
+        self._multicond_lookup[new_name] = param
