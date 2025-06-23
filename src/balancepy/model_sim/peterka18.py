@@ -36,7 +36,7 @@ class Peterka18(BaseModel):
         params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
         params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
         params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
-        params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.05), fixed=False))
+        params.add(bp.Parameter("Kt", 0.01, bounds=(0, 0.05), fixed=False))
 
         return params
 
@@ -48,9 +48,9 @@ class Peterka18(BaseModel):
 
         .. math::
 
-           TF = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }
+           H_{vis} = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }
 
-        where :math:`s = i\omega`, :math:`NC = K_p + s K_d`, :math:`NC = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`T = \frac{K_t}{s}`, .
+        where :math:`s = i\omega`, :math:`NC = K_p + s K_d`, :math:`NC = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`TF = \frac{K_t}{s}`, .
 
         For more details see Peterka et al. (2018).
 
