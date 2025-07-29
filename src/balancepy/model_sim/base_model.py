@@ -3,6 +3,7 @@ import numpy as np
 import balancepy as bp
 import scipy.signal as signal
 from scipy.optimize import basinhopping
+import plotly.graph_objects as go
 from numbers import Number
 import warnings
 from plotly.subplots import make_subplots
@@ -320,6 +321,40 @@ class BaseModel:
             print('No experimental data available for plotting')
 
         if self.data_sim is not None:
+            if self.data_sim.name is None: self.data_sim.name = 'Simulated'
+            figure = self.data_sim.plot(fig = figure) #, params_names=self.params_names, params=self.params)
+           
+            # Ensure the figure uses subplots with at least 3 rows, 2 columns
+            if not hasattr(figure, 'layout') or not hasattr(figure.layout, 'grid'):
+                # Re-create as subplots if not already
+                figure = make_subplots(rows=3, cols=2, shared_xaxes=False)
+                # Optionally, re-add previous traces if needed
+
+            # Remove any existing table in (3,2)
+            for i, trace in enumerate(figure.data):
+                if isinstance(trace, go.Table):
+                    figure.data = tuple([t for j, t in enumerate(figure.data) if j != i])
+                    break
+
+            # Prepare parameter data
+            param_names = [p.name for p in self.params]
+            param_units = [getattr(p, 'unit', '') for p in self.params]
+            param_values = np.round([p.value for p in self.params], 3)
+
+            # Transpose table_values so each row is a parameter (Name, Unit, Value)
+            table_values = list(map(list, zip(*[
+                ['Unit'] + param_units,
+                ['Value'] + list(param_values)
+            ])))
+
+            # Create table with 'Name' and param_names as headers, 'Unit' and 'Value' as cells
+            table_trace = go.Table(
+                header=dict(values=["", *param_names]),
+                cells=dict(values=table_values)
+            )
+
+            # Add the table to row 3, col 2
+            figure.add_trace(table_trace, row=3, col=2)
             data_sim2 = self.data_sim
             data_sim2.freq = np.arange(data_sim2.freq.min(), data_sim2.freq.max(), 0.001)
             _, data_sim2.frf = signal.freqresp(self.dynamics, w=data_sim2.freq*2*np.pi)

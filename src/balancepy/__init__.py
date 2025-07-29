@@ -31,6 +31,8 @@ from .make_stimulus import *
 
 from .model_sim import base_model
 from .model_sim.base_model import *
+from .model_sim import multi_model
+from .model_sim.multi_model import *
 
 from .model_sim import parameter
 from .model_sim.parameter import *
