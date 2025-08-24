@@ -53,13 +53,7 @@ class Peterka18(BaseModel):
 
         where :math:`s = i\omega`, :math:`C = K_p + s K_d`, :math:`D = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`F = \frac{K_t}{s}`, .
 
-        Reference: Peterka, RJ, Murchison CF, Parrington L, Fino PC, und King LA. Implementation of a Central Sensorimotor Integration Test for Characterization of Human Balance Control During Stance. (2018). https://doi.org/10.3389/fneur.2018.01045.
-
-        Args:
-            params_free: Parameters to be optimized.
-
-        Returns:
-            err: Objective function value.
+        For more details see Peterka et al. (2018).
         """
 
         # obtain parameters in dictionary form for easy access

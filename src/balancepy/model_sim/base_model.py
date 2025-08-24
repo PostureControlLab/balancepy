@@ -339,18 +339,43 @@ class BaseModel:
             # Prepare parameter data
             param_names = [p.name for p in self.params]
             param_units = [getattr(p, 'unit', '') for p in self.params]
-            param_values = np.round([p.value for p in self.params], 3)
+            param_values = np.round([p.value for p in self.params], 4)
 
-            # Transpose table_values so each row is a parameter (Name, Unit, Value)
-            table_values = list(map(list, zip(*[
-                ['Unit'] + param_units,
-                ['Value'] + list(param_values)
-            ])))
+            # Create table with parameters as rows; columns: Name, Value, Unit for first half and Name, Value, Unit for second half
+            n = len(param_names)
+            mid = (n + 1) // 2  # split into two halves, first half gets the extra if odd
 
-            # Create table with 'Name' and param_names as headers, 'Unit' and 'Value' as cells
+            # Split into halves
+            first_names = param_names[:mid]
+            second_names = param_names[mid:]
+
+            first_units = param_units[:mid]
+            second_units = param_units[mid:]
+
+            param_values_list = list(param_values)
+            first_values = param_values_list[:mid]
+            second_values = param_values_list[mid:]
+
+            # Pad halves to equal number of rows for the table
+            rows = max(len(first_names), len(second_names))
+            first_names += [''] * (rows - len(first_names))
+            first_values += [None] * (rows - len(first_values))
+            first_units += [''] * (rows - len(first_units))
+            second_names += [''] * (rows - len(second_names))
+            second_values += [None] * (rows - len(second_values))
+            second_units += [''] * (rows - len(second_units))
+
+            # Build table: columns 1-3 for first half (Name, Value, Unit), columns 4-6 for second half (Name, Value, Unit)
             table_trace = go.Table(
-                header=dict(values=["", *param_names]),
-                cells=dict(values=table_values)
+                header=dict(values=["Name", "Value", "Unit", "Name", "Value", "Unit"]),
+                cells=dict(values=[
+                    first_names,
+                    first_values,
+                    first_units,
+                    second_names,
+                    second_values,
+                    second_units
+                ])
             )
 
             # Add the table to row 3, col 2

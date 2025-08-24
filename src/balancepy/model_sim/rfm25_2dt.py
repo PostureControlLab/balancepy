@@ -1,14 +1,14 @@
 import numpy as np
+from numpy import convolve as cv
 from numbers import Number
 import scipy.signal as signal
 import balancepy as bp
-import control
-
+import balancepy as bp
 from .base_model import BaseModel
 
-class Asslaender23(BaseModel):
+class RFM25(BaseModel):
     default_config = {
-        "ModelName": 'Asslaender 2023',
+        "ModelName": 'RFM 2025',
         "mass_kg": None,
         "height_m": None,
         "data_exp": None
@@ -17,105 +17,89 @@ class Asslaender23(BaseModel):
     def _create_parameters(self, mass_kg: Number, height_m: Number):
         """
         Create a set of parameters for the model.
-        
-        Parameters
-        ----------
+        Args:
             mass_kg (Number): Mass in kilograms.
             height_m (Number): Height in meters.
-        
-        Returns
-        -------
+        Returns:
             ParameterSet: A set of parameters for the model.
         """
         WT = bp.WinterTable(mass_kg, height_m)
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.3 * WT.mgh / 180*np.pi
-        Kd = 0.45 * WT.mgh / 180*np.pi
+        Kp = 1.4 * WT.mgh / 180*np.pi
+        Kd = 0.4 * WT.mgh / 180*np.pi
 
         params = bp.ParameterSet()
         params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
         params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
+        params.add(bp.Parameter("v_step", 0.3, bounds=(0.3, 0.3), fixed=True))
         params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
         params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
-        params.add(bp.Parameter("W", 0.1, bounds=(0.01, 1), fixed=False))
-        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
-        params.add(bp.Parameter("Kt", 0.01, bounds=(0, 0.05), fixed=False))
-        params.add(bp.Parameter("Ft", 20, bounds=(3, 30), fixed=True))
-        params.add(bp.Parameter("b", 1, bounds=(0.0001, 10), fixed=False))
+        params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
+        params.add(bp.Parameter("L", 0.3, bounds=(0, 0.8), fixed=False))
+        params.add(bp.Parameter("tau1", 0.16, bounds=(0.1, 0.3), fixed=False))
+        params.add(bp.Parameter("tau2", 0.04, bounds=(0.1, 0.3), fixed=False))
+        params.add(bp.Parameter("kappa", 0.3, bounds=(0, 1), fixed=False))
+        params.add(bp.Parameter("Kt", 0.01, bounds=(0.0001, 0.05), fixed=False))
 
         return params
 
     @property
     def dynamics(self):
         r"""
-        Dynamics of the Asslaender 2023 model. The function returns a transfer function of the model.
+        Dynamics of the Peterka 2018 model. The function returns a transfer function of the model.
         The function is given by
 
         .. math::
 
-           TF = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }
+           H_{vis} = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }
 
-        where :math:`s = i\omega`, :math:`NC = K_p + s K_d`, :math:`NC = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`T = \frac{K_t}{F_{lp}s + 1}`, .
-
-        For more details see Asslaender et al. (2023).
+        where :math:`s = i\omega`, :math:`NC = K_p + s K_d`, :math:`NC = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`TF = \frac{K_t}{s}`, .
         """
-        # implemanted as static method to allow efficient use during bootstrapping
+
         p = self.params.to_value_dict()
-
-        # Define transfer function as polynomial
-        # Target transfer function
-        # tf = [(s * W) * NC * TD_num] / [(TD_den * (s * 1/B) - (s * F) * NC * 1/B * TD_num + (s * NC) * TD_num)]
-        # Define polynomials
-        pade_order = 5
-        TD_num, TD_den = control.pade(p['dt'], pade_order)
-        NC = [p['Kd'], p['Kp']]
-        Kt = [p['Kt']]
-        F_den = [p['Ft'], 1]
-        invB = [p['J'], 0, -p['mgh']]
+        
+        # Definitions
+        chi = (p['v_step'] - p['kappa']) / p['v_step'] if p['v_step'] > p['kappa'] else 0
         W = p['W']
+        inv_B = np.array([p['J'], 0, -p['mgh']])
 
-        # Numerator: F_den · W · NC · TD_num
-        num1 = W * np.convolve(NC, TD_num)
-        num = np.convolve(num1, F_den)
+        C = np.array([p['Kd'], p['Kp']])
 
-        # Denominator: F_den * TD_den * invB − Kt * NC * invB * TD_num + F_den * NC * TD_num
-        # Denominator term 1
-        # F_den * TD_den * invB
-        den1a = np.convolve(TD_den, invB)
-        den1 = np.convolve(den1a, F_den)
+        inv_F = np.array([1 / p['Kt'], 0])
 
-        # Denominator term 2
-        # Kt * NC * invB * TD_num
-        den2a = Kt * np.convolve(NC, invB)
-        den2 = np.convolve(den2a, TD_num)
+        T1num = np.array([-0.5 * p['tau1'], 1])
+        T1den = np.array([0.5 * p['tau1'], 1])
 
-        # Denominator term 3
-        # F_den * NC * TD_num
-        den3a = np.convolve(NC, TD_num)
-        den3 = np.convolve(den3a, F_den)
+        T2num = np.array([-0.5 * p['tau2'], 1])
+        T2den = np.array([0.5 * p['tau2'], 1])
 
-        # Pad denominator terms to same length
-        max_len = max(len(den1), len(den2), len(den3))
-        den1p = np.pad(den1, (max_len - len(den1), 0), 'constant')
-        den2p = np.pad(den2, (max_len - len(den2), 0), 'constant')
-        den3p = np.pad(den3, (max_len - len(den3), 0), 'constant')
 
-        # Combine numerator terms (all have denominator B_poly)
-        den12p = np.polyadd(den1p, -den2p)
-        den = np.polyadd(den12p, den3p)
+
+        # Numerator terms
+        num1 =       W * cv(cv(cv(inv_F, T1num), T2den), C)  # W * (1/F * T1num * T2den * C)
+        num2 = chi * W * cv(cv(cv(inv_F, T1num), T2num), C)  # chi * W * (1/F * T1num * T2num * C)
+
+        num = num1 - num2
+
+        # Denominator terms
+        den1 = cv(cv(cv(inv_F, inv_B), T1den), T2den)  # (1/F * 1/B * T1den * T2den)
+        den2 = np.pad(cv(cv(cv(inv_F, T1num), T2den), C), (1, 0))  # 1/F * T1num * T2den * C; # padded to match length
+        den3 = cv(cv(cv(inv_B, T1num), T2den), C)     # 1/B * T1num * T2den * C
+
+        den = den1 + den2 - den3  # Combine the denominator terms
 
         # Regularize small values in the numerator and denominator
-        num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
-        den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
+        # num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
+        # den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
 
         transfer_function = signal.TransferFunction(num, den)
 
         return transfer_function
 
 
-    def objective(self, params_free = None, freq = None, reference_frf = None):
+    def objective(self, params_free = None):
         r"""
         Objective function for optimization.
         Applies a smoothing of the frf across frequencies.
@@ -123,17 +107,14 @@ class Asslaender23(BaseModel):
 
         .. math::
 
-           \mathrm{err} = \sum_{k=0}^{N-1} \log\left(2\beta \left| H_m(\theta, k) \right|\right)
-           + \sum_{k=0}^{N-1} \frac{ \left| H_e(k) - H_m(\theta, k) \right| }{ \beta \left| H_m(\theta, k) \right| }
+           \mathrm{err} = \sum_{i} \frac{ \left| H_{\mathrm{sim},i} - H_{\mathrm{exp},i} \right| }{ \left| H_{\mathrm{sim},i} \right| }
 
-        where :math:`H_m(\theta, k)` is the simulated FRF at frequency index :math:`k` and parameter set :math:`\theta`, :math:`H_e(k)` is the experimental/reference FRF, and :math:`\beta` is the scale of the laplace distribution.
+        where :math:`H_{\mathrm{sim},i}` is the smoothed simulated FRF at frequency index :math:`i`, and :math:`H_{\mathrm{exp},i}` is the smoothed experimental/reference FRF.
 
-        Parameter
-        ---------
+        Args:
             params_free: Parameters to be optimized.
 
-        Returns
-        -------
+        Returns:
             err: Objective function value.
         """
         assert (self.data_exp is not None 
@@ -145,7 +126,6 @@ class Asslaender23(BaseModel):
         if params_free is not None:
             self.params.set_values(params_free, only_free=True)
 
-
         #calculate model frequency response
         tf = self.dynamics
         w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
@@ -155,11 +135,71 @@ class Asslaender23(BaseModel):
         frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
 
         #calculate objective
-        b = self.params['b'].value
-        err = sum(np.log(2 * b * abs(frf_sim))) + sum(abs(frf_sim - frf_exp) / (b * abs(frf_sim)))
+        err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))
 
         return err
-    
+
+
+
+    def approximate_deadzone_tf(self):
+        input = self.data_sim.stimulus
+        lb, ub = self.params[L].bounds
+        samplingrate_Hz = self.data_sim.samplingrate_Hz
+
+        deadzone_tf = []
+        n = 0
+        for L in np.linspace(lb, ub, 101):
+            spec_deadzone = np.fft.fft(self.velocity_deadzone(input, L, samplingrate_Hz))
+            spec_no_deadzone = np.fft.fft(input)
+
+            tmp = spec_deadzone[1:] / spec_no_deadzone[1:]
+
+            # Reduce to selected frequencies as defined in data_sim
+            tmp = self.data_sim.select_frequencies(tmp)
+
+            deadzone_tf.append(np.concatenate(([L], tmp)))
+            n += 1
+
+        return deadzone_tf
+
+    @staticmethod
+    def velocity_deadzone(input, kappa, samplingrate_Hz, alpha=0.01):
+        """
+        Asymmetric threshold function as shown below.
+        x is the velocity of the input signal.
+
+        y = (1/2) * sqrt((x - λ)² + α·λ²) - (1/2) * sqrt((x + λ)² + α·λ²) + x
+        
+        Parameters
+        ----------
+        input : array_like
+            Input signal
+        kappa : float
+            Threshold parameter λ
+        alpha : float
+            Smoothing parameter α
+            
+        Returns
+        -------
+        y : array_like
+            Output signal after applying threshold kappa
+        """
+
+        x = np.gradient(input) * samplingrate_Hz  # Assuming sr is defined in the context
+
+        kappa_sq = kappa**2
+
+        term1 = 0.5 * np.sqrt((x - kappa)**2 + alpha * kappa_sq)
+        term2 = 0.5 * np.sqrt((x + kappa)**2 + alpha * kappa_sq)
+
+        y = term1 - term2 + x
+
+        output = input[0] + np.cumsum(y) / samplingrate_Hz  # Integrate the output signal
+
+        return output
+
+
+
 
     # smoothing function for the frequency response function
     # is applied during the calculation of the objective function
