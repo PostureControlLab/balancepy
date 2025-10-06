@@ -27,7 +27,8 @@ def resample(
         end_time_seconds = max(time_s) # get end of recording
         end_time_seconds = end_time_seconds - np.mod(end_time_seconds,1/sampling_rate) # cut at last resampled data point
 
-    new_time_vector = np.arange(1/sampling_rate, end_time_seconds+1/sampling_rate, 1/sampling_rate) # define time vector ]0, t_end]
+    n_samples = int(end_time_seconds * sampling_rate)
+    new_time_vector = np.linspace(0, end_time_seconds, n_samples, endpoint=False)
 
     out = interp1d(time_s, data, kind='cubic', fill_value='extrapolate')(new_time_vector)
 

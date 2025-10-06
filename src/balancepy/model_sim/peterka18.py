@@ -4,6 +4,7 @@ import scipy.signal as signal
 import balancepy as bp
 import balancepy as bp
 from .base_model import BaseModel
+import control as control
 
 class Peterka18(BaseModel):
     default_config = {
@@ -24,19 +25,19 @@ class Peterka18(BaseModel):
         """
         WT = bp.WinterTable(mass_kg, height_m)
         
-        mgh = WT.mgh / 180*np.pi
-        J = WT.J / 180*np.pi
-        Kp = 1.4 * WT.mgh / 180*np.pi
-        Kd = 0.4 * WT.mgh / 180*np.pi
+        mgh = WT.mgh# / 180*np.pi
+        J = WT.J# / 180*np.pi
+        Kp = 1.35 * WT.mgh# / 180*np.pi
+        Kd = 0.47 * WT.mgh# / 180*np.pi
 
         params = bp.ParameterSet()
         params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
         params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
-        params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
-        params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
-        params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
-        params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
-        params.add(bp.Parameter("Kt", 0.01, bounds=(0, 0.05), fixed=False))
+        params.add(bp.Parameter("Kp", Kp, bounds=(1.2 * mgh, 1.7 * mgh), fixed=False))
+        params.add(bp.Parameter("Kd", Kd, bounds=(0.3 * mgh, 0.77 * mgh), fixed=False))
+        params.add(bp.Parameter("W", 0.534, bounds=(0.01, 1), fixed=False))
+        params.add(bp.Parameter("dt", 0.151, bounds=(0.1, 0.35), fixed=False))
+        params.add(bp.Parameter("Kt", 0.000138, bounds=(0, 0.001), fixed=False))
 
         return params
 
@@ -48,11 +49,11 @@ class Peterka18(BaseModel):
 
         .. math::
 
-           H_{vis} = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }
+           H_{vis} = \frac{W \cdot C \cdot D \cdot B}{ 1 - F \cdot C \cdot D + C \cdot D \cdot B }
 
-        where :math:`s = i\omega`, :math:`NC = K_p + s K_d`, :math:`NC = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`TF = \frac{K_t}{s}`, .
+        where :math:`s = i\omega`, :math:`C = K_p + s K_d`, :math:`D = \exp{-s\tau}`, :math:`B = \frac{1}{J\cdot s^2 - mgh}`, and :math:`F = \frac{K_t}{s}`, .
 
-        For more details see Peterka et al. (2018).
+        Reference: Peterka, RJ, Murchison CF, Parrington L, Fino PC, und King LA. Implementation of a Central Sensorimotor Integration Test for Characterization of Human Balance Control During Stance. (2018). https://doi.org/10.3389/fneur.2018.01045.
 
         Args:
             params_free: Parameters to be optimized.
@@ -61,21 +62,53 @@ class Peterka18(BaseModel):
             err: Objective function value.
         """
 
-        
+        # obtain parameters in dictionary form for easy access
         p = self.params.to_value_dict()
 
-        num = [ -0.5*p['dt']*p['W']*p['Kd'], (p['W']*p['Kd'] - 0.5*p['W']*p['Kp']*p['dt']), p['W']*p['Kp'], 0 ]
+        # Define transfer function as polynomial
+        # Target transfer function
+        # tf = [(s * W) * NC * TD_num] / [(TD_den * (s * 1/B) - (s * F) * NC * 1/B * TD_num + (s * NC) * TD_num)]
+        # Define polynomials
+        pade_order = 5
+        TD_num, TD_den = control.pade(p['dt'], pade_order)
+        NC = [p['Kd'], p['Kp']]
+        sNC = [p['Kd'], p['Kp'], 0]
+        sF = [p['Kt']]
+        invB = [p['J'], 0, -p['mgh']]
+        sinvB = [p['J'], 0, -p['mgh'], 0]
+        W = p['W']
 
-        den = [ (0.5*p['J']*p['dt'] + 0.5*p['Kt']*p['Kd']*p['J']*p['dt'] ), 
-                (p['J'] + 0.5*p['Kt']*p['Kp']*p['J']*p['dt'] - p['Kt']*p['Kd']*p['J'] - 0.5*p['Kd']*p['dt']),
-                (-0.5*p['mgh']*p['dt'] - p['Kt']*p['Kp']*p['J'] - 0.5*p['Kt']*p['Kd']*p['mgh']*p['dt'] - 0.5*p['Kp']*p['dt'] + p['Kd']),
-                (-p['mgh'] - 0.5*p['Kt']*p['Kp']*p['mgh']*p['dt'] + p['Kt']*p['Kd']*p['mgh'] + p['Kp']), 
-                p['Kt']*p['Kp']*p['mgh'] ]
-        transfer_function = signal.TransferFunction(num, den)
+        # Numerator: W * sNC * TD_num
+        num = W * np.convolve(sNC, TD_num)
+
+        # Denominator term 1
+        # TD_den * s * 1/B
+        den1 = np.convolve(TD_den, sinvB)
+
+        # Denominator term 2
+        # sF * NC * 1/B * TD_num
+        den2a = sF * np.convolve(NC, invB)
+        den2 = np.convolve(den2a, TD_num)
+
+        # Denominator term 3
+        # s*NC * TD_num
+        den3 = np.convolve(sNC, TD_num)
+
+        # Pad denominator terms to same length
+        max_len = max(len(den1), len(den2), len(den3))
+        den1p = np.pad(den1, (max_len - len(den1), 0), 'constant')
+        den2p = np.pad(den2, (max_len - len(den2), 0), 'constant')
+        den3p = np.pad(den3, (max_len - len(den3), 0), 'constant')
+
+        # Combine numerator terms (all have denominator B_poly)
+        den12p = np.polyadd(den1p, -den2p)
+        den = np.polyadd(den12p, den3p)
 
         # Regularize small values in the numerator and denominator
         num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
         den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
+
+        transfer_function = signal.TransferFunction(num, den)
 
         return transfer_function
 
@@ -107,13 +140,14 @@ class Peterka18(BaseModel):
         if params_free is not None:
             self.params.set_values(params_free, only_free=True)
 
-        #calculate model frequency response
-        tf = self.dynamics
-        w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
-
-        #smooth frequency response functions
-        frf_sim = self.frf_smoothing(frf_sim, self.data_exp.freq)
+        # smooth experimental frequency response function
         frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
+
+        # method as described in Peterka et al. 2018
+        # calculate model frequency response
+        f = self.frf_smoothing(self.data_exp.freq, self.data_exp.freq)
+        tf = self.dynamics
+        w, frf_sim = signal.freqresp(tf, w=f*2*np.pi)
 
         #calculate objective
         err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))

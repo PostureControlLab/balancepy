@@ -2,7 +2,7 @@ import numpy as np
 from numbers import Number
 import scipy.signal as signal
 import balancepy as bp
-
+import control
 
 from .base_model import BaseModel
 
@@ -31,17 +31,17 @@ class Asslaender23(BaseModel):
         
         mgh = WT.mgh / 180*np.pi
         J = WT.J / 180*np.pi
-        Kp = 1.4 * WT.mgh / 180*np.pi
-        Kd = 0.4 * WT.mgh / 180*np.pi
+        Kp = 1.3 * WT.mgh / 180*np.pi
+        Kd = 0.45 * WT.mgh / 180*np.pi
 
         params = bp.ParameterSet()
         params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
         params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
         params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
         params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
-        params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
+        params.add(bp.Parameter("W", 0.1, bounds=(0.01, 1), fixed=False))
         params.add(bp.Parameter("dt", 0.16, bounds=(0.1, 0.3), fixed=False))
-        params.add(bp.Parameter("Kt", 0.005, bounds=(0, 0.05), fixed=False))
+        params.add(bp.Parameter("Kt", 0.01, bounds=(0, 0.05), fixed=False))
         params.add(bp.Parameter("Ft", 20, bounds=(3, 30), fixed=True))
         params.add(bp.Parameter("b", 1, bounds=(0.0001, 10), fixed=False))
 
@@ -50,7 +50,7 @@ class Asslaender23(BaseModel):
     @property
     def dynamics(self):
         r"""
-        Dynamics of the Peterka 2023 model. The function returns a transfer function of the model.
+        Dynamics of the Asslaender 2023 model. The function returns a transfer function of the model.
         The function is given by
 
         .. math::
@@ -70,25 +70,53 @@ class Asslaender23(BaseModel):
         # implemanted as static method to allow efficient use during bootstrapping
         p = self.params.to_value_dict()
 
-        num = [
-            -0.5 * p['dt'] * p['W'] * p['Kd'] * p['Ft'],
-            (p['W'] * p['Kd'] * p['Ft'] - 0.5 * p['W'] * p['Kp'] * p['Ft'] * p['dt'] - 0.5 * p['dt'] * p['W'] * p['Kd']),
-            p['W'] * p['Kp'] * p['Ft'] + p['W'] * p['Kd'] - 0.5 * p['W'] * p['Kp'] * p['dt'],
-            p['W'] * p['Kp']
-        ]
+        # Define transfer function as polynomial
+        # Target transfer function
+        # tf = [(s * W) * NC * TD_num] / [(TD_den * (s * 1/B) - (s * F) * NC * 1/B * TD_num + (s * NC) * TD_num)]
+        # Define polynomials
+        pade_order = 5
+        TD_num, TD_den = control.pade(p['dt'], pade_order)
+        NC = [p['Kd'], p['Kp']]
+        Kt = [p['Kt']]
+        F_den = [p['Ft'], 1]
+        invB = [p['J'], 0, -p['mgh']]
+        W = p['W']
 
-        den = [
-            (0.5 * p['Ft'] * p['J'] * p['dt'] + 0.5 * p['Kt'] * p['Kd'] * p['J'] * p['dt']),
-            (p['Ft'] * p['J'] + 0.5 * p['Kt'] * p['Kp'] * p['J'] * p['dt'] - p['Kt'] * p['Kd'] * p['J'] - 0.5 * p['Kd'] * p['dt']),
-            (-0.5 * p['mgh'] * p['Ft'] * p['dt'] + p['J'] - p['Kt'] * p['Kp'] * p['J'] - 0.5 * p['Kt'] * p['Kd'] * p['mgh'] * p['dt'] - 0.5 * p['Kp'] * p['Ft'] * p['dt'] + p['Kd'] * p['Ft'] - 0.5 * p['Kd'] * p['dt']),
-            (-p['Ft'] * p['mgh'] - 0.5 * p['mgh'] * p['dt'] - 0.5 * p['Kt'] * p['Kp'] * p['mgh'] * p['dt'] + p['Kt'] * p['Kd'] * p['mgh'] + p['Kp'] * p['Ft'] - 0.5 * p['Kp'] * p['dt'] + p['Kd']),
-            (-p['mgh'] + p['Kt'] * p['Kp'] * p['mgh'] + p['Kp'])
-        ]
-        transfer_function = signal.TransferFunction(num, den)
+        # Numerator: F_den · W · NC · TD_num
+        num1 = W * np.convolve(NC, TD_num)
+        num = np.convolve(num1, F_den)
+
+        # Denominator: F_den * TD_den * invB − Kt * NC * invB * TD_num + F_den * NC * TD_num
+        # Denominator term 1
+        # F_den * TD_den * invB
+        den1a = np.convolve(TD_den, invB)
+        den1 = np.convolve(den1a, F_den)
+
+        # Denominator term 2
+        # Kt * NC * invB * TD_num
+        den2a = Kt * np.convolve(NC, invB)
+        den2 = np.convolve(den2a, TD_num)
+
+        # Denominator term 3
+        # F_den * NC * TD_num
+        den3a = np.convolve(NC, TD_num)
+        den3 = np.convolve(den3a, F_den)
+
+        # Pad denominator terms to same length
+        max_len = max(len(den1), len(den2), len(den3))
+        den1p = np.pad(den1, (max_len - len(den1), 0), 'constant')
+        den2p = np.pad(den2, (max_len - len(den2), 0), 'constant')
+        den3p = np.pad(den3, (max_len - len(den3), 0), 'constant')
+
+        # Combine numerator terms (all have denominator B_poly)
+        den12p = np.polyadd(den1p, -den2p)
+        den = np.polyadd(den12p, den3p)
 
         # Regularize small values in the numerator and denominator
         num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
         den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
+
+        transfer_function = signal.TransferFunction(num, den)
 
         return transfer_function
 

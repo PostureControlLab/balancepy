@@ -19,9 +19,6 @@ from .model_sim.base_model import *
 from .model_sim import parameter
 from .model_sim.parameter import *
 
-from . import model_tests
-from .model_tests import *
-
 from . import data_class
 from .data_class import *
 

@@ -50,6 +50,8 @@ class BaseModel:
         self.data_exp = data_exp if data_exp is not None else config["data_exp"]
         assert isinstance(self.data_exp, (bp.sr_data, type(None))), "data_exp must be a sr_data object or None"
 
+        self.fitCallback = False # Show basinhopping steps
+        self.detailedCallback = False  # Show local minimization steps
         self._update_data_sim()
 
         self.fit_output = None
@@ -206,14 +208,27 @@ class BaseModel:
                 and self.data_exp.frf is not None
                 ), "No reference data available for fitting"
 
-        # Set initial guess for free paramss
+        # Set initial guess for free parameters
         theta_free_init = self.params.values(only_free=True)
 
         # bounds = Bounds(self.parfit_lb[~np.array(self.parfit_fix_mask)], self.parfit_ub[~np.array(self.parfit_fix_mask)])
         bounds = self.params.bounds()
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
+        
+        # Add local minimizer callback if fitCallback is enabled
+        if self.fitCallback and self.detailedCallback and callable(self._local_minimizer_callback):
+            minimizer_kwargs["callback"] = self._local_minimizer_callback
+            
+        # Prepare basinhopping options
+        options = {
+            "func": self.objective,
+            "x0": theta_free_init,
+            "minimizer_kwargs": minimizer_kwargs
+        }
+        if self.fitCallback and callable(self._fit_callback_F):
+            options["callback"] = lambda x, f, accept: self._fit_callback_F(x, f, accept)
 
-        self.fit_output = basinhopping(self.objective, theta_free_init, minimizer_kwargs=minimizer_kwargs)
+        self.fit_output = basinhopping(**options)
     
         params_fit = self.fit_output.x
 
@@ -221,6 +236,59 @@ class BaseModel:
 
         # Update the simulated data object with the system behavior after fitting
         self._update_data_sim()
+
+    def _fit_callback_F(self, x, f, accept):
+        """
+        Callback function called during optimization.
+        
+        Parameters
+        ----------
+        x : array
+            Current parameter values
+        f : float
+            Current objective function value
+        accept : bool
+            Whether the step was accepted
+        """
+        if not hasattr(self, "_callback_count"):
+            self._callback_count = 1
+            self._callback_output = []
+        else:
+            self._callback_count += 1
+
+        if self._callback_count == 1:
+            free_param_names = [name for name, param in self.params.items() if not param.fixed]
+            param_names_str = ", ".join(free_param_names)
+            header = f"Iter | Objective | Accepted | {param_names_str}"
+            print(header)
+            self._callback_output.append(header)
+
+        params_str = ", ".join([f"{v:.5f}" for v in x])
+        output_line = f"{self._callback_count:4d} | {f:.6f} | {accept} | {params_str}"
+        print(output_line)
+        self._callback_output.append(output_line)
+        # You can add logging, plotting, early stopping, etc.
+
+    def _local_minimizer_callback(self, x):
+        """
+        Callback function called during each local minimization step.
+        
+        Parameters
+        ----------
+        x : array
+            Current parameter values during local optimization
+        """
+        if not hasattr(self, "_local_callback_count"):
+            self._local_callback_count = 1
+        else:
+            self._local_callback_count += 1
+            
+        # Calculate objective at current point
+        obj_value = self.objective(x)
+        
+        params_str = ", ".join([f"{v:.5f}" for v in x])
+        print(f"  Local {self._local_callback_count:3d} | {obj_value:.6f} | {params_str}")
+
 
     def _update_data_sim(self):
         """ Update the simulated data object with the system behavior after fitting."""
@@ -257,7 +325,7 @@ class BaseModel:
             
             self.data_sim = data_sim
     
-    def plot(self):
+    def plot(self,figure=None):
         """
         Plot experimental and simulated data.
         
@@ -270,22 +338,48 @@ class BaseModel:
         -------
         figure : matplotlib.figure.Figure or None
         """
-        figure = None
 
         if self.data_exp is not None:
             if self.data_exp.name is None: self.data_exp.name = 'Experimental' 
-            figure = self.data_exp.plot()
+            figure = self.data_exp.plot(fig = figure)
         else:
             print('No experimental data available for plotting')
 
         if self.data_sim is not None:
-           if self.data_sim.name is None: self.data_sim.name = 'Simulated'
-           figure = self.data_sim.plot(fig = figure) #, params_names=self.params_names, params=self.params)
+            if self.data_sim.name is None: self.data_sim.name = 'Simulated'
+            data_sim2 = self.data_sim
+            data_sim2.freq = np.arange(data_sim2.freq.min(), data_sim2.freq.max(), 0.001)
+            _, data_sim2.frf = signal.freqresp(self.dynamics, w=data_sim2.freq*2*np.pi)
+
+            figure = data_sim2.plot(fig = figure) #, params_names=self.params_names, params=self.params)
         else:
-            print('No simulated data available for plotting')
+            data=bp.sr_data()
+            data.freq = np.arange(0.01, 4, 0.001)
+            _, data.frf = signal.freqresp(self.dynamics, w=data.freq*2*np.pi)
+
+            figure = data.plot(fig = figure) #, params_names=self.params_names, params=self.params)
 
         if figure:
             return figure
         
 
-        
+    def bode(self):
+        """Generate Bode plot data for the system.
+
+        Returns
+        -------
+        f : array_like
+            Frequencies at which the Bode plot is evaluated.
+        mag : array_like
+            Magnitude of the frequency response (in dB).
+        pha : array_like
+            Phase of the frequency response (in degrees).
+        """
+
+        w, h = signal.freqresp(self.dynamics, w=np.arange(0.01, 4, 0.001)*2*np.pi)
+
+        f = w / (2 * np.pi)
+        mag = np.abs(h)
+        pha = bp.phase(h)
+
+        return f, mag, pha

@@ -30,7 +30,8 @@ dependencies = [
   "statsmodels",
   "joblib",
   "ipywidgets",
-  "scikits-bootstrap"
+  "scikits-bootstrap",
+  "control (>=0.10.2,<0.11.0)"
 ]
 
 
