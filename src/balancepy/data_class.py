@@ -116,7 +116,7 @@ class sr_data:
     
     @property
     def phase(self):
-        return bp.phase(self.frf, self.freq)
+        return bp.phase(self.frf)
     
     @property
     def coherence(self):

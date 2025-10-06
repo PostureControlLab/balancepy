@@ -106,7 +106,7 @@ def frf(yi,yo):
     return H
 
 
-def phase(frf,f):
+def phase(frf):
     """Calculate the phase of the frequency response function (FRF).
 
         Function performs additional phase unwrapping.
@@ -122,12 +122,10 @@ def phase(frf,f):
         pha : array_like
             Phase of the frequency response function (FRF) in degrees.
     """
-    pha = np.angle(frf,deg=True)
-
-    # create polynom roughly following a typical Phase curve of human sway responses + 180deg for modulo of 360deg
-    p_ref = 20-100*f-26*f**2 - 180
-
-    pha = np.mod(pha-p_ref,360) + p_ref
+    pha = np.angle(frf,deg=False)
+    # Unwrap phase to ensure continuity, even for noisy data
+    pha = np.unwrap(pha)
+    pha = np.rad2deg(pha)
     
     return pha
 
