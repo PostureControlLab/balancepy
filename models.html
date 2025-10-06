@@ -115,9 +115,9 @@
 <dd><p>Dynamics of the Peterka 2018 model. The function returns a transfer function of the model.
 The function is given by</p>
 <div class="math notranslate nohighlight">
-\[H_{vis} = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }\]</div>
-<p>where <span class="math notranslate nohighlight">\(s = i\omega\)</span>, <span class="math notranslate nohighlight">\(NC = K_p + s K_d\)</span>, <span class="math notranslate nohighlight">\(NC = \exp{-s\tau}\)</span>, <span class="math notranslate nohighlight">\(B = \frac{1}{J\cdot s^2 - mgh}\)</span>, and <span class="math notranslate nohighlight">\(TF = \frac{K_t}{s}\)</span>, .</p>
-<p>For more details see Peterka et al. (2018).</p>
+\[H_{vis} = \frac{W \cdot C \cdot D \cdot B}{ 1 - F \cdot C \cdot D + C \cdot D \cdot B }\]</div>
+<p>where <span class="math notranslate nohighlight">\(s = i\omega\)</span>, <span class="math notranslate nohighlight">\(C = K_p + s K_d\)</span>, <span class="math notranslate nohighlight">\(D = \exp{-s\tau}\)</span>, <span class="math notranslate nohighlight">\(B = \frac{1}{J\cdot s^2 - mgh}\)</span>, and <span class="math notranslate nohighlight">\(F = \frac{K_t}{s}\)</span>, .</p>
+<p>Reference: Peterka, RJ, Murchison CF, Parrington L, Fino PC, und King LA. Implementation of a Central Sensorimotor Integration Test for Characterization of Human Balance Control During Stance. (2018). <a class="reference external" href="https://doi.org/10.3389/fneur.2018.01045">https://doi.org/10.3389/fneur.2018.01045</a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>params_free</strong> – Parameters to be optimized.</p>
@@ -172,7 +172,7 @@ The error is given by</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="balancepy.model_sim.asslaender23.Asslaender23.dynamics">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dynamics</span></span><a class="headerlink" href="#balancepy.model_sim.asslaender23.Asslaender23.dynamics" title="Link to this definition"></a></dt>
-<dd><p>Dynamics of the Peterka 2023 model. The function returns a transfer function of the model.
+<dd><p>Dynamics of the Asslaender 2023 model. The function returns a transfer function of the model.
 The function is given by</p>
 <div class="math notranslate nohighlight">
 \[TF = \frac{W \cdot NC \cdot TD \cdot B}{ 1 - TF \cdot NC \cdot TD + NC \cdot TD \cdot B }\]</div>
