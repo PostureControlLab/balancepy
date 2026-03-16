@@ -11,9 +11,7 @@ authors = [
 ]
 description = "Human balance analysis using Python"
 readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = ">=3.10"
-keywords = ["biomechanics", "human balance", "postural control", "systems identification", "virtual reality"]
+requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -36,75 +34,20 @@ dependencies = [
   "statsmodels",
   "joblib",
   "scikits-bootstrap",
-  "control>=0.10.2,<0.11.0",
-  "pyarrow (>=23.0.1,<24.0.0)",
+  "control>=0.10.2,<0.11.0"
 ]
 
 [project.optional-dependencies]
-notebooks = [
-  "ipykernel",
-  "nbformat",
-  "ipywidgets",
+docs = [
+  "sphinx>=8.2.3",
+  "sphinx-rtd-theme>=3.0.2",
+  "sphinx-autodoc-typehints>=3.2.0",
+  "myst-parser>=4.0.1",
+  "myst-nb>=1.2.0"
 ]
-dev = [
-  "pytest>=7.0",
-  "pytest-cov",
-  "sphinx>=8.0",
-  "sphinx-rtd-theme>=3.0",
-  "sphinx-autodoc-typehints>=3.0",
-  "myst-parser>=4.0",
-  "myst-nb>=1.0",
-]
-
-
-
 
 [project.urls]
 Homepage = "https://github.com/PostureControlLab/balancepy"
 Repository = "https://github.com/PostureControlLab/balancepy"
 Documentation = "https://posturecontrollab.github.io/balancepy/"
 Issues = "https://github.com/PostureControlLab/balancepy/issues"
-
-[tool.pytest.ini_options]
-minversion = "7.0"
-testpaths = ["tests"]
-python_files = "test_*.py"
-addopts = "-v --cov=src/balancepy"
-
-[tool.coverage.run]
-source = ["src/balancepy"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-]
-
-[tool.hatch.build.targets.sdist]
-only-packages = false
-include = [
-  "src/",
-  "tests/",
-  "docs/",
-  "README.md",
-  "LICENSE",
-  "CHANGELOG.md",
-  "MANIFEST.in",
-  "pyproject.toml",
-]
-exclude = [
-  "**/__pycache__",
-  "**/*.pyc",
-  ".git",
-  ".gitignore",
-  ".github",
-  ".python-version",
-  ".vscode",
-  ".idea",
-  "poetry.lock",
-  "Makefile",
-]
-

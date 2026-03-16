@@ -29,7 +29,7 @@ class MultiModelParameterSet(ParameterSet):
         raise NotImplementedError("update_multimodel_name is disabled for MultiModelParameterSet.")
 
 class MultiModel(BaseModel):
-    def __init__(self, *model_list):
+    def __init__(self, model_list):
         self.model_list = model_list
         self.fit_output = None
         self.params = MultiModelParameterSet()

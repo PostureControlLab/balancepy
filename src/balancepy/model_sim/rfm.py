@@ -5,10 +5,11 @@ import scipy.signal as signal
 import balancepy as bp
 import balancepy as bp
 from .base_model import BaseModel
+import control as control
 
-class RFM25(BaseModel):
+class RFM(BaseModel):
     default_config = {
-        "ModelName": 'RFM 2025',
+        "ModelName": 'RFM',
         "mass_kg": None,
         "height_m": None,
         "data_exp": None
@@ -33,13 +34,11 @@ class RFM25(BaseModel):
         params = bp.ParameterSet()
         params.add(bp.Parameter("mgh", mgh, bounds=(10, 20), fixed=True))
         params.add(bp.Parameter("J", J, bounds=(0, 0), fixed=True))
-        params.add(bp.Parameter("v_step", 0.3, bounds=(0.3, 0.3), fixed=True))
+        params.add(bp.Parameter("u_dot", 0.3, bounds=(0.3, 0.3), fixed=True))
         params.add(bp.Parameter("Kp", Kp, bounds=(1.05* mgh, 2.5 * mgh), fixed=False))
         params.add(bp.Parameter("Kd", Kd, bounds=(0.1*mgh, 1 * mgh), fixed=False))
-        params.add(bp.Parameter("W", 0.45, bounds=(0.01, 1), fixed=False))
-        params.add(bp.Parameter("L", 0.3, bounds=(0, 0.8), fixed=False))
+        params.add(bp.Parameter("eta", 0.45, bounds=(0.01, 1), fixed=False))
         params.add(bp.Parameter("tau", 0.16, bounds=(0.1, 0.3), fixed=False))
-        params.add(bp.Parameter("kappa", 0.3, bounds=(0, 1), fixed=False))
         params.add(bp.Parameter("Kt", 0.01, bounds=(0.0001, 0.05), fixed=False))
 
         return params
@@ -59,35 +58,48 @@ class RFM25(BaseModel):
 
         p = self.params.to_value_dict()
         
-        # Definitions
-        chi = (p['v_step'] - p['kappa']) / p['v_step'] if p['v_step'] > p['kappa'] else 0
-        W = p['W']
-        inv_B = np.array([p['J'], 0, -p['mgh']])
+        # Define transfer function as polynomial
+        # Target transfer function
+        # tf = [(s * W) * NC * TD_num] / [(TD_den * (s * 1/B) - (s * F) * NC * 1/B * TD_num + (s * NC) * TD_num)]
+        # Define polynomials
+        pade_order = 5
+        TD_num, TD_den = control.pade(p['tau'], pade_order)
+        NC = [p['Kd'], p['Kp']]
+        sNC = [p['Kd'], p['Kp'], 0]
+        sF = [p['Kt']]
+        invB = [p['J'], 0, -p['mgh']]
+        sinvB = [p['J'], 0, -p['mgh'], 0]
+        W = p['eta'] / p['u_dot']
 
-        C = np.array([p['Kd'], p['Kp']])
+        # Numerator: W * sNC * TD_num
+        num = W * np.convolve(sNC, TD_num)
 
-        inv_F = np.array([1 / p['Kt'], 0])
+        # Denominator term 1
+        # TD_den * s * 1/B
+        den1 = np.convolve(TD_den, sinvB)
 
-        Tnum = np.array([-0.5 * p['tau'], 1])
-        Tden = np.array([0.5 * p['tau'], 1])
+        # Denominator term 2
+        # sF * NC * 1/B * TD_num
+        den2a = sF * np.convolve(NC, invB)
+        den2 = np.convolve(den2a, TD_num)
 
+        # Denominator term 3
+        # s*NC * TD_num
+        den3 = np.convolve(sNC, TD_num)
 
-        # Numerator terms
-        num1 =       W * cv(cv(inv_F, Tnum), C)  # W * (1/F * Tnum * C)
-        num2 = chi * W * cv(cv(inv_F, Tnum), C)  # chi * W * (1/F * Tnum * C)
+        # Pad denominator terms to same length
+        max_len = max(len(den1), len(den2), len(den3))
+        den1p = np.pad(den1, (max_len - len(den1), 0), 'constant')
+        den2p = np.pad(den2, (max_len - len(den2), 0), 'constant')
+        den3p = np.pad(den3, (max_len - len(den3), 0), 'constant')
 
-        num = num1 - num2
-
-        # Denominator terms
-        den1 = cv(cv(inv_F, inv_B), Tden)  # (1/F * 1/B * Tden)
-        den2 = np.pad(cv(cv(inv_F, Tnum), C), (1, 0))  # 1/F * Tnum * C; # padded to match length
-        den3 = cv(cv(inv_B, Tnum), C)     # 1/B * Tnum * C
-
-        den = den1 + den2 - den3  # Combine the denominator terms
+        # Combine numerator terms (all have denominator B_poly)
+        den12p = np.polyadd(den1p, -den2p)
+        den = np.polyadd(den12p, den3p)
 
         # Regularize small values in the numerator and denominator
-        # num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
-        # den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
+        num = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in num]
+        den = [coeff if abs(coeff) > 1e-12 else 1e-12 for coeff in den]
 
         transfer_function = signal.TransferFunction(num, den)
 
@@ -121,79 +133,18 @@ class RFM25(BaseModel):
         if params_free is not None:
             self.params.set_values(params_free, only_free=True)
 
+        #smooth frequency response functions
+        frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
+        freq = self.frf_smoothing(self.data_exp.freq, self.data_exp.freq)
+        
         #calculate model frequency response
         tf = self.dynamics
-        w, frf_sim = signal.freqresp(tf, w=self.data_exp.freq*2*np.pi)
-
-        #smooth frequency response functions
-        frf_sim = self.frf_smoothing(frf_sim, self.data_exp.freq)
-        frf_exp = self.frf_smoothing(self.data_exp.frf, self.data_exp.freq)
+        w, frf_sim = signal.freqresp(tf, w=freq*2*np.pi)
 
         #calculate objective
         err = np.sum(np.abs(frf_sim - frf_exp) / np.abs(frf_sim))
 
         return err
-
-
-
-    def approximate_deadzone_tf(self):
-        input = self.data_sim.stimulus
-        lb, ub = self.params[L].bounds
-        samplingrate_Hz = self.data_sim.samplingrate_Hz
-
-        deadzone_tf = []
-        n = 0
-        for L in np.linspace(lb, ub, 101):
-            spec_deadzone = np.fft.fft(self.velocity_deadzone(input, L, samplingrate_Hz))
-            spec_no_deadzone = np.fft.fft(input)
-
-            tmp = spec_deadzone[1:] / spec_no_deadzone[1:]
-
-            # Reduce to selected frequencies as defined in data_sim
-            tmp = self.data_sim.select_frequencies(tmp)
-
-            deadzone_tf.append(np.concatenate(([L], tmp)))
-            n += 1
-
-        return deadzone_tf
-
-    @staticmethod
-    def velocity_deadzone(input, kappa, samplingrate_Hz, alpha=0.01):
-        """
-        Asymmetric threshold function as shown below.
-        x is the velocity of the input signal.
-
-        y = (1/2) * sqrt((x - λ)² + α·λ²) - (1/2) * sqrt((x + λ)² + α·λ²) + x
-        
-        Parameters
-        ----------
-        input : array_like
-            Input signal
-        kappa : float
-            Threshold parameter λ
-        alpha : float
-            Smoothing parameter α
-            
-        Returns
-        -------
-        y : array_like
-            Output signal after applying threshold kappa
-        """
-
-        x = np.gradient(input) * samplingrate_Hz  # Assuming sr is defined in the context
-
-        kappa_sq = kappa**2
-
-        term1 = 0.5 * np.sqrt((x - kappa)**2 + alpha * kappa_sq)
-        term2 = 0.5 * np.sqrt((x + kappa)**2 + alpha * kappa_sq)
-
-        y = term1 - term2 + x
-
-        output = input[0] + np.cumsum(y) / samplingrate_Hz  # Integrate the output signal
-
-        return output
-
-
 
 
     # smoothing function for the frequency response function
