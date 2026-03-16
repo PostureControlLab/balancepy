@@ -8,15 +8,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Anaropia &mdash; BalancePy 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=01f34227"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -99,19 +99,19 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> (<em>str</em>) – Path and filename to be analyzed.</p></li>
-<li><p><strong>body_height</strong> (<em>float</em><em>, </em><em>optional</em>) – Height of subject in meters.</p></li>
-<li><p><strong>resample</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, resample data to samplingrate_Hz.</p></li>
-<li><p><strong>samplingrate_Hz</strong> (<em>int</em><em>, </em><em>optional</em>) – Desired sampling rate in Hz.</p></li>
-<li><p><strong>stimulus</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the stimulus column in the data file.</p></li>
-<li><p><strong>cut_to_cycles</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, cut data to cycles.</p></li>
-<li><p><strong>end_time</strong> (<em>float</em><em>, </em><em>optional</em>) – End time of the experiment in seconds for resampling.</p></li>
-<li><p><strong>cycle_start_samples</strong> (<em>int</em><em>, </em><em>optional</em>) – Start of the first cycle in samples.</p></li>
-<li><p><strong>cycle_length_samples</strong> (<em>int</em><em>, </em><em>optional</em>) – Cycle length in samples.</p></li>
+<li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path and filename to be analyzed.</p></li>
+<li><p><strong>body_height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Height of subject in meters.</p></li>
+<li><p><strong>resample</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, resample data to samplingrate_Hz.</p></li>
+<li><p><strong>samplingrate_Hz</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Desired sampling rate in Hz.</p></li>
+<li><p><strong>stimulus</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Name of the stimulus column in the data file.</p></li>
+<li><p><strong>cut_to_cycles</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, cut data to cycles.</p></li>
+<li><p><strong>end_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – End time of the experiment in seconds for resampling.</p></li>
+<li><p><strong>cycle_start_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Start of the first cycle in samples.</p></li>
+<li><p><strong>cycle_length_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Cycle length in samples.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_ScalarType_co</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">generic</span></code>, covariant=True)]]</span></p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_ScalarT</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">generic</span></code>)]]</span></p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><ul class="simple">
@@ -133,19 +133,19 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> (<em>str</em>) – Path and filename to be analyzed.</p></li>
-<li><p><strong>body_height</strong> (<em>float</em>) – Height of subject in meters.</p></li>
-<li><p><strong>resample</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, resample data to sampling_rate.</p></li>
-<li><p><strong>cut_to_cycles</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, cut data to cycles.</p></li>
-<li><p><strong>sampling_rate</strong> (<em>int</em><em>, </em><em>optional</em>) – Desired sampling rate in Hz.</p></li>
-<li><p><strong>end_time</strong> (<em>float</em><em>, </em><em>optional</em>) – End time of the experiment in seconds for resampling.</p></li>
-<li><p><strong>cycle_start_samples</strong> (<em>int</em><em>, </em><em>optional</em>) – Start of the first cycle in samples.</p></li>
-<li><p><strong>cycle_length_samples</strong> (<em>int</em><em>, </em><em>optional</em>) – Cycle length in samples.</p></li>
-<li><p><strong>stimulus</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the stimulus column in the data file.</p></li>
+<li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path and filename to be analyzed.</p></li>
+<li><p><strong>body_height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Height of subject in meters.</p></li>
+<li><p><strong>resample</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, resample data to sampling_rate.</p></li>
+<li><p><strong>cut_to_cycles</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, cut data to cycles.</p></li>
+<li><p><strong>sampling_rate</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Desired sampling rate in Hz.</p></li>
+<li><p><strong>end_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – End time of the experiment in seconds for resampling.</p></li>
+<li><p><strong>cycle_start_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Start of the first cycle in samples.</p></li>
+<li><p><strong>cycle_length_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Cycle length in samples.</p></li>
+<li><p><strong>stimulus</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Name of the stimulus column in the data file.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_ScalarType_co</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">generic</span></code>, covariant=True)]]</span></p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_ScalarT</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">generic</span></code>)]]</span></p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><ul class="simple">
@@ -166,19 +166,19 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>shoulder_t</strong> (<em>NDArray</em><em>[</em><em>np.number</em><em>]</em>) – 1D array of shoulder translation in meters.</p></li>
-<li><p><strong>shoulder_marker_height</strong> (<em>np.number</em>) – Shoulder marker height above support surface in meters. Can be a single value or an array.</p></li>
-<li><p><strong>hip_t</strong> (<em>NDArray</em><em>[</em><em>np.number</em><em>]</em>) – 1D array of hip anterior-posterior translation in meters.</p></li>
-<li><p><strong>hip_marker_height</strong> (<em>np.number</em>) – Hip marker height above support surface in meters. Can be a single value or an array.</p></li>
-<li><p><strong>height_m</strong> (<em>float</em>) – Height of subject in meters.</p></li>
-<li><p><strong>rotation</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, returns COM translation in meters. If True, returns COM rotation about ankle joints in degrees.</p></li>
+<li><p><strong>shoulder_t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>]]</span>) – 1D array of shoulder translation in meters.</p></li>
+<li><p><strong>shoulder_marker_height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code></span>) – Shoulder marker height above support surface in meters. Can be a single value or an array.</p></li>
+<li><p><strong>hip_t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>]]</span>) – 1D array of hip anterior-posterior translation in meters.</p></li>
+<li><p><strong>hip_marker_height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code></span>) – Hip marker height above support surface in meters. Can be a single value or an array.</p></li>
+<li><p><strong>height_m</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Height of subject in meters.</p></li>
+<li><p><strong>rotation</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, returns COM translation in meters. If True, returns COM rotation about ankle joints in degrees.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>1D array of center of mass (COM) values.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>NDArray</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_ScalarT</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">generic</span></code>)]]</span></p>
 </dd>
 </dl>
 </dd></dl>
