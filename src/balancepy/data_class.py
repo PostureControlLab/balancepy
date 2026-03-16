@@ -4,6 +4,7 @@ from numpy.typing import NDArray
 import balancepy as bp
 from dataclasses import dataclass
 from plotly.subplots import make_subplots
+from scipy.stats import t
 import plotly.graph_objects as go
 @dataclass
 class sr_data:
@@ -76,6 +77,22 @@ class sr_data:
             The mean stimulus, centered around zero.
         """
         return self.stimulus_mean - np.mean(self.stimulus_mean)
+    
+    @property
+    def stimulus_std(self):
+        """
+        Standard deviation of the stimulus across cycles.
+
+        Returns
+        -------
+        ndarray
+            The mean stimulus.
+        """
+        assert self.stimulus is not None, "Stimulus must be set."
+        if self.stimulus.ndim == 1:
+            return self.stimulus
+        elif self.stimulus.ndim == 2:
+            return np.std(self.stimulus, axis=1)    
 
     @property
     def response_mean(self):
@@ -104,6 +121,22 @@ class sr_data:
             The mean response, centered around zero.
         """
         return self.response_mean - np.mean(self.response_mean)
+
+    @property
+    def response_std(self):
+        """
+        Standard deviation of the response across cycles.
+
+        Returns
+        -------
+        ndarray
+            The mean response.
+        """
+        assert self.response is not None, "Response must be set."
+        if self.response.ndim == 1:
+            return self.response
+        elif self.response.ndim == 2:
+            return np.std(self.response, axis=1)
 
     freq: Optional[NDArray] = None
     stimulus_spectrum: Optional[NDArray] = None
@@ -134,6 +167,47 @@ class sr_data:
             return self.stimulus_spectrum
         elif self.stimulus_spectrum.ndim == 2:
             return np.mean(self.stimulus_spectrum, axis=1)
+        
+    @property
+    def stimulus_spectrum_std(self):
+        """Returns the standard deviation of the stimulus spectrum across cycles."""
+        assert self.stimulus_spectrum is not None, "Stimulus spectrum must be set."
+        if self.stimulus_spectrum.ndim == 1:
+            return self.stimulus_spectrum
+        elif self.stimulus_spectrum.ndim == 2:
+            return np.std(self.stimulus_spectrum, axis=1)
+        
+    @property
+    def stimulus_spectrum_confidence_interval(self, confidence=0.95):
+        """
+        Returns the confidence interval for the mean of the stimulus spectrum across cycles.
+        Parameters
+        ----------
+        confidence : float
+            Confidence level (e.g., 0.95 for 95%, 0.99 for 99%)
+        Returns
+        -------
+        lower : ndarray
+            Lower bound of the confidence interval.
+        upper : ndarray
+            Upper bound of the confidence interval.
+        """
+        assert self.stimulus_spectrum is not None, "Stimulus spectrum must be set."
+        if self.stimulus_spectrum.ndim == 1:
+            mean = self.stimulus_spectrum
+            std = np.zeros_like(mean)
+            n = 1
+        elif self.stimulus_spectrum.ndim == 2:
+            mean = np.mean(self.stimulus_spectrum, axis=1)
+            std = np.std(self.stimulus_spectrum, axis=1, ddof=1)
+            n = self.stimulus_spectrum.shape[1]
+        else:
+            raise ValueError("Stimulus spectrum must be 1D or 2D array.")
+        alpha = 1 - confidence
+        tval = t.ppf(1 - alpha/2, df=n-1) if n > 1 else 0
+        margin = tval * std / np.sqrt(n)
+        
+        return margin
 
     @property
     def response_spectrum_mean(self):
@@ -142,7 +216,80 @@ class sr_data:
         if self.response_spectrum.ndim == 1:
             return self.response_spectrum
         elif self.response_spectrum.ndim == 2:
-            return np.mean(self.stimulus_spectrum, axis=1)
+            return np.mean(self.response_spectrum, axis=1)
+        
+    @property
+    def response_spectrum_std(self):
+        """Returns the standard deviation of the response spectrum across cycles."""
+        assert self.response_spectrum is not None, "Response spectrum must be set."
+        if self.response_spectrum.ndim == 1:
+            return self.response_spectrum
+        elif self.response_spectrum.ndim == 2:
+            return np.std(self.response_spectrum, axis=1)
+
+    @property
+    def response_spectrum_confidence_interval(self, confidence=0.95):
+        """
+        Returns the confidence interval for the mean of the response spectrum across cycles.
+        Parameters
+        ----------
+        confidence : float
+            Confidence level (e.g., 0.95 for 95%, 0.99 for 99%)
+        Returns
+        -------
+        lower : ndarray
+            Lower bound of the confidence interval.
+        upper : ndarray
+            Upper bound of the confidence interval.
+        """
+        assert self.response_spectrum is not None, "Response spectrum must be set."
+        if self.response_spectrum.ndim == 1:
+            mean = self.response_spectrum
+            std = np.zeros_like(mean)
+            n = 1
+        elif self.response_spectrum.ndim == 2:
+            mean = np.mean(self.response_spectrum, axis=1)
+            std = np.std(self.response_spectrum, axis=1, ddof=1)
+            n = self.response_spectrum.shape[1]
+        else:
+            raise ValueError("Response spectrum must be 1D or 2D array.")
+        alpha = 1 - confidence
+        tval = t.ppf(1 - alpha/2, df=n-1) if n > 1 else 0
+        margin = tval * std / np.sqrt(n)
+        
+        return margin
+
+    @property
+    def bootstrap_response_spectrum_confidence_interval(self, n_bootstrap=1000, confidence=0.95):
+        """
+        Returns bootstrap confidence intervals for the mean response spectrum across cycles.
+        Parameters
+        ----------
+        n_bootstrap : int
+            Number of bootstrap samples.
+        confidence : float
+            Confidence level (e.g., 0.95 for 95%).
+        Returns
+        -------
+        lower : ndarray
+            Lower bound of the confidence interval.
+        upper : ndarray
+            Upper bound of the confidence interval.
+        """
+        if self.response_spectrum is None:
+            raise ValueError("Response spectrum must be set.")
+        if self.response_spectrum.ndim != 2:
+            raise ValueError("Bootstrap requires 2D response spectrum array (freq x cycles).")
+        n_cycles = self.response_spectrum.shape[1]
+        boot_means = []
+        for _ in range(n_bootstrap):
+            idx = np.random.choice(n_cycles, n_cycles, replace=True)
+            resp_boot = self.response_spectrum[:, idx]
+            boot_means.append(np.abs(np.mean(resp_boot, axis=1)))
+        boot_means = np.array(boot_means)
+        lower = np.percentile(boot_means, (1-confidence)/2*100, axis=0)
+        upper = np.percentile(boot_means, (1-(1-confidence)/2)*100, axis=0)
+        return lower, upper
 
     @property
     def stimulus_spectrum_PSD(self):
@@ -267,17 +414,17 @@ class sr_data:
             selected_frequencies_index = np.array(type)
         elif type == 'all' or type is None:
             start = 0 
-            end = int(round(2.5 * T)) # frequencies up to 2.5 Hz
+            end = int(round(2 * T)) # frequencies up to 2 Hz
             step = 1
             selected_frequencies_index = np.arange(start, end, step)
         elif type == 'prts':
             start = 0
-            end = int(round(2.5 * T)) # frequencies up to 2.5 Hz
+            end = int(round(2 * T)) # frequencies up to 2 Hz
             step = 2
             selected_frequencies_index = np.arange(start, end, step)
         elif type == 'double_prts':
             start = 1
-            end = int(round(2.5 * T)) # frequencies up to 2.5 Hz
+            end = int(round(2 * T)) # frequencies up to 2 Hz
             step = 4
             selected_frequencies_index = np.arange(start, end, step)
         else:

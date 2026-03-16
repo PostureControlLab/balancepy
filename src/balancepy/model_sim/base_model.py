@@ -2,8 +2,10 @@ import numpy as np
 import balancepy as bp
 import scipy.signal as signal
 from scipy.optimize import basinhopping
+import plotly.graph_objects as go
 from numbers import Number
 import warnings
+from plotly.subplots import make_subplots
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class BaseModel:
@@ -55,32 +57,6 @@ class BaseModel:
         self._update_data_sim()
 
         self.fit_output = None
-
-    def __repr__(self):
-
-        if hasattr(self, 'params'):
-            param_summary = repr(self.params)  
-        else: 
-            param_summary = "No parameters defined"
-        if (self.data_sim is not None and self.data_sim.freq is not None):
-            frequencies_summary = f"{len(self.data_sim.freq)} frequencies from {self.data_sim.freq[0]} to {self.data_sim.freq[-1]}"  
-        else: frequencies_summary = "No frequencies defined"
-        if (self.data_exp is not None and self.data_exp.frf is not None):
-            fit_reference_summary = "Defined as data_exp.frf" 
-        else: 
-            fit_reference_summary = "Not defined"
-        if self.data_sim is not None and self.data_sim.samplingrate_Hz is not None:
-            samplingrate_summary = f"{self.data_sim.samplingrate_Hz} Hz" 
-        else: 
-            samplingrate_summary = "Not defined"
-
-        return (
-            f"balancepyModel(ModelName={self.ModelName},\n"
-            f"  {param_summary},\n"
-            f"  Frequencies={frequencies_summary},\n"
-            f"  Fit Reference={fit_reference_summary},\n"
-            f"  Sampling Rate={samplingrate_summary})"
-        )
 
 
     def _create_parameters(self, mass_kg: Number, height_m: Number):
@@ -211,7 +187,6 @@ class BaseModel:
         # Set initial guess for free parameters
         theta_free_init = self.params.values(only_free=True)
 
-        # bounds = Bounds(self.parfit_lb[~np.array(self.parfit_fix_mask)], self.parfit_ub[~np.array(self.parfit_fix_mask)])
         bounds = self.params.bounds()
         minimizer_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
         
@@ -383,3 +358,34 @@ class BaseModel:
         pha = bp.phase(h)
 
         return f, mag, pha
+    
+
+    def __repr__(self):
+
+        if hasattr(self, 'params'):
+            param_summary = repr(self.params)  
+        else: 
+            param_summary = "No parameters defined"
+        if (self.data_sim is not None and self.data_sim.freq is not None):
+            frequencies_summary = f"{len(self.data_sim.freq)} frequencies from {self.data_sim.freq[0]} to {self.data_sim.freq[-1]}"  
+        else: frequencies_summary = "No frequencies defined"
+        if (self.data_exp is not None and self.data_exp.frf is not None):
+            fit_reference_summary = "Defined as data_exp.frf" 
+        else: 
+            fit_reference_summary = "Not defined"
+        if self.data_sim is not None and self.data_sim.samplingrate_Hz is not None:
+            samplingrate_summary = f"{self.data_sim.samplingrate_Hz} Hz" 
+        else: 
+            samplingrate_summary = "Not defined"
+
+        return (
+            f"balancepyModel(ModelName={self.ModelName},\n"
+            f"  {param_summary},\n"
+            f"  Frequencies={frequencies_summary},\n"
+            f"  Fit Reference={fit_reference_summary},\n"
+            f"  Sampling Rate={samplingrate_summary})"
+        )
+    
+    def __getitem__(self, key):
+        # Example: index into self.params if that's what you want
+        return self.params[key]

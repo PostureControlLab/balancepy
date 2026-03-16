@@ -70,6 +70,9 @@ class Peterka18(BaseModel):
         # tf = [(s * W) * NC * TD_num] / [(TD_den * (s * 1/B) - (s * F) * NC * 1/B * TD_num + (s * NC) * TD_num)]
         # Define polynomials
         pade_order = 5
+        # guard against invalid delay (NaN or non-positive)
+        if np.isnan(p['dt']) or p['dt'] <= 0:
+            p['dt'] = 1e-6  # replace invalid dt with a small positive value
         TD_num, TD_den = control.pade(p['dt'], pade_order)
         NC = [p['Kd'], p['Kp']]
         sNC = [p['Kd'], p['Kp'], 0]
