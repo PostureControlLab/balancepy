@@ -47,8 +47,32 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="stimulus.html">Create Stimulus</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Anaropia</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.body_height_m"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.body_height_m</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.resample"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.resample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.samplingrate_Hz"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.samplingrate_Hz</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.stimulus_name"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.stimulus_name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.stimulus_direction"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.stimulus_direction</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.cut_to_cycles"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.cut_to_cycles</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.end_time_seconds"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.end_time_seconds</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.cycle_start_samples"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.cycle_start_samples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.cycle_length_samples"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.cycle_length_samples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.body_height_m</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.cut_to_cycles</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.cycle_length_samples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.cycle_start_samples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.end_time_seconds</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.resample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.samplingrate_Hz</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.stimulus_direction</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.stimulus_name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.get_filename_from_metadata"><code class="docutils literal notranslate"><span class="pre">get_filename_from_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.get_metadata"><code class="docutils literal notranslate"><span class="pre">get_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.getdata_anaropia"><code class="docutils literal notranslate"><span class="pre">getdata_anaropia()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.getdata_legacy"><code class="docutils literal notranslate"><span class="pre">getdata_legacy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.plot_datacheck"><code class="docutils literal notranslate"><span class="pre">plot_datacheck()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.biomechanics.get_com"><code class="docutils literal notranslate"><span class="pre">get_com()</span></code></a></li>
 </ul>
 </li>
@@ -90,9 +114,280 @@
 <h1>Anaropia<a class="headerlink" href="#anaropia" title="Link to this heading"></a></h1>
 <p>This module provides functions to import and preprocess data collected
 from the Anaropia virtual reality software package.</p>
-<dl class="py function" id="module-balancepy.anaropia">
+<dl class="py class" id="module-balancepy.anaropia">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">AnaropiaPreprocessingConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body_height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.75</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samplingrate_Hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stim_pitch'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ap'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_to_cycles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">260</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_start_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_length_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Configuration for Anaropia data preprocessing.</p>
+<p>Unified configuration class for both standard and legacy Anaropia data processing.
+All parameters have sensible defaults, allowing flexible use for different scenarios.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.body_height_m">
+<span class="sig-name descname"><span class="pre">body_height_m</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.body_height_m" title="Link to this definition"></a></dt>
+<dd><p>Height of subject in meters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, default=0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.resample">
+<span class="sig-name descname"><span class="pre">resample</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.resample" title="Link to this definition"></a></dt>
+<dd><p>If True, resample data to samplingrate_Hz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool, default=True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.samplingrate_Hz">
+<span class="sig-name descname"><span class="pre">samplingrate_Hz</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.samplingrate_Hz" title="Link to this definition"></a></dt>
+<dd><p>Desired sampling rate in Hz. 0 means no resampling. Used for standard Anaropia.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int, default=90</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.stimulus_name">
+<span class="sig-name descname"><span class="pre">stimulus_name</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.stimulus_name" title="Link to this definition"></a></dt>
+<dd><p>Name of the stimulus column in the data file. Use ‘Screen’ for standard Anaropia,
+‘stim_pitch’ for legacy Anaropia.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str, default=’Screen’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.stimulus_direction">
+<span class="sig-name descname"><span class="pre">stimulus_direction</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.stimulus_direction" title="Link to this definition"></a></dt>
+<dd><p>Direction of analysis: ‘ap’ (anterior-posterior) or ‘ml’ (medial-lateral).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str, default=’ap’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.cut_to_cycles">
+<span class="sig-name descname"><span class="pre">cut_to_cycles</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.cut_to_cycles" title="Link to this definition"></a></dt>
+<dd><p>If True, cut data to cycles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool, default=True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.end_time_seconds">
+<span class="sig-name descname"><span class="pre">end_time_seconds</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.end_time_seconds" title="Link to this definition"></a></dt>
+<dd><p>End time of the experiment in seconds for resampling.
+Standard: 260, Legacy: 220 (adjust as needed).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, default=260</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.cycle_start_samples">
+<span class="sig-name descname"><span class="pre">cycle_start_samples</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.cycle_start_samples" title="Link to this definition"></a></dt>
+<dd><p>Start of the first cycle in samples (20*90 = 1800).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int, default=1800</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="balancepy.anaropia.AnaropiaPreprocessingConfig.cycle_length_samples">
+<span class="sig-name descname"><span class="pre">cycle_length_samples</span></span><a class="headerlink" href="#balancepy.anaropia.AnaropiaPreprocessingConfig.cycle_length_samples" title="Link to this definition"></a></dt>
+<dd><p>Cycle length in samples (20*90 = 1800).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int, default=1800</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Examples</p>
+<p>Standard Anaropia:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span><span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">,</span> <span class="n">stimulus_direction</span><span class="o">=</span><span class="s1">&#39;ap&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">response</span><span class="p">,</span> <span class="n">stimulus</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">getdata_anaropia</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Legacy Anaropia:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span><span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">,</span> <span class="n">stimulus_name</span><span class="o">=</span><span class="s1">&#39;stim_pitch&#39;</span><span class="p">,</span> <span class="n">end_time_seconds</span><span class="o">=</span><span class="mi">220</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">response</span><span class="p">,</span> <span class="n">stimulus</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">getdata_legacy</span><span class="p">(</span><span class="s1">&#39;legacy_data.csv&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">body_height_m</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.75</span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">cut_to_cycles</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">cycle_length_samples</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1800</span></span><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">cycle_start_samples</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1800</span></span><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-name descname"><span class="pre">end_time_seconds</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">260</span></span><a class="headerlink" href="#id4" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-name descname"><span class="pre">resample</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#id5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-name descname"><span class="pre">samplingrate_Hz</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">90</span></span><a class="headerlink" href="#id6" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-name descname"><span class="pre">stimulus_direction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ap'</span></span><a class="headerlink" href="#id7" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id8">
+<span class="sig-name descname"><span class="pre">stimulus_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'stim_pitch'</span></span><a class="headerlink" href="#id8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.anaropia.get_filename_from_metadata">
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">get_filename_from_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data/raw'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.get_filename_from_metadata" title="Link to this definition"></a></dt>
+<dd><p>Obtain the data filename from metadata, with intelligent fallback and fuzzy matching.</p>
+<p>Retrieves a data filename from metadata by subject and condition, with automatic
+defaults and fuzzy file matching. If the metadata cell contains just a number,
+searches for filenames matching: _s{subject_id}_t{number}.csv</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Metadata DataFrame. If None, loads default metadata file from ‘../data/metadata.xlsx’.</p></li>
+<li><p><strong>subject_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Subject identifier (e.g., ‘MW09’, 1, or 42). Can be a string or number.
+If None, uses first row.</p></li>
+<li><p><strong>row_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Row index in metadata DataFrame. Overrides subject_id if provided.
+If None and subject_id is None, uses first row (0).</p></li>
+<li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Condition column name (e.g., ‘c1: eyes open’, ‘c1’, or just ‘c1’).
+If None, uses first condition column found (starting with ‘c’).</p></li>
+<li><p><strong>data_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Directory where data files are located.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Full path to the data file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>FileNotFoundError</strong> – If metadata or data files not found, or if no matching file exists.</p></li>
+<li><p><strong>ValueError</strong> – If subject_id not found in metadata or row_number out of bounds.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load specific subject (string or numeric)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">subject_id</span><span class="o">=</span><span class="s1">&#39;MW09AB13&#39;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s1">&#39;c1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">subject_id</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s1">&#39;c1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use specific row and condition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">row_number</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s1">&#39;c1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use defaults (first row, first condition)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># With custom metadata and data directory</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="n">my_df</span><span class="p">,</span> <span class="n">subject_id</span><span class="o">=</span><span class="s1">&#39;MW09AB13&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                                      <span class="n">condition</span><span class="o">=</span><span class="s1">&#39;c2&#39;</span><span class="p">,</span> <span class="n">data_dir</span><span class="o">=</span><span class="s1">&#39;data/raw&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.anaropia.get_metadata">
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">get_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_information</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.get_metadata" title="Link to this definition"></a></dt>
+<dd><p>Load and validate metadata from an Excel file.</p>
+<p>This function reads metadata containing subject information and experimental
+conditions, then performs several checks:
+- Validates that all required columns are present and properly formatted
+- Extracts condition information (columns starting with ‘c’)
+- Reports data quality metrics for each condition using NFU (Not For Use) scores</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to metadata Excel file. If None, loads default file from
+‘../data/metadata.xlsx’ relative to current working directory.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Metadata table with subject information and condition data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>Exception</strong> – If no condition columns are found in the metadata file.</p></li>
+<li><p><strong>Required Columns</strong> – </p></li>
+<li><p><strong>----------------</strong> – </p></li>
+<li><p><strong>The metadata file must contain the following columns:</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+<p>:raises - Subject ID : Unique identifier for each subject:
+:raises - height_m : Subject height in meters:
+:raises - weight_kg : Subject weight in kilograms:
+:raises - age_years : Subject age in years:
+:raises - sex : Subject sex (e.g., ‘m’, ‘w’):
+:raises Column Naming Conventions:
+:raises ————————-:
+:raises Condition columns : Start with ‘c’ (e.g., ‘c1: eyes open’, ‘c2: eyes closed’):
+:raises NFU columns : Start with ‘NFU ‘ followed by condition name (e.g., ‘NFU c1: eyes open’):
+:raises NFU (Not For Use) Category Definitions:
+:raises —————————————-:
+:raises Score 0 - All Good : The data file is complete, with no irregularities detected.:
+:raises Score 1 - Big Movements : Excessive participant movements were detected.:
+:raises Score 2 - &gt;5 HMD Spikes : The data contains more than five spikes in the: Head-Mounted Display (HMD) measurements.
+:raises Score 3 - Other Irregularities : Any other issues not covered by the above categories: that might affect data quality.
+:raises Score 4 - Poor FRF Fit : The Frequency Response Function (FRF) fit does not meet: the required criteria.
+:raises Score 5 - Marker Missing : One or more required markers are missing.:
+:raises Score 6 - File Missing : The corresponding data file is not available.:
+:raises Data Quality Grouping:
+:raises ———————-:
+:raises - Valid (0): Ready for analysis:
+:raises - Warnings (1-3): Use with caution, review data quality:
+:raises - Invalid (4-6): Do not use for analysis:</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="balancepy.anaropia.getdata_anaropia">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">getdata_anaropia</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samplingrate_Hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Screen'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ap'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_to_cycles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">260</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_start_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_length_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.getdata_anaropia" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">getdata_anaropia</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.getdata_anaropia" title="Link to this definition"></a></dt>
 <dd><p>Access and format data from balance experiments recorded with Anaropia.</p>
 <p>Reads data recorded using the Anaropia virtual-reality application for
 balance experiments. Calculates stimulus and center of mass (COM) data.</p>
@@ -100,14 +395,8 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path and filename to be analyzed.</p></li>
-<li><p><strong>body_height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Height of subject in meters.</p></li>
-<li><p><strong>resample</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, resample data to samplingrate_Hz.</p></li>
-<li><p><strong>samplingrate_Hz</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Desired sampling rate in Hz.</p></li>
-<li><p><strong>stimulus</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Name of the stimulus column in the data file.</p></li>
-<li><p><strong>cut_to_cycles</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, cut data to cycles.</p></li>
-<li><p><strong>end_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – End time of the experiment in seconds for resampling.</p></li>
-<li><p><strong>cycle_start_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Start of the first cycle in samples.</p></li>
-<li><p><strong>cycle_length_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Cycle length in samples.</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></span>) – Configuration object containing processing parameters. If None, uses default
+configuration with standard settings.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -122,11 +411,23 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 </p>
 </dd>
 </dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></dt><dd><p>Configuration class for Anaropia data preprocessing</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span><span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;ap&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">com</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">getdata_anaropia</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="balancepy.anaropia.getdata_legacy">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">getdata_legacy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_to_cycles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">220</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_start_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_length_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stim_pitch'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.getdata_legacy" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">getdata_legacy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.getdata_legacy" title="Link to this definition"></a></dt>
 <dd><p>Access and format data from balance experiments recorded with Anaropia legacy.</p>
 <p>Reads data recorded using the legacy software version of Anaropia for
 balance experiments. Calculates stimulus and center of mass (COM) data.</p>
@@ -134,14 +435,7 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path and filename to be analyzed.</p></li>
-<li><p><strong>body_height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Height of subject in meters.</p></li>
-<li><p><strong>resample</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, resample data to sampling_rate.</p></li>
-<li><p><strong>cut_to_cycles</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, cut data to cycles.</p></li>
-<li><p><strong>sampling_rate</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Desired sampling rate in Hz.</p></li>
-<li><p><strong>end_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – End time of the experiment in seconds for resampling.</p></li>
-<li><p><strong>cycle_start_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Start of the first cycle in samples.</p></li>
-<li><p><strong>cycle_length_samples</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Cycle length in samples.</p></li>
-<li><p><strong>stimulus</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Name of the stimulus column in the data file.</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></span>) – Configuration object containing processing parameters. Must include body_height_m.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -156,6 +450,51 @@ balance experiments. Calculates stimulus and center of mass (COM) data.</p>
 </p>
 </dd>
 </dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></dt><dd><p>Configuration class for Anaropia data preprocessing</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span><span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">,</span> <span class="n">stimulus_name</span><span class="o">=</span><span class="s1">&#39;stim_pitch&#39;</span><span class="p">,</span> <span class="n">end_time_seconds</span><span class="o">=</span><span class="mi">220</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">com</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">getdata_legacy</span><span class="p">(</span><span class="s1">&#39;legacy_data.csv&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balancepy.anaropia.plot_datacheck">
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">plot_datacheck</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.plot_datacheck" title="Link to this definition"></a></dt>
+<dd><p>Plot data for comprehensive visual inspection of quality and structure.</p>
+<p>Generates a DinA4 landscape-formatted figure with multiple subplots for visually
+inspecting stimulus and response data using Plotly. The figure includes raw data translations,
+resampled stimulus and response with cycle indicators, and cycle-by-cycle analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to the Anaropia data file (CSV format) to be plotted.</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></span>) – Configuration object for data preprocessing. If None, uses default configuration.</p></li>
+<li><p><strong>subject_id</strong> (<em>str</em><em>, </em><em>optional</em>) – Subject identifier for output filename. If None, uses input filename stem.</p></li>
+<li><p><strong>condition_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Condition name for output filename. If None, uses input filename stem.</p></li>
+<li><p><strong>output_dir</strong> (<em>str</em><em>, </em><em>optional</em>) – Directory where the HTML will be saved. If None, displays the figure in browser.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved HTML file, or None if displayed instead of saved.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span><span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_datacheck</span><span class="p">(</span><span class="s1">&#39;data/raw/sMW09ON27_t1.csv&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">save_fig</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>               <span class="n">subject_id</span><span class="o">=</span><span class="s1">&#39;MW09&#39;</span><span class="p">,</span> <span class="n">condition_name</span><span class="o">=</span><span class="s1">&#39;t1&#39;</span><span class="p">,</span>
+<span class="gp">... </span>               <span class="n">output_dir</span><span class="o">=</span><span class="s1">&#39;results/&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
