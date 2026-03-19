@@ -1,8 +1,0 @@
-Demo data: d3
-Study: anaropia test-data
-height: 1.74
-weight: 74
-sex: m
-
-d3_vis1: 	11x 20s cycles; visual tilt pp 0.2 deg (anterior-posterior)
-d3_vis2: 	11x 20s cycles; visual tilt pp 1 deg (anterior-posterior)

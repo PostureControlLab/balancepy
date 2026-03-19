@@ -1,4 +1,3 @@
-from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 import balancepy as bp
@@ -26,11 +25,136 @@ class sr_data:
     name : str, optional
         Name of the data set.
     """
-    samplingrate_Hz: Optional[int] = None
-    stimulus: Optional[NDArray] = None
-    response: Optional[NDArray] = None
-    frequency_selection: Optional[str] = 'all'
-    name: Optional[str] = None
+    samplingrate_Hz: int | None = None
+    stimulus: NDArray | None = None
+    response: NDArray | None = None
+    frequency_selection: str | None = 'all'
+    name: str | None = None
+
+    def __post_init__(self):
+        # Only run add_timedomain_data if all required arguments are provided
+        if (
+            self.samplingrate_Hz is not None and
+            self.stimulus is not None and
+            self.response is not None and
+            self.frequency_selection is not None
+        ):
+            self.add_timedomain_data(
+                samplingrate_Hz=self.samplingrate_Hz,
+                stimulus=self.stimulus,
+                response=self.response,
+                frequency_selection=self.frequency_selection
+            )
+
+    def add_timedomain_data(
+        self,
+        samplingrate_Hz: int,
+        stimulus: NDArray[np.number],
+        response: NDArray[np.number],
+        frequency_selection: str = 'all'
+    ):
+        assert isinstance(samplingrate_Hz, int) and samplingrate_Hz > 0, "Samplingrate must be a positive integer."
+        assert stimulus.shape[0] == response.shape[0], "Stimulus and response must have the same number of samples."
+        
+        self.samplingrate_Hz = samplingrate_Hz
+        self.stimulus = stimulus
+        self.response = response
+        self.frequency_selection = frequency_selection
+        
+        stimulus_spectrum, _, freq = bp.spectrum(stimulus, samplingrate_Hz)
+        self.stimulus_spectrum = self.select_frequencies(stimulus_spectrum)
+        self.freq = self.select_frequencies(freq)
+        response_spectrum, _, _ = bp.spectrum(response, samplingrate_Hz)
+        self.response_spectrum = self.select_frequencies(response_spectrum)
+        self.frf = bp.frf(self.stimulus_spectrum, self.response_spectrum)
+
+
+    def frequency_domain_recarray(self):
+        """
+        Returns a numpy recarray with all frequency domain outputs: freq, stimulus_spectrum, response_spectrum, frf, gain, phase, coherence.
+        """
+        dtype = [
+            ('freq', self.freq.dtype),
+            ('stimulus_spectrum', self.stimulus_spectrum.dtype),
+            ('response_spectrum', self.response_spectrum.dtype),
+            ('frf', self.frf.dtype),
+            ('gain', self.gain.dtype),
+            ('phase', self.phase.dtype),
+            ('coherence', self.coherence.dtype) if self.coherence is not None else ('coherence', 'f8')
+        ]
+        arr = np.rec.fromarrays(
+            [
+                self.freq,
+                np.mean(self.stimulus_spectrum, axis=1) if self.stimulus_spectrum.ndim == 2 else self.stimulus_spectrum,
+                np.mean(self.response_spectrum, axis=1) if self.response_spectrum.ndim == 2 else self.response_spectrum,
+                self.frf,
+                self.gain,
+                self.phase,
+                self.coherence if self.coherence is not None else np.zeros_like(self.freq)
+            ],
+            dtype=dtype
+        )
+        return arr
+
+    def time_domain_recarray(self):
+        """
+        Returns a numpy recarray with all time domain outputs: time, stimulus, response.
+        """
+        dtype = [
+            ('time', self.time.dtype),
+            ('stimulus', self.stimulus.dtype),
+            ('response', self.response.dtype if self.response is not None else self.stimulus.dtype)
+        ]
+        arr = np.rec.fromarrays(
+            [
+                self.time,
+                np.mean(self.stimulus, axis=1) if self.stimulus.ndim == 2 else self.stimulus,
+                np.mean(self.response, axis=1) if self.response.ndim == 2 else self.response
+            ],
+            dtype=dtype
+        )
+        return arr
+
+
+    def select_frequencies(self, data):
+        """Returns data reduced to the selected frequencies.
+        Args:
+            data: data to be reduced (1D or 2D array)
+        """
+        type = self.frequency_selection
+
+        # Get duration of the stimulus in seconds
+        T = self.stimulus.shape[0] / self.samplingrate_Hz
+
+        if isinstance(type, (list, np.ndarray)):
+            selected_frequencies_index = np.array(type)
+        elif type == 'all' or type is None:
+            start = 0 
+            end = int(round(2 * T)) # frequencies up to 2 Hz
+            step = 1
+            selected_frequencies_index = np.arange(start, end, step)
+        elif type == 'prts':
+            start = 0
+            end = int(round(2 * T)) # frequencies up to 2 Hz
+            step = 2
+            selected_frequencies_index = np.arange(start, end, step)
+        elif type == 'double_prts':
+            start = 1
+            end = int(round(2 * T)) # frequencies up to 2 Hz
+            step = 4
+            selected_frequencies_index = np.arange(start, end, step)
+        else:
+            raise ValueError("Unknown frequency selection type.")
+
+        # Handle 1D or 2D data
+        if data.ndim == 1:
+            data = data[selected_frequencies_index]
+        elif data.ndim == 2:
+            data = data[selected_frequencies_index, :]
+        else:
+            raise ValueError("Data must be 1D or 2D array.")
+
+        return data
 
     @property
     def time(self):
@@ -138,10 +262,10 @@ class sr_data:
         elif self.response.ndim == 2:
             return np.std(self.response, axis=1)
 
-    freq: Optional[NDArray] = None
-    stimulus_spectrum: Optional[NDArray] = None
-    response_spectrum: Optional[NDArray] = None
-    frf: Optional[NDArray] = None
+    freq: NDArray | None = None
+    stimulus_spectrum: NDArray | None = None
+    response_spectrum: NDArray | None = None
+    frf: NDArray | None = None
 
     @property
     def gain(self):
@@ -314,133 +438,6 @@ class sr_data:
     #     # Returns the difference between each cycle and the average cycle
     #     avg = np.mean(self.cycles, axis=1, keepdims=True)
     #     return self.cycles - avg
-
-    def __post_init__(self):
-        # Only run add_timedomain_data if all required arguments are provided
-        if (
-            self.samplingrate_Hz is not None and
-            self.stimulus is not None and
-            self.response is not None and
-            self.frequency_selection is not None
-        ):
-            self.add_timedomain_data(
-                samplingrate_Hz=self.samplingrate_Hz,
-                stimulus=self.stimulus,
-                response=self.response,
-                frequency_selection=self.frequency_selection
-            )
-
-    def add_timedomain_data(
-        self,
-        samplingrate_Hz: int,
-        stimulus: NDArray[np.number],
-        response: NDArray[np.number],
-        frequency_selection: str = 'all'
-    ):
-        assert isinstance(samplingrate_Hz, int) and samplingrate_Hz > 0, "Samplingrate must be a positive integer."
-        assert stimulus.shape[0] == response.shape[0], "Stimulus and response must have the same number of samples."
-        
-        self.samplingrate_Hz = samplingrate_Hz
-        self.stimulus = stimulus
-        self.response = response
-        self.frequency_selection = frequency_selection
-        
-        stimulus_spectrum, _, freq = bp.spectrum(stimulus, samplingrate_Hz)
-        self.stimulus_spectrum = self.select_frequencies(stimulus_spectrum)
-        self.freq = self.select_frequencies(freq)
-        response_spectrum, _, _ = bp.spectrum(response, samplingrate_Hz)
-        self.response_spectrum = self.select_frequencies(response_spectrum)
-        self.frf = bp.frf(self.stimulus_spectrum, self.response_spectrum)
-
-
-    def frequency_domain_recarray(self):
-        """
-        Returns a numpy recarray with all frequency domain outputs: freq, stimulus_spectrum, response_spectrum, frf, gain, phase, coherence.
-        """
-        dtype = [
-            ('freq', self.freq.dtype),
-            ('stimulus_spectrum', self.stimulus_spectrum.dtype),
-            ('response_spectrum', self.response_spectrum.dtype),
-            ('frf', self.frf.dtype),
-            ('gain', self.gain.dtype),
-            ('phase', self.phase.dtype),
-            ('coherence', self.coherence.dtype) if self.coherence is not None else ('coherence', 'f8')
-        ]
-        arr = np.rec.fromarrays(
-            [
-                self.freq,
-                np.mean(self.stimulus_spectrum, axis=1) if self.stimulus_spectrum.ndim == 2 else self.stimulus_spectrum,
-                np.mean(self.response_spectrum, axis=1) if self.response_spectrum.ndim == 2 else self.response_spectrum,
-                self.frf,
-                self.gain,
-                self.phase,
-                self.coherence if self.coherence is not None else np.zeros_like(self.freq)
-            ],
-            dtype=dtype
-        )
-        return arr
-
-    def time_domain_recarray(self):
-        """
-        Returns a numpy recarray with all time domain outputs: time, stimulus, response.
-        """
-        dtype = [
-            ('time', self.time.dtype),
-            ('stimulus', self.stimulus.dtype),
-            ('response', self.response.dtype if self.response is not None else self.stimulus.dtype)
-        ]
-        arr = np.rec.fromarrays(
-            [
-                self.time,
-                np.mean(self.stimulus, axis=1) if self.stimulus.ndim == 2 else self.stimulus,
-                np.mean(self.response, axis=1) if self.response.ndim == 2 else self.response
-            ],
-            dtype=dtype
-        )
-        return arr
-
-
-    def select_frequencies(self, data):
-        """Returns data reduced to the selected frequencies.
-        Args:
-            data: data to be reduced (1D or 2D array)
-        """
-        type = self.frequency_selection
-
-        # Get duration of the stimulus in seconds
-        T = self.stimulus.shape[0] / self.samplingrate_Hz
-
-        if isinstance(type, (list, np.ndarray)):
-            selected_frequencies_index = np.array(type)
-        elif type == 'all' or type is None:
-            start = 0 
-            end = int(round(2 * T)) # frequencies up to 2 Hz
-            step = 1
-            selected_frequencies_index = np.arange(start, end, step)
-        elif type == 'prts':
-            start = 0
-            end = int(round(2 * T)) # frequencies up to 2 Hz
-            step = 2
-            selected_frequencies_index = np.arange(start, end, step)
-        elif type == 'double_prts':
-            start = 1
-            end = int(round(2 * T)) # frequencies up to 2 Hz
-            step = 4
-            selected_frequencies_index = np.arange(start, end, step)
-        else:
-            raise ValueError("Unknown frequency selection type.")
-
-        # Handle 1D or 2D data
-        if data.ndim == 1:
-            data = data[selected_frequencies_index]
-        elif data.ndim == 2:
-            data = data[selected_frequencies_index, :]
-        else:
-            raise ValueError("Data must be 1D or 2D array.")
-
-        return data
-    
-
 
     def plot(data, fig=None, line_name=None, line=None):
         """

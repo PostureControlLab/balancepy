@@ -12,7 +12,7 @@ authors = [
 description = "Human balance analysis using Python"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["biomechanics", "human balance", "postural control", "systems identification", "virtual reality"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -20,7 +20,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,6 +30,7 @@ dependencies = [
   "scipy",
   "pandas",
   "plotly",
+  "kaleido",
   "openpyxl",
   "scikit-rf",
   "statsmodels",
