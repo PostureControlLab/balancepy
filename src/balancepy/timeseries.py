@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 from scipy.interpolate import interp1d
+from scipy.signal import butter, filtfilt
 import numpy.lib.recfunctions as rfn
 
 def resample(
@@ -34,7 +35,40 @@ def resample(
 
     return out
 
+def butterworth_filter(
+    data: np.ndarray,
+    samplingrate_Hz: float,
+    order: int,
+    cutoff_Hz: float,
+    filter_type: str = 'low'
+) -> np.ndarray:
+    """Apply Butterworth filter to data.
 
+    Args:
+        data (np.ndarray): Input data to filter.
+        samplingrate_Hz (float): Sampling rate in Hz.
+        order (int): Filter order.
+        cutoff_Hz (float): Cutoff frequency in Hz.
+        filter_type (str, optional): Type of filter: 'low', 'high', 'band'. Defaults to 'low'.
+
+    Returns:
+        np.ndarray: Filtered data.
+    """
+    # Normalize cutoff frequency relative to Nyquist frequency
+    nyquist = samplingrate_Hz / 2
+    normalized_cutoff = cutoff_Hz / nyquist
+    
+    # Ensure normalized cutoff is in valid range
+    if normalized_cutoff >= 1:
+        normalized_cutoff = 0.99
+    
+    # Design filter
+    b, a = butter(order, normalized_cutoff, btype=filter_type)
+    
+    # Apply filter (zero-phase filtering using filtfilt)
+    filtered_data = filtfilt(b, a, data)
+    
+    return filtered_data
 
 def cut_to_cycles(
     data: NDArray,

@@ -35,7 +35,8 @@ from balancepy import data_class, make_stimulus
 from balancepy.model_sim import base_model, parameter
 
 # Load data from anaropia format
-data = anaropia.getdata_anaropia("path/to/data.csv")
+com, time = anaropia.getdata_anaropia("path/to/data.csv", output='com')
+stim, time = anaropia.getdata_anaropia("path/to/data.csv", output='stimulus')
 
 # Perform frequency domain analysis
 freq_data = frequency.analyze(data)

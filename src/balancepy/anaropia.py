@@ -46,12 +46,14 @@ class AnaropiaPreprocessingConfig:
     Standard Anaropia:
     
     >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_direction='ap')
-    >>> response, stimulus, time = getdata_anaropia('data.csv', config)
+    >>> com, time = getdata_anaropia('data.csv', config, output='com')
+    >>> stim, time = getdata_anaropia('data.csv', config, output='stimulus')
     
     Legacy Anaropia:
     
     >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_name='stim_pitch', end_time_seconds=220)
-    >>> response, stimulus, time = getdata_legacy('legacy_data.csv', config)
+    >>> com, time = getdata_legacy('legacy_data.csv', config, output='com')
+    >>> stim, time = getdata_legacy('legacy_data.csv', config, output='stimulus')
     """
 
     body_height_m: float = 1.75
@@ -110,8 +112,8 @@ def get_metadata(filename: str = None, print_information: bool = True) -> pd.Dat
     ----------------
     The metadata file must contain the following columns:
     - Subject ID : Unique identifier for each subject
-    - height_m : Subject height in meters
-    - weight_kg : Subject weight in kilograms
+    - body_height_m : Subject height in meters
+    - body_weight_kg : Subject weight in kilograms
     - age_years : Subject age in years
     - sex : Subject sex (e.g., 'm', 'w')
     
@@ -155,7 +157,7 @@ def get_metadata(filename: str = None, print_information: bool = True) -> pd.Dat
     if print_information:
     
         # Define required metadata columns
-        required_columns = ['Subject ID', 'height_m', 'weight_kg', 'age_years', 'sex']
+        required_columns = ['Subject ID', 'body_height_m', 'body_weight_kg', 'age_years', 'sex']
 
         print(f"File: {metadata_file}")
 
@@ -399,8 +401,9 @@ def get_filename_from_metadata(
 
 def getdata_anaropia(
     filename: str,
-    config: AnaropiaPreprocessingConfig = None
-) -> NDArray:
+    config: AnaropiaPreprocessingConfig = None,
+    output: str = 'com'
+) -> tuple:
     """
     Access and format data from balance experiments recorded with Anaropia.
 
@@ -414,13 +417,17 @@ def getdata_anaropia(
     config : AnaropiaPreprocessingConfig, optional
         Configuration object containing processing parameters. If None, uses default
         configuration with standard settings.
+    output : str, default='com'
+        Specifies which data column to return alongside time.
+        - 'com'      : Center of mass sway (computed from shoulder/hip positions).
+        - 'stimulus' : Stimulus signal (column determined by config.stimulus_name
+                       and config.stimulus_direction).
+        - any other str : Raw column name from the data file (e.g. 'LeftShoulder_pos_z').
 
     Returns
     -------
-    com : NDArray
-        Experimental center of mass sway in anterior-posterior direction.
-    stim : NDArray
-        Stimulus data.
+    data : NDArray
+        The requested data array (com, stimulus, or raw column).
     time : NDArray
         Time data.
     
@@ -430,8 +437,9 @@ def getdata_anaropia(
     
     Examples
     --------
-    >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, direction='ap')
-    >>> com, stim, time = getdata_anaropia('data.csv', config)
+    >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_direction='ap')
+    >>> com, time = getdata_anaropia('data.csv', config, output='com')
+    >>> stim, time = getdata_anaropia('data.csv', config, output='stimulus')
     """
 
     if config is None:
@@ -463,26 +471,34 @@ def getdata_anaropia(
     # --- Extract time and stimulus data ---
     time = data['Time']
     stimulus = data[stimulus_name]
-    response = bm.get_com(sho, sho_height, hip, hip_height, config.body_height_m, True)
+    com = bm.get_com(sho, sho_height, hip, hip_height, config.body_height_m, True)
+
+    # --- Select output column ---
+    if output == 'com':
+        result = com
+    elif output == 'stimulus':
+        result = stimulus
+    else:
+        assert output in data.dtype.names, f"Output column '{output}' not found in data."
+        result = data[output]
 
     # --- Resample if requested ---
     if config.resample:
-        response = ts.resample(time, response, config.samplingrate_Hz, config.end_time_seconds)
-        stimulus = ts.resample(time, stimulus, config.samplingrate_Hz, config.end_time_seconds)
+        result = ts.resample(time, result, config.samplingrate_Hz, config.end_time_seconds)
         time = ts.resample(time, time, config.samplingrate_Hz, config.end_time_seconds)
 
     # --- Cut to cycles if requested ---
     if config.cut_to_cycles:
-        response = ts.cut_to_cycles(response, config.cycle_start_samples, config.cycle_length_samples)
-        stimulus = ts.cut_to_cycles(stimulus, config.cycle_start_samples, config.cycle_length_samples)
+        result = ts.cut_to_cycles(result, config.cycle_start_samples, config.cycle_length_samples)
         time = ts.cut_to_cycles(time, config.cycle_start_samples, config.cycle_length_samples)
     
-    return response, stimulus, time
+    return result, time
 
 def getdata_legacy(
     filename: str,
-    config: AnaropiaPreprocessingConfig
-) -> NDArray:
+    config: AnaropiaPreprocessingConfig,
+    output: str = 'com'
+) -> tuple:
     """
     Access and format data from balance experiments recorded with Anaropia legacy.
 
@@ -495,13 +511,16 @@ def getdata_legacy(
         Path and filename to be analyzed.
     config : AnaropiaPreprocessingConfig
         Configuration object containing processing parameters. Must include body_height_m.
+    output : str, default='com'
+        Specifies which data column to return alongside time.
+        - 'com'      : Center of mass sway (computed from shoulder/hip positions).
+        - 'stimulus' : Stimulus signal (column given by config.stimulus_name).
+        - any other str : Raw column name from the data file (e.g. 'shld_zpos').
 
     Returns
     -------
-    com : NDArray
-        Experimental center of mass sway in anterior-posterior direction.
-    stim : NDArray
-        Stimulus data.
+    data : NDArray
+        The requested data array (com, stimulus, or raw column).
     time : NDArray
         Time data.
     
@@ -512,7 +531,8 @@ def getdata_legacy(
     Examples
     --------
     >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_name='stim_pitch', end_time_seconds=220)
-    >>> com, stim, time = getdata_legacy('legacy_data.csv', config)
+    >>> com, time = getdata_legacy('legacy_data.csv', config, output='com')
+    >>> stim, time = getdata_legacy('legacy_data.csv', config, output='stimulus')
     """
     
     if config is None:
@@ -524,7 +544,7 @@ def getdata_legacy(
     time = data['time']
     stimulus = data[config.stimulus_name]
     
-    response = bm.get_com(
+    com = bm.get_com(
         data['shld_zpos'],
         np.mean(data['shld_ypos']),
         data['hip_zpos'],
@@ -533,19 +553,26 @@ def getdata_legacy(
         True
     )
 
+    # --- Select output column ---
+    if output == 'com':
+        result = com
+    elif output == 'stimulus':
+        result = stimulus
+    else:
+        assert output in data.dtype.names, f"Output column '{output}' not found in data."
+        result = data[output]
+
     # --- Resample if requested ---
     if config.resample:
-        response = ts.resample(time, response, config.samplingrate_Hz, config.end_time_seconds)
-        stimulus = ts.resample(time, stimulus, config.samplingrate_Hz, config.end_time_seconds)
+        result = ts.resample(time, result, config.samplingrate_Hz, config.end_time_seconds)
         time = ts.resample(time, time, config.samplingrate_Hz, config.end_time_seconds)
 
     # --- Cut to cycles if requested ---
     if config.cut_to_cycles:
-        response = ts.cut_to_cycles(response, config.cycle_start_samples, config.cycle_length_samples)
-        stimulus = ts.cut_to_cycles(stimulus, config.cycle_start_samples, config.cycle_length_samples)
+        result = ts.cut_to_cycles(result, config.cycle_start_samples, config.cycle_length_samples)
         time = ts.cut_to_cycles(time, config.cycle_start_samples, config.cycle_length_samples)
 
-    return response, stimulus, time
+    return result, time
 
 
 
@@ -642,12 +669,13 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     # --- PLOT 2: Stimulus and Stimulus Resampled ---
     # Get not resampled data not cut to cycles
     config_not_resampled = replace(config, resample=False, cut_to_cycles=False)
-    response_not_resampled, stimulus_not_resampled, time_not_resampled = bp.getdata_legacy(filename, config_not_resampled)
+    response_not_resampled, time_not_resampled = bp.getdata_legacy(filename, config_not_resampled, output='com')
+    stimulus_not_resampled, _ = bp.getdata_legacy(filename, config_not_resampled, output='stimulus')
 
     # Get resampled data not cut to cycles
     config_resampled = replace(config, resample=True, cut_to_cycles=False)
-    
-    response_resampled, stimulus_resampled, time_resampled = bp.getdata_legacy(filename, config_resampled)
+    response_resampled, time_resampled = bp.getdata_legacy(filename, config_resampled, output='com')
+    stimulus_resampled, _ = bp.getdata_legacy(filename, config_resampled, output='stimulus')
 
     fig.add_trace(
         go.Scatter(x=time_not_resampled, y=stimulus_not_resampled, name='recorded sampling', 
@@ -697,7 +725,8 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     
     # --- PLOT 4: Cycle-by-cycle analysis (4 subplots) ---
     # Get cycled data for sr_data object
-    response_cycles, stimulus_cycles, time_cycles = getdata_legacy(filename, config)
+    response_cycles, time_cycles = getdata_legacy(filename, config, output='com')
+    stimulus_cycles, _ = getdata_legacy(filename, config, output='stimulus')
     
     # Create sr_data object
     sr_data_obj = data_class.sr_data(
@@ -820,7 +849,272 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
         output_dir = Path(filename).parent.parent.parent / "results" / "datacheck_plots"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_file = output_dir / f"datacheck_{Path(filename).stem}.pdf"
-        fig.write_image(str(output_file), width=1122, height=794)
+        fig.write_image(str(output_file), width=561, height=397, scale=1)  # Save as PDF with high resolution
 
 
     return fig
+
+
+# ============================================================================
+# Batch Processing Utilities
+# ============================================================================
+
+from typing import Union, List, Generator, Tuple
+
+
+def batch_iterator(
+    metadata: pd.DataFrame,
+    subjects: Union[int, str, List[Union[int, str]], None] = None,
+    conditions: Union[int, str, List[Union[int, str]], None] = None,
+    data_dir: str = 'data/raw',
+    skip_nfu: Union[List[int], None] = [4, 5, 6]
+) -> Generator[Tuple[str, str, str, AnaropiaPreprocessingConfig], None, None]:
+    """
+    Iterate over subject-condition combinations in metadata, yielding file paths and configs.
+    
+    Yields one tuple per valid subject-condition pair, with flexible indexing:
+    - Subjects: row number (int), subject ID (str), or list of either
+    - Conditions: condition number (int, e.g. 1 for "c1: ..."), full name (str), or list of either
+    
+    Missing files indicated by -1 in the metadata cell are skipped silently without warnings.
+    
+    Parameters
+    ----------
+    metadata : pd.DataFrame
+        Metadata table (typically from get_metadata()).
+    subjects : int, str, list, or None, optional
+        Subject(s) to process. Can be:
+        - None: all subjects
+        - int: single row number (0-indexed)
+        - str: single subject ID
+        - list: mix of row numbers and/or subject IDs, e.g. [0, 'MW09', 2]
+    conditions : int, str, list, or None, optional
+        Condition(s) to process. Can be:
+        - None: all conditions
+        - int: single condition number (1, 2, 3, ...)
+        - str: full condition name (e.g. 'c1: eyes open')
+        - list: mix of numbers and/or names, e.g. [1, 'c2: eyes closed']
+    data_dir : str, optional
+        Data directory relative to parent folder. Default: 'data/raw'
+    skip_nfu : list of int or None, optional
+        NFU (Not For Use) categories to skip. Entries with matching NFU values 
+        will not be yielded. Convention: NFU columns are named "NFU {conditionname}".
+        Default: [4, 5, 6] (Poor FRF Fit, Marker Missing, File Missing).
+        Set to None to disable NFU filtering.
+    
+    Yields
+    ------
+    subject_id : str
+        Subject identifier from metadata
+    condition : str
+        Full condition column name (e.g. 'c1: eyes open')
+    filepath : str
+        Full path to data file
+    config : AnaropiaPreprocessingConfig
+        Config with body_height_m set from metadata
+    
+    Notes
+    -----
+    Files marked with -1 in the metadata condition cell are treated as missing and are 
+    skipped silently without warning messages.
+    
+    Entries with NFU (Not For Use) values in the skip_nfu list are also skipped silently.
+    The NFU column is identified by the naming convention "NFU {conditionname}".
+    By default, NFU categories 4, 5, and 6 are skipped (Poor FRF Fit, Marker Missing, File Missing).
+    Set skip_nfu=None to disable this filtering.
+    
+    Examples
+    --------
+    >>> # All subjects, first 2 conditions (skips NFU 4, 5, 6 by default)
+    >>> for sid, cond, fp, cfg in batch_iterator(metadata, conditions=[1, 2]):
+    ...     plot_datacheck(fp, cfg)
+    
+    >>> # Specific subjects by ID, all conditions
+    >>> for sid, cond, fp, cfg in batch_iterator(metadata, subjects=['MW09', 'AN16']):
+    ...     plot_datacheck(fp, cfg)
+    
+    >>> # Row 0, condition by name, skip only NFU 6 (file missing)
+    >>> for sid, cond, fp, cfg in batch_iterator(metadata, subjects=0, conditions='c1: eyes open', skip_nfu=[6]):
+    ...     plot_datacheck(fp, cfg)
+    
+    >>> # Disable NFU filtering entirely
+    >>> for sid, cond, fp, cfg in batch_iterator(metadata, subjects=[0, 'MW09'], conditions=[1, 2], skip_nfu=None):
+    ...     # process each file
+    ...     pass
+    """
+    
+    # Normalize subjects to row indices
+    subject_rows = _normalize_subject_selection(metadata, subjects)
+    
+    # Normalize conditions to column names
+    condition_cols = _normalize_condition_selection(metadata, conditions)
+    
+    # Iterate over all combinations
+    for row_idx in subject_rows:
+        subject_id = metadata.iloc[row_idx]['Subject ID'] if 'Subject ID' in metadata.columns else f"row_{row_idx}"
+        
+        # Get body height for config if available
+        body_height_m = metadata.iloc[row_idx].get('body_height_m', 1.75)  # default fallback
+        
+        for condition_col in condition_cols:
+            # Check if metadata cell value is -1 (indicates missing file)
+            metadata_cell_value = metadata.iloc[row_idx][condition_col]
+            try:
+                metadata_cell_numeric = float(metadata_cell_value)
+                if metadata_cell_numeric == -1:
+                    continue  # Skip silently for missing files
+            except (ValueError, TypeError):
+                pass  # Not a numeric value, proceed with file lookup
+            
+            # Check NFU (Not For Use) status if enabled
+            if skip_nfu is not None:
+                nfu_col_name = f"NFU {condition_col}"
+                if nfu_col_name in metadata.columns:
+                    try:
+                        nfu_value = pd.to_numeric(metadata.iloc[row_idx][nfu_col_name], errors='coerce')
+                        if pd.notna(nfu_value) and int(nfu_value) in skip_nfu:
+                            continue  # Skip silently for NFU-marked entries
+                    except (ValueError, TypeError):
+                        pass  # If NFU value can't be converted, proceed
+            
+            try:
+                # Get filepath using existing function
+                filepath = get_filename_from_metadata(
+                    metadata=metadata,
+                    row_number=row_idx,
+                    condition=condition_col,
+                    data_dir=data_dir
+                )
+                
+                # Create config with subject-specific body height
+                config = AnaropiaPreprocessingConfig()
+                config.body_height_m = body_height_m
+                
+                yield subject_id, condition_col, filepath, config
+                
+            except (FileNotFoundError, ValueError) as e:
+                # Skip this combination if file not found or other error
+                print(f"Warning: Skipping {subject_id}, {condition_col}: {e}")
+                continue
+
+
+def _normalize_subject_selection(
+    metadata: pd.DataFrame,
+    subjects: Union[int, str, List[Union[int, str]], None]
+) -> List[int]:
+    """
+    Convert subject specification to list of row indices.
+    
+    Parameters
+    ----------
+    metadata : pd.DataFrame
+        Metadata table
+    subjects : int, str, list, or None
+        Subject specification
+    
+    Returns
+    -------
+    list of int
+        Row indices to process
+    
+    Raises
+    ------
+    ValueError
+        If subject not found or row number out of bounds
+    TypeError
+        If subject type not recognized
+    """
+    if subjects is None:
+        # All rows
+        return list(range(len(metadata)))
+    
+    # Normalize to list
+    if isinstance(subjects, (int, str)):
+        subjects = [subjects]
+    
+    row_indices = []
+    for subject in subjects:
+        if isinstance(subject, int):
+            # Row number
+            if 0 <= subject < len(metadata):
+                row_indices.append(subject)
+            else:
+                raise ValueError(f"Row number {subject} out of bounds (metadata has {len(metadata)} rows)")
+        elif isinstance(subject, str):
+            # Subject ID
+            if 'Subject ID' not in metadata.columns:
+                raise ValueError("'Subject ID' column not found in metadata")
+            matching = metadata[metadata['Subject ID'].astype(str) == subject].index
+            if len(matching) == 0:
+                raise ValueError(f"Subject '{subject}' not found in metadata")
+            row_indices.append(matching[0])
+        else:
+            raise TypeError(f"Subject must be int or str, got {type(subject)}")
+    
+    return row_indices
+
+
+def _normalize_condition_selection(
+    metadata: pd.DataFrame,
+    conditions: Union[int, str, List[Union[int, str]], None]
+) -> List[str]:
+    """
+    Convert condition specification to list of column names.
+    
+    Parameters
+    ----------
+    metadata : pd.DataFrame
+        Metadata table
+    conditions : int, str, list, or None
+        Condition specification
+    
+    Returns
+    -------
+    list of str
+        Condition column names to process
+    
+    Raises
+    ------
+    ValueError
+        If condition not found
+    TypeError
+        If condition type not recognized
+    """
+    # Get all condition columns (start with 'c')
+    all_conditions = [c for c in metadata.columns if isinstance(c, str) and c.startswith('c')]
+    
+    if not all_conditions:
+        raise ValueError("No condition columns found in metadata (columns starting with 'c')")
+    
+    if conditions is None:
+        # All conditions
+        return all_conditions
+    
+    # Normalize to list
+    if isinstance(conditions, (int, str)):
+        conditions = [conditions]
+    
+    condition_cols = []
+    for condition in conditions:
+        if isinstance(condition, int):
+            # Condition number (1, 2, 3, ...)
+            # Find column like "c{number}: ..."
+            col_prefix = f"c{condition}"
+            matching = [c for c in all_conditions if c.startswith(col_prefix + ':') or c == col_prefix]
+            if len(matching) == 0:
+                raise ValueError(f"Condition number {condition} not found (looked for 'c{condition}...' in columns)")
+            condition_cols.append(matching[0])
+        elif isinstance(condition, str):
+            # Full condition name or partial match
+            if condition in metadata.columns:
+                condition_cols.append(condition)
+            else:
+                # Try to find by prefix
+                matching = [c for c in all_conditions if c.startswith(condition)]
+                if len(matching) == 0:
+                    raise ValueError(f"Condition '{condition}' not found in metadata columns")
+                condition_cols.append(matching[0])
+        else:
+            raise TypeError(f"Condition must be int or str, got {type(condition)}")
+    
+    return condition_cols
