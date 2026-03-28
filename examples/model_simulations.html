@@ -177,17 +177,17 @@
 <span class="c1"># here, only the surface tilt is analyzed and used for fitting</span>
 
 <span class="c1"># Load experimental data</span>
-<span class="n">com</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis1_surf1.csv&#39;</span><span class="p">),</span> 
-    <span class="n">height</span><span class="p">,</span> 
-    <span class="n">resample</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
-    <span class="n">cut_to_cycles</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">end_time</span> <span class="o">=</span> <span class="mi">220</span><span class="p">,</span>
-    <span class="n">cycle_start_samples</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
-    <span class="n">cycle_length_samples</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
-    <span class="c1"># stimulus = &#39;stim_pitch&#39;,</span>
-    <span class="n">stimulus</span> <span class="o">=</span> <span class="s1">&#39;analog4&#39;</span>
-    <span class="p">)</span>
+<span class="n">config_surf</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span>
+    <span class="n">body_height_m</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+    <span class="n">resample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cut_to_cycles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">end_time_seconds</span><span class="o">=</span><span class="mi">220</span><span class="p">,</span>
+    <span class="n">cycle_start_samples</span><span class="o">=</span><span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
+    <span class="n">cycle_length_samples</span><span class="o">=</span><span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
+    <span class="n">stimulus_name</span><span class="o">=</span><span class="s1">&#39;analog4&#39;</span>
+<span class="p">)</span>
+<span class="n">com</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">((</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis1_surf1.csv&#39;</span><span class="p">),</span> <span class="n">config_surf</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">&#39;com&#39;</span><span class="p">)</span>
+<span class="n">stim</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">((</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis1_surf1.csv&#39;</span><span class="p">),</span> <span class="n">config_surf</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">&#39;stimulus&#39;</span><span class="p">)</span>
 
 <span class="c1"># create a sr_data object instance</span>
 <span class="n">data_exp</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">sr_data</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span><span class="o">-</span><span class="n">stim</span><span class="p">,</span> <span class="n">com</span><span class="p">,</span> <span class="s1">&#39;prts&#39;</span><span class="p">)</span>
@@ -238,17 +238,19 @@
 
 <span class="c1"># create a model instance for the subject</span>
 <span class="n">model_vis</span> <span class="o">=</span> <span class="n">P18</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+
 <span class="c1"># Load experimental data</span>
-<span class="n">com</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis2.csv&#39;</span><span class="p">),</span> 
-    <span class="n">height</span><span class="p">,</span> 
-    <span class="n">resample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+<span class="n">config_vis</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span>
+    <span class="n">body_height_m</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+    <span class="n">resample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cut_to_cycles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">end_time</span><span class="o">=</span><span class="mi">220</span><span class="p">,</span>
+    <span class="n">end_time_seconds</span><span class="o">=</span><span class="mi">220</span><span class="p">,</span>
     <span class="n">cycle_start_samples</span><span class="o">=</span><span class="mi">20</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
     <span class="n">cycle_length_samples</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="mi">90</span><span class="p">,</span>
-    <span class="n">stimulus</span> <span class="o">=</span> <span class="s1">&#39;stim_pitch&#39;</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">stimulus_name</span><span class="o">=</span><span class="s1">&#39;stim_pitch&#39;</span>
+<span class="p">)</span>
+<span class="n">com</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">((</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis2.csv&#39;</span><span class="p">),</span> <span class="n">config_vis</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">&#39;com&#39;</span><span class="p">)</span>
+<span class="n">stim</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">getdata_legacy</span><span class="p">((</span><span class="n">data_path</span><span class="o">+</span><span class="s1">&#39;d1_vis2.csv&#39;</span><span class="p">),</span> <span class="n">config_vis</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">&#39;stimulus&#39;</span><span class="p">)</span>
 
 <span class="n">model_vis</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
 <span class="n">data_exp</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">sr_data</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="n">stim</span><span class="p">,</span> <span class="n">com</span><span class="p">,</span> <span class="s1">&#39;prts&#39;</span><span class="p">)</span>
