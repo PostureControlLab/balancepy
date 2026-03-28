@@ -73,12 +73,13 @@ class TestTimeseries:
         data = np.sin(2 * np.pi * time_s)
         new_sr = 200
         
-        resampled = timeseries.resample(time_s, data, sampling_rate=new_sr)
+        resampled, new_time = timeseries.resample(time_s, data, sampling_rate=new_sr)
         
         # Should have approximately correct length (endpoint=False means last sample excluded)
         # 1 second with 200 Hz sampling but endpoint=False gives 199 samples
         assert 199 <= len(resampled) <= 200
         assert isinstance(resampled, np.ndarray)
+        assert len(new_time) == len(resampled)
 
 
 class TestFrequency:

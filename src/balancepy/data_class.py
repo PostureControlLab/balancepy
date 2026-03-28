@@ -460,12 +460,14 @@ class sr_data:
             The figure containing the Bode plot with time series, frequency response, and coherence plots.
         """
         
+        _new_fig = fig is None
         if fig is None:
-            fig = make_subplots(rows=3, cols=2, 
-                        subplot_titles=("Stimulus Time Series", "Response Time Series", "Bode Magnitude Plot", "Coherence Plot", "Bode Phase Plot", "Parameters"),
+            fig = make_subplots(rows=3, cols=2,
                         specs=  [[{"type": "xy"}, {"type": "xy"}],
                                 [{"type": "xy"}, {"type": "xy"}],
-                                [{"type": "xy"}, {"type": "table"}]])
+                                [{"type": "xy"}, {"type": "xy"}]],
+                        vertical_spacing=0.12,
+                        horizontal_spacing=0.18)
 
 
         if line is None:
@@ -478,7 +480,7 @@ class sr_data:
             # Select the index for the color as n_traces % 10
             color_index = n_traces % 10
 
-            line = dict(color=colors[color_index])
+            line = dict(color=colors[color_index], width=2)
 
         # add name for legend
         if line_name is not None:
@@ -494,8 +496,8 @@ class sr_data:
             if data.stimulus.ndim==2:
                 for i in range(data.stimulus.shape[1]):
                     fig.add_trace(go.Scatter(x=data.time, y=data.stimulus[:, i], 
-                        mode='lines', line=dict(color='lightgray', width=1), 
-                        name=None, showlegend=False), row=1, col=1)
+                        mode='lines', line=dict(width=0.5, color='grey'), 
+                          opacity=0.6, name=None, showlegend=False), row=1, col=1)
                     fig.add_trace(go.Scatter(x=data.time, y=data.stimulus_mean, 
                         mode='lines', line=line, name=None, showlegend=False), 
                         row=1, col=1)
@@ -508,8 +510,8 @@ class sr_data:
             if data.response.ndim==2:
                 for i in range(data.response.shape[1]):
                     fig.add_trace(go.Scatter(x=data.time, y=data.response[:, i], 
-                        mode='lines', line=dict(color='lightgray', width=1), 
-                        name=None, showlegend=False), row=1, col=2)
+                        mode='lines', line=dict(width=0.5, color='grey'), 
+                          opacity=0.6, name=None, showlegend=False), row=1, col=2)
                     fig.add_trace(go.Scatter(x=data.time, y=data.response_mean, 
                         mode='lines', line=line, name=None, showlegend=False), 
                         row=1, col=2)
@@ -530,10 +532,39 @@ class sr_data:
             fig.update_xaxes(type="log", row=2, col=2)
 
 
-        # if params_names is not None and params is not None:
-        #     rounded_params = [round(param, 3) for param in params]
-        #     fig.add_trace(go.Table(header=dict(values=params_names), cells=dict(values=np.array(rounded_params))), row=3, col=2)
+        # Axis labels
+        fig.update_yaxes(title_text="stimulus", row=1, col=1)
+        fig.update_yaxes(title_text="response", row=1, col=2)
+        fig.update_yaxes(title_text="gain", row=2, col=1)
+        fig.update_yaxes(title_text="coherence", row=2, col=2)
+        fig.update_yaxes(title_text="phase", row=3, col=1)
+        fig.update_xaxes(title_text="time (s)", row=1, col=1)
+        fig.update_xaxes(title_text="time (s)", row=1, col=2)
+        fig.update_xaxes(title_text="frequency (Hz)", row=2, col=1)
+        fig.update_xaxes(title_text="frequency (Hz)", row=2, col=2)
+        fig.update_xaxes(title_text="frequency (Hz)", row=3, col=1)
 
-        fig.update_layout(height=800, width=1000, title_text="Bode Plot")
+        if _new_fig:
+            title = "Bode Plot"
+            if data.name is not None:
+                title += f"<br><span style='font-size:10px; color:gray'>{data.name}</span>"
+            fig.update_layout(
+                title_text=title,
+                height=562, width=397,
+                template='plotly_white',
+                font=dict(size=10),
+                title_font=dict(size=12),
+                margin=dict(l=50, r=10, t=50, b=60),
+                legend=dict(
+                    orientation='h',
+                    yanchor='top',
+                    y=-0.08,
+                    xanchor='center',
+                    x=0.5,
+                    font=dict(size=9),
+                ),
+            )
+            fig.update_xaxes(tickfont=dict(size=9), title_font=dict(size=10), title_standoff=4)
+            fig.update_yaxes(tickfont=dict(size=9), title_font=dict(size=10), title_standoff=4)
 
         return fig

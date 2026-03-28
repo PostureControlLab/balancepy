@@ -1,8 +1,8 @@
+import math
 import numpy as np
 import balancepy as bp
 import scipy.signal as signal
 from scipy.optimize import basinhopping
-import plotly.graph_objects as go
 from numbers import Number
 import warnings
 from plotly.subplots import make_subplots
@@ -315,18 +315,16 @@ class BaseModel:
         """
 
         if self.data_exp is not None:
-            if self.data_exp.name is None: self.data_exp.name = 'Experimental' 
-            figure = self.data_exp.plot(fig = figure)
+            figure = self.data_exp.plot(fig = figure,line_name='Experimental')
         else:
             print('No experimental data available for plotting')
 
         if self.data_sim is not None:
-            if self.data_sim.name is None: self.data_sim.name = 'Simulated'
             data_sim2 = self.data_sim
             data_sim2.freq = np.arange(data_sim2.freq.min(), data_sim2.freq.max(), 0.001)
             _, data_sim2.frf = signal.freqresp(self.dynamics, w=data_sim2.freq*2*np.pi)
 
-            figure = data_sim2.plot(fig = figure) #, params_names=self.params_names, params=self.params)
+            figure = data_sim2.plot(fig = figure,line_name='Simulated') #, params_names=self.params_names, params=self.params)
         else:
             data=bp.sr_data()
             data.freq = np.arange(0.01, 4, 0.001)
@@ -335,6 +333,41 @@ class BaseModel:
             figure = data.plot(fig = figure) #, params_names=self.params_names, params=self.params)
 
         if figure:
+            # Params text — up to 3 columns for up to 15 parameters, columnar via &nbsp; padding
+            if self.params is not None:
+                param_rows = []
+                for param in self.params:
+                    unit_str = f" {param.unit}" if param.unit else ""
+                    param_rows.append(f"{param.name} = {float(param.value):.3g}{unit_str}")
+                n = len(param_rows)
+                n_cols = 1 if n <= 9 else (2 if n <= 10 else 3)
+                per_col = math.ceil(n / n_cols)
+                # Pad all entries to equal width so monospace columns align
+                max_len = max(len(s) for s in param_rows)
+                padded = [s + '&nbsp;' * (max_len - len(s)) for s in param_rows]
+                # Pad list to full n_cols * per_col
+                while len(padded) < n_cols * per_col:
+                    padded.append('&nbsp;' * max_len)
+                col_gap = '&nbsp;' * 3
+                lines = ['<b>Parameters</b>']
+                for r in range(per_col):
+                    parts = [padded[c * per_col + r] for c in range(n_cols)]
+                    lines.append(col_gap.join(parts))
+                col_text = '<br>'.join(lines)
+                x_dom = list(figure.layout.xaxis6.domain)
+                y_dom = list(figure.layout.yaxis6.domain)
+                figure.add_annotation(
+                    text=col_text,
+                    xref="paper", yref="paper",
+                    x=x_dom[0] + 0.01,
+                    y=y_dom[1],
+                    xanchor='left', yanchor='top',
+                    align='left',
+                    showarrow=False,
+                    font=dict(size=10, family='monospace'),
+                )
+            figure.update_xaxes(visible=False, row=3, col=2)
+            figure.update_yaxes(visible=False, row=3, col=2)
             return figure
         
 

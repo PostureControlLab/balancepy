@@ -20,17 +20,17 @@ class AnaropiaPreprocessingConfig:
     
     Attributes
     ----------
-    body_height_m : float, default=0
-        Height of subject in meters.
-    resample : bool, default=True
-        If True, resample data to samplingrate_Hz.
     samplingrate_Hz : int, default=90
         Desired sampling rate in Hz. 0 means no resampling. Used for standard Anaropia.
-    stimulus_name : str, default='Screen'
-        Name of the stimulus column in the data file. Use 'Screen' for standard Anaropia,
-        'stim_pitch' for legacy Anaropia.
-    stimulus_direction : str, default='ap'
-        Direction of analysis: 'ap' (anterior-posterior) or 'ml' (medial-lateral).
+    resample : bool, default=True
+        If True, resample data to samplingrate_Hz.
+    filter_type : str, default=None
+        Type of filter to apply: 'low', 'high', 'band', or None for no filtering.
+        Zeros phase filtering is applied to avoid phase shifts.
+    filter_order : int, default=2
+        Order of the filter.
+    filter_cutoff_Hz : float, default=8
+        Cutoff frequency for filtering. For 'band' filter_type, provide a tuple (low, high).
     cut_to_cycles : bool, default=True
         If True, cut data to cycles.
     end_time_seconds : float, default=260
@@ -43,43 +43,180 @@ class AnaropiaPreprocessingConfig:
     
     Examples
     --------
-    Standard Anaropia:
-    
-    >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_direction='ap')
-    >>> com, time = getdata_anaropia('data.csv', config, output='com')
-    >>> stim, time = getdata_anaropia('data.csv', config, output='stimulus')
-    
     Legacy Anaropia:
     
-    >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_name='stim_pitch', end_time_seconds=220)
-    >>> com, time = getdata_legacy('legacy_data.csv', config, output='com')
-    >>> stim, time = getdata_legacy('legacy_data.csv', config, output='stimulus')
+    >>> config = AnaropiaPreprocessingConfig(stimulus_name='stim_pitch', end_time_seconds=220)
+    >>> com, time = getdata_legacy('legacy_data.csv', output='com', body_height_m=1.75, config=config)
+    >>> stim, time = getdata_legacy('legacy_data.csv', output='stimulus', body_height_m=1.75, config=config)
+
+    Standard Anaropia:
+    
+    >>> config = AnaropiaPreprocessingConfig()
+    >>> com, time = getdata_anaropia('data.csv', output='com', direction='ap', body_height_m=1.75, config=config)
+    >>> stim_ap, time = getdata_anaropia('data.csv', output='stimulus', direction='ap', body_height_m=1.75, config=config)
+    >>> stim_ml, time = getdata_anaropia('data.csv', output='stimulus', direction='ml', body_height_m=1.75, config=config)
     """
 
-    body_height_m: float = 1.75
-    resample: bool = True
+    anaropia_version: str = 'legacy'  # 'legacy' or 'standard'
     samplingrate_Hz: int = 90
-    stimulus_name: str = 'stim_pitch'
-    stimulus_direction: str = 'ap'
-    cut_to_cycles: bool = True
+    resample: bool = True
     end_time_seconds: float = 260
+    filter_type: str = None
+    filter_order: int = 2
+    filter_cutoff_Hz: float = 8
+    cut_to_cycles: bool = False
     cycle_start_samples: int = 20*90
     cycle_length_samples: int = 20*90
 
     def __str__(self) -> str:
         """Pretty-print configuration settings."""
         settings = [
-            f"body_height_m: {self.body_height_m}",
-            f"resample: {self.resample}",
             f"samplingrate_Hz: {self.samplingrate_Hz}",
-            f"stimulus_name: {self.stimulus_name}",
-            f"stimulus_direction: {self.stimulus_direction}",
-            f"cut_to_cycles: {self.cut_to_cycles}",
+            f"resample: {self.resample}",
             f"end_time_seconds: {self.end_time_seconds}",
+            f"filter_type: {self.filter_type}",
+            f"filter_order: {self.filter_order}",
+            f"filter_cutoff_Hz: {self.filter_cutoff_Hz}",
+            f"cut_to_cycles: {self.cut_to_cycles}",
             f"cycle_start_samples: {self.cycle_start_samples}",
             f"cycle_length_samples: {self.cycle_length_samples}",
         ]
         return "AnaropiaPreprocessingConfig(\n  " + "\n  ".join(settings) + "\n)"
+
+
+def getdata_anaropia(
+    filename: str,
+    output: str = 'com',
+    direction: str = 'ap',
+    body_height_m: float = None,
+    body_weight_kg: float = None,
+    config: AnaropiaPreprocessingConfig = None
+) -> tuple:
+    """
+    Access and format data from balance experiments recorded with Anaropia.
+
+    Reads data recorded using the Anaropia virtual-reality application for 
+    balance experiments. Calculates stimulus and center of mass (COM) data.
+
+    Parameters
+    ----------
+    filename : str
+        Path and filename to be analyzed.
+    output : str, default='com'
+        Specifies which data column to return alongside time.
+        - 'com'      : Center of mass sway (computed from shoulder/hip positions).
+        - 'stimulus' : Stimulus signal (column determined by config.stimulus_name
+                       and the direction parameter).
+        - any other str : Raw column name from the data file (e.g. 'LeftShoulder_pos_z').
+    body_height_m : float, optional
+        Used for center of mass calculations.
+    body_weight_kg : float, optional
+        Used for center of pressure calculations.
+    config : AnaropiaPreprocessingConfig, optional
+        Configuration object containing processing parameters. If None, uses default
+        configuration with standard settings.
+
+    Returns
+    -------
+    signal : NDArray
+        The requested data array (com, stimulus, or raw column).
+    time : NDArray
+        Time data.
+    
+    See Also
+    --------
+    AnaropiaPreprocessingConfig : Configuration class for Anaropia data preprocessing
+    
+    Examples
+    --------
+    >>> config = AnaropiaPreprocessingConfig()
+    >>> com, time = getdata_anaropia('data.csv', output='com', direction='ap', body_height_m=1.75, config=config)
+    >>> stim_ap, time = getdata_anaropia('data.csv', output='stimulus', direction='ap', body_height_m=1.75, config=config)
+    >>> stim_ml, time = getdata_anaropia('data.csv', output='stimulus', direction='ml', body_height_m=1.75, config=config)
+    """
+
+    if config is None:
+        config = AnaropiaPreprocessingConfig()
+
+    # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
+    # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
+
+    raw_data = np.genfromtxt(filename, delimiter=',', names=True)
+
+    if config.anaropia_version == 'standard':
+
+        match output:
+            case 'com':
+                assert body_height_m is not None, "body_height_m must be provided for COM calculation"
+
+                sho_height = np.mean(raw_data['LeftShoulder_pos_y'])
+                hip_height = np.mean(raw_data['RightShoulder_pos_y'])
+
+                if direction == 'ap':
+                    sho = raw_data['LeftShoulder_pos_z']
+                    hip = raw_data['RightShoulder_pos_z']
+                elif direction == 'ml':
+                    sho = raw_data['LeftShoulder_pos_x']
+                    hip = raw_data['RightShoulder_pos_x']
+                signal = bm.get_com(sho, sho_height, hip, hip_height, body_height_m, True)
+            case 'Screen tilt' | 'stimulus':
+                column_name = 'Screen_rot_x' if direction == 'ap' else 'Screen_rot_z'
+                signal = raw_data[column_name]
+            case 'data':
+                signal = raw_data
+            case _:
+                assert output in raw_data.dtype.names, f"Output column '{output}' not found in data."
+                signal = raw_data[output]
+
+    elif config.anaropia_version == 'legacy':
+        match output:
+            case 'com':
+                assert body_height_m is not None, "body_height_m must be provided for COM calculation"
+
+                sho_height = np.mean(raw_data['shld_ypos'])
+                hip_height = np.mean(raw_data['hip_ypos'])
+
+                if direction == 'ap':
+                    sho = raw_data['shld_zpos']
+                    hip = raw_data['hip_zpos']
+                elif direction == 'ml':
+                    sho = raw_data['shld_xpos']
+                    hip = raw_data['hip_xpos']
+                signal = bm.get_com(sho, sho_height, hip, hip_height, body_height_m, True)
+
+            case 'Screen tilt' | 'stimulus':
+                column_name = 'stim_pitch' if direction == 'ap' else 'stim_roll'
+                signal = raw_data[column_name]
+            case 'data':
+                signal = raw_data
+            case _:
+                assert output in raw_data.dtype.names, f"Output column '{output}' not found in data."
+                signal = raw_data[output]
+
+
+    # --- Extract time  ---
+    time = raw_data['time']
+
+    # --- Resample if requested ---
+    if config.resample:
+        signal, time = ts.resample(time, signal, config.samplingrate_Hz, config.end_time_seconds)
+
+    # --- Apply filtering if requested ---
+    if config.filter_type is not None:
+        signal = ts.butterworth_filter(
+            signal,
+            samplingrate_Hz=config.samplingrate_Hz,
+            filter_type=config.filter_type,
+            order=config.filter_order,
+            cutoff_Hz=config.filter_cutoff_Hz
+        )
+
+    # --- Cut to cycles if requested ---
+    if config.cut_to_cycles:
+        signal = ts.cut_to_cycles(signal, config.cycle_start_samples, config.cycle_length_samples)
+        time = ts.cut_to_cycles(time, config.cycle_start_samples, config.cycle_length_samples)
+    
+    return signal, time
 
 
 def get_metadata(filename: str = None, print_information: bool = True) -> pd.DataFrame:
@@ -208,9 +345,8 @@ def get_metadata(filename: str = None, print_information: bool = True) -> pd.Dat
 
 def get_filename_from_metadata(
     metadata: pd.DataFrame | None = None,
-    subject_id: str | int | float | None = None,
-    row_number: int | None = None,
-    condition: str | None = None,
+    subject: str | int | None = None,
+    condition: str | int | None = None,
     data_dir: str = 'data/raw'
 ) -> str:
     """
@@ -224,15 +360,15 @@ def get_filename_from_metadata(
     ----------
     metadata : pd.DataFrame, optional
         Metadata DataFrame. If None, loads default metadata file from '../data/metadata.xlsx'.
-    subject_id : str or int or float, optional
-        Subject identifier (e.g., 'MW09', 1, or 42). Can be a string or number.
-        If None, uses first row.
-    row_number : int, optional
-        Row index in metadata DataFrame. Overrides subject_id if provided.
-        If None and subject_id is None, uses first row (0).
-    condition : str, optional
-        Condition column name (e.g., 'c1: eyes open', 'c1', or just 'c1').
-        If None, uses first condition column found (starting with 'c').
+    subject : str or int, optional
+        ``str`` → matched against the 'Subject ID' column (e.g. ``'MW09AB13'``).
+        ``int`` → used as a zero-based row index (e.g. ``0`` for first subject).
+        ``None`` → defaults to row 0.
+    condition : str or int, optional
+        ``str`` → exact or prefix match against condition column names
+        (e.g. ``'c1: eyes open'``, ``'c1'``).
+        ``int`` → condition number, matched as ``c{n}...`` (e.g. ``1`` → ``'c1: ...'``).
+        ``None`` → uses the first condition column found.
     data_dir : str, default='data/raw'
         Directory where data files are located.
     
@@ -246,23 +382,14 @@ def get_filename_from_metadata(
     FileNotFoundError
         If metadata or data files not found, or if no matching file exists.
     ValueError
-        If subject_id not found in metadata or row_number out of bounds.
+        If subject not found, row index out of bounds, or condition not found.
     
     Examples
     --------
-    >>> # Load specific subject (string or numeric)
-    >>> filepath = get_filename_from_metadata(subject_id='MW09AB13', condition='c1')
-    >>> filepath = get_filename_from_metadata(subject_id=42, condition='c1')
-    >>> 
-    >>> # Use specific row and condition
-    >>> filepath = get_filename_from_metadata(row_number=0, condition='c1')
-    >>> 
-    >>> # Use defaults (first row, first condition)
-    >>> filepath = get_filename_from_metadata()
-    >>> 
-    >>> # With custom metadata and data directory
-    >>> filepath = get_filename_from_metadata(metadata=my_df, subject_id='MW09AB13', 
-    ...                                       condition='c2', data_dir='data/raw')
+    >>> filepath = get_filename_from_metadata(metadata, 'MW09AB13', 'c1: eyes open')
+    >>> filepath = get_filename_from_metadata(metadata, 'MW09AB13', 1)
+    >>> filepath = get_filename_from_metadata(metadata, 0, 'c1: eyes open')
+    >>> filepath = get_filename_from_metadata(metadata, 0, 1)
     """
     from difflib import get_close_matches
     from pathlib import Path
@@ -279,47 +406,41 @@ def get_filename_from_metadata(
                 "Metadata not provided and default metadata file '../data/metadata.xlsx' not found."
             )
     
-    # Determine row index
-    if row_number is not None:
-        if row_number < 0 or row_number >= len(metadata):
-            raise ValueError(f"row_number {row_number} out of bounds (metadata has {len(metadata)} rows)")
-        row_idx = row_number
-    elif subject_id is not None:
+    # Determine row index — int → row index, str → Subject ID lookup
+    if subject is None:
+        row_idx = 0
+    elif isinstance(subject, int):
+        if subject < 0 or subject >= len(metadata):
+            raise ValueError(f"Row index {subject} out of bounds (metadata has {len(metadata)} rows)")
+        row_idx = subject
+    else:
         if 'Subject ID' not in metadata.columns:
             raise ValueError("'Subject ID' column not found in metadata")
-        
-        # Convert both sides to string for comparison to handle mixed types
-        # (e.g., numeric subject IDs in metadata vs. string input)
-        subject_id_str = str(subject_id)
-        metadata_subject_ids_str = metadata['Subject ID'].astype(str)
-        matching_rows = metadata[metadata_subject_ids_str == subject_id_str]
-        
+        matching_rows = metadata[metadata['Subject ID'].astype(str) == str(subject)]
         if matching_rows.empty:
-            raise ValueError(f"Subject '{subject_id}' not found in metadata")
+            raise ValueError(f"Subject '{subject}' not found in metadata")
         row_idx = matching_rows.index[0]
+
+    # Determine condition column — int → c{n} prefix, str → exact/prefix match
+    all_condition_cols = [c for c in metadata.columns if isinstance(c, str) and c.startswith('c')]
+    if not all_condition_cols:
+        raise ValueError("No condition columns found in metadata (columns starting with 'c')")
+
+    if condition is None:
+        condition_col = all_condition_cols[0]
+    elif isinstance(condition, int):
+        matching_cols = [c for c in all_condition_cols if c.startswith(f'c{condition}:') or c == f'c{condition}']
+        if not matching_cols:
+            raise ValueError(f"Condition number {condition} not found (looked for 'c{condition}...' in columns)")
+        condition_col = matching_cols[0]
     else:
-        # Default to first row
-        row_idx = 0
-    
-    # Determine condition column
-    if condition is not None:
-        # Try exact match first, then try to match by prefix
         if condition in metadata.columns:
             condition_col = condition
         else:
-            # Try to find condition column that starts with the provided condition
-            matching_cols = [c for c in metadata.columns 
-                           if isinstance(c, str) and c.startswith(condition)]
-            if matching_cols:
-                condition_col = matching_cols[0]
-            else:
+            matching_cols = [c for c in all_condition_cols if c.startswith(condition)]
+            if not matching_cols:
                 raise ValueError(f"Condition '{condition}' not found in metadata columns")
-    else:
-        # Use first condition column (starts with 'c')
-        condition_cols = [c for c in metadata.columns if isinstance(c, str) and c.startswith('c')]
-        if not condition_cols:
-            raise ValueError("No condition columns found in metadata (columns starting with 'c')")
-        condition_col = condition_cols[0]
+            condition_col = matching_cols[0]
     
     # Extract the cell value
     metadata_cell_value = metadata.iloc[row_idx][condition_col]
@@ -328,7 +449,7 @@ def get_filename_from_metadata(
     if 'Subject ID' in metadata.columns:
         row_subject_id = metadata.iloc[row_idx]['Subject ID']
     else:
-        row_subject_id = subject_id if subject_id is not None else "unknown"
+        row_subject_id = str(subject) if subject is not None else "unknown"
     
     # Now use the original logic to find the file
     data_dir_path = (folder / data_dir)
@@ -398,185 +519,7 @@ def get_filename_from_metadata(
             )
 
 
-
-def getdata_anaropia(
-    filename: str,
-    config: AnaropiaPreprocessingConfig = None,
-    output: str = 'com'
-) -> tuple:
-    """
-    Access and format data from balance experiments recorded with Anaropia.
-
-    Reads data recorded using the Anaropia virtual-reality application for 
-    balance experiments. Calculates stimulus and center of mass (COM) data.
-
-    Parameters
-    ----------
-    filename : str
-        Path and filename to be analyzed.
-    config : AnaropiaPreprocessingConfig, optional
-        Configuration object containing processing parameters. If None, uses default
-        configuration with standard settings.
-    output : str, default='com'
-        Specifies which data column to return alongside time.
-        - 'com'      : Center of mass sway (computed from shoulder/hip positions).
-        - 'stimulus' : Stimulus signal (column determined by config.stimulus_name
-                       and config.stimulus_direction).
-        - any other str : Raw column name from the data file (e.g. 'LeftShoulder_pos_z').
-
-    Returns
-    -------
-    data : NDArray
-        The requested data array (com, stimulus, or raw column).
-    time : NDArray
-        Time data.
-    
-    See Also
-    --------
-    AnaropiaPreprocessingConfig : Configuration class for Anaropia data preprocessing
-    
-    Examples
-    --------
-    >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_direction='ap')
-    >>> com, time = getdata_anaropia('data.csv', config, output='com')
-    >>> stim, time = getdata_anaropia('data.csv', config, output='stimulus')
-    """
-
-    if config is None:
-        config = AnaropiaPreprocessingConfig()
-
-    # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
-    # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
-
-    data = np.genfromtxt(filename, delimiter=',', names=True)
-
-    # --- Extract position data based on direction ---
-    stimulus_name = config.stimulus_name
-    if config.stimulus_direction == 'ap':
-        sho = data['LeftShoulder_pos_z']
-        hip = data['RightShoulder_pos_z']
-        if stimulus_name == 'Screen':
-            stimulus_name = 'Screen_rot_x'
-    elif config.stimulus_direction == 'ml':
-        if stimulus_name == 'Screen':
-            stimulus_name = 'Screen_rot_z'
-        sho = data['LeftShoulder_pos_x']
-        hip = data['RightShoulder_pos_x']
-    
-    assert stimulus_name in data.dtype.names, f"Stimulus '{stimulus_name}' not found in data."
-
-    sho_height = np.mean(data['LeftShoulder_pos_y'])
-    hip_height = np.mean(data['RightShoulder_pos_y'])
-
-    # --- Extract time and stimulus data ---
-    time = data['Time']
-    stimulus = data[stimulus_name]
-    com = bm.get_com(sho, sho_height, hip, hip_height, config.body_height_m, True)
-
-    # --- Select output column ---
-    if output == 'com':
-        result = com
-    elif output == 'stimulus':
-        result = stimulus
-    else:
-        assert output in data.dtype.names, f"Output column '{output}' not found in data."
-        result = data[output]
-
-    # --- Resample if requested ---
-    if config.resample:
-        result = ts.resample(time, result, config.samplingrate_Hz, config.end_time_seconds)
-        time = ts.resample(time, time, config.samplingrate_Hz, config.end_time_seconds)
-
-    # --- Cut to cycles if requested ---
-    if config.cut_to_cycles:
-        result = ts.cut_to_cycles(result, config.cycle_start_samples, config.cycle_length_samples)
-        time = ts.cut_to_cycles(time, config.cycle_start_samples, config.cycle_length_samples)
-    
-    return result, time
-
-def getdata_legacy(
-    filename: str,
-    config: AnaropiaPreprocessingConfig,
-    output: str = 'com'
-) -> tuple:
-    """
-    Access and format data from balance experiments recorded with Anaropia legacy.
-
-    Reads data recorded using the legacy software version of Anaropia for 
-    balance experiments. Calculates stimulus and center of mass (COM) data.
-
-    Parameters
-    ----------
-    filename : str
-        Path and filename to be analyzed.
-    config : AnaropiaPreprocessingConfig
-        Configuration object containing processing parameters. Must include body_height_m.
-    output : str, default='com'
-        Specifies which data column to return alongside time.
-        - 'com'      : Center of mass sway (computed from shoulder/hip positions).
-        - 'stimulus' : Stimulus signal (column given by config.stimulus_name).
-        - any other str : Raw column name from the data file (e.g. 'shld_zpos').
-
-    Returns
-    -------
-    data : NDArray
-        The requested data array (com, stimulus, or raw column).
-    time : NDArray
-        Time data.
-    
-    See Also
-    --------
-    AnaropiaPreprocessingConfig : Configuration class for Anaropia data preprocessing
-    
-    Examples
-    --------
-    >>> config = AnaropiaPreprocessingConfig(body_height_m=1.75, stimulus_name='stim_pitch', end_time_seconds=220)
-    >>> com, time = getdata_legacy('legacy_data.csv', config, output='com')
-    >>> stim, time = getdata_legacy('legacy_data.csv', config, output='stimulus')
-    """
-    
-    if config is None:
-        raise ValueError("config must be provided for legacy data processing.")
-    
-    data = np.genfromtxt(filename, delimiter=',', names=True)
-
-    # --- Extract time and stimulus data ---
-    time = data['time']
-    stimulus = data[config.stimulus_name]
-    
-    com = bm.get_com(
-        data['shld_zpos'],
-        np.mean(data['shld_ypos']),
-        data['hip_zpos'],
-        np.mean(data['hip_ypos']),
-        config.body_height_m,
-        True
-    )
-
-    # --- Select output column ---
-    if output == 'com':
-        result = com
-    elif output == 'stimulus':
-        result = stimulus
-    else:
-        assert output in data.dtype.names, f"Output column '{output}' not found in data."
-        result = data[output]
-
-    # --- Resample if requested ---
-    if config.resample:
-        result = ts.resample(time, result, config.samplingrate_Hz, config.end_time_seconds)
-        time = ts.resample(time, time, config.samplingrate_Hz, config.end_time_seconds)
-
-    # --- Cut to cycles if requested ---
-    if config.cut_to_cycles:
-        result = ts.cut_to_cycles(result, config.cycle_start_samples, config.cycle_length_samples)
-        time = ts.cut_to_cycles(time, config.cycle_start_samples, config.cycle_length_samples)
-
-    return result, time
-
-
-
-def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, save_fig: bool = True) -> str:
+def plot_datacheck(filename: str, body_height_m: float = None, config: AnaropiaPreprocessingConfig = None, save_fig: bool = True) -> str:
     """
     Plot data for comprehensive visual inspection of quality and structure.
     
@@ -637,28 +580,28 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     time_raw = raw_data['time']
     fig.add_trace(
         go.Scatter(x=time_raw, y=raw_data['zpos']-np.mean(raw_data['zpos']), name='head', mode='lines', 
-                   line=dict(width=1.5)),
+                   line=dict(width=1.5), legend='legend'),
         row=1, col=1
     )
     fig.add_trace(
         go.Scatter(x=time_raw, y=raw_data['shld_zpos']-np.mean(raw_data['shld_zpos']), name='shoulder', mode='lines',
-                   line=dict(width=1.5)),
+                   line=dict(width=1.5), legend='legend'),
         row=1, col=1
     )
     fig.add_trace(
         go.Scatter(x=time_raw, y=raw_data['hip_zpos']-np.mean(raw_data['hip_zpos']), name='hip', mode='lines',
-                   line=dict(width=1.5)),
+                   line=dict(width=1.5), legend='legend'),
         row=1, col=1
     )
     fig.add_annotation(
         text=f"mean head: {np.mean(raw_data['zpos']):.4f}<br>mean sho: {np.mean(raw_data['shld_zpos']):.4f}<br>mean hip: {np.mean(raw_data['hip_zpos']):.4f}",
         xref="paper", yref="paper",
-        x=1.14, y=0.99,
+        x=0.99, y=1.05,
         showarrow=False,
         bgcolor="rgba(255,255,255,0.8)",
         bordercolor="black",
         borderwidth=1,
-        font=dict(size=10),
+        font=dict(size=9),
         align="left",
         xanchor="right",
         yanchor="top"
@@ -669,23 +612,23 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     # --- PLOT 2: Stimulus and Stimulus Resampled ---
     # Get not resampled data not cut to cycles
     config_not_resampled = replace(config, resample=False, cut_to_cycles=False)
-    response_not_resampled, time_not_resampled = bp.getdata_legacy(filename, config_not_resampled, output='com')
-    stimulus_not_resampled, _ = bp.getdata_legacy(filename, config_not_resampled, output='stimulus')
+    response_not_resampled, time_not_resampled = getdata_anaropia(filename, output='com', body_height_m=body_height_m, config=config_not_resampled)
+    stimulus_not_resampled, _ = getdata_anaropia(filename, output='stimulus', body_height_m=body_height_m, config=config_not_resampled)
 
     # Get resampled data not cut to cycles
     config_resampled = replace(config, resample=True, cut_to_cycles=False)
-    response_resampled, time_resampled = bp.getdata_legacy(filename, config_resampled, output='com')
-    stimulus_resampled, _ = bp.getdata_legacy(filename, config_resampled, output='stimulus')
+    response_resampled, time_resampled = getdata_anaropia(filename, output='com', body_height_m=body_height_m, config=config_resampled)
+    stimulus_resampled, _ = getdata_anaropia(filename, output='stimulus', body_height_m=body_height_m, config=config_resampled)
 
     fig.add_trace(
         go.Scatter(x=time_not_resampled, y=stimulus_not_resampled, name='recorded sampling', 
                    mode='markers', marker=dict(size=1, color='blue'), 
-                   opacity=0.7),
+                   opacity=0.7, legend='legend2'),
         row=2, col=1
     )
     fig.add_trace(
         go.Scatter(x=time_resampled, y=stimulus_resampled, name='resampled', 
-                   mode='markers', marker=dict(size=1, color='orange')),
+                   mode='markers', marker=dict(size=1, color='orange'), legend='legend2'),
         row=2, col=1
     )
     
@@ -699,7 +642,7 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     
     fig.update_xaxes(range=[0, config.end_time_seconds], row=2, col=1)
     fig.update_xaxes(title_text="time (s)", row=2, col=1)
-    fig.update_yaxes(title_text=config.stimulus_name, row=2, col=1)
+    fig.update_yaxes(title_text="stimulus", row=2, col=1)
     
     # --- PLOT 3: Response (Center of Mass) and Response Resampled ---
     fig.add_trace(
@@ -725,8 +668,8 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     
     # --- PLOT 4: Cycle-by-cycle analysis (4 subplots) ---
     # Get cycled data for sr_data object
-    response_cycles, time_cycles = getdata_legacy(filename, config, output='com')
-    stimulus_cycles, _ = getdata_legacy(filename, config, output='stimulus')
+    response_cycles, time_cycles = getdata_anaropia(filename, output='com', body_height_m=body_height_m, config=config)
+    stimulus_cycles, _ = getdata_anaropia(filename, output='stimulus', body_height_m=body_height_m, config=config)
     
     # Create sr_data object
     sr_data_obj = data_class.sr_data(
@@ -833,26 +776,41 @@ def plot_datacheck(filename: str, config: AnaropiaPreprocessingConfig = None, sa
     # Update layout
     fig.update_layout(
         title_text=f'Data Check: {Path(filename).stem}',
-        width=1122, height=794,
+        width=794, height=562,
         showlegend=True,
         hovermode='x unified',
         template='plotly_white',
-        legend=dict(x=1.02, y=0.9, xanchor="left", yanchor="top"),
-        font=dict(size=12),
-        title_font=dict(size=16),  # Override title
-        xaxis_tickfont=dict(size=10),  # Override tick labels
-        yaxis_tickfont=dict(size=10)  # Override tick labels
+        legend=dict(
+            orientation='h',
+            x=0.8, y=0.78,
+            xanchor='center', yanchor='middle',
+            bgcolor='rgba(255,255,255,0.7)',
+            font=dict(size=9),
+        ),
+        legend2=dict(
+            orientation='h',
+            x=0.8, y=0.50,
+            xanchor='center', yanchor='middle',
+            bgcolor='rgba(255,255,255,0.7)',
+            font=dict(size=9),
+        ),
+        font=dict(size=10),
+        title_font=dict(size=12),
+        margin=dict(l=50, r=10, t=50, b=40),
     )
+    fig.update_xaxes(tickfont=dict(size=9), title_font=dict(size=10))
+    fig.update_yaxes(tickfont=dict(size=9), title_font=dict(size=10))
 
-    if save_fig := True:
+    if save_fig:
         # Save figure to results/datacheck_plots folder
         output_dir = Path(filename).parent.parent.parent / "results" / "datacheck_plots"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_file = output_dir / f"datacheck_{Path(filename).stem}.pdf"
-        fig.write_image(str(output_file), width=561, height=397, scale=1)  # Save as PDF with high resolution
+        fig.write_image(str(output_file), width=794, height=562, scale=1)
 
 
     return fig
+
 
 
 # ============================================================================
@@ -981,7 +939,7 @@ def batch_iterator(
                 # Get filepath using existing function
                 filepath = get_filename_from_metadata(
                     metadata=metadata,
-                    row_number=row_idx,
+                    subject=row_idx,
                     condition=condition_col,
                     data_dir=data_dir
                 )
@@ -1118,3 +1076,198 @@ def _normalize_condition_selection(
             raise TypeError(f"Condition must be int or str, got {type(condition)}")
     
     return condition_cols
+
+
+# ============================================================================
+# CSMI Analysis
+# ============================================================================
+
+def run_csmi(
+    filename: str,
+    body_height_m: float,
+    body_weight_kg: float,
+    name: str = None,
+    config: AnaropiaPreprocessingConfig = None
+):
+    """
+    Run a CSMI (Continuous Sensory Manipulation Identification) analysis for one trial.
+
+    Loads the stimulus and COM response from `filename`, constructs an sr_data object,
+    fits the Peterka18 model, and returns the fitted model object.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the Anaropia CSV data file.
+    body_height_m : float
+        Subject body height in metres.
+    body_weight_kg : float
+        Subject body weight in kilograms.
+    config : AnaropiaPreprocessingConfig, optional
+        Preprocessing configuration. Defaults to AnaropiaPreprocessingConfig().
+
+    Returns
+    -------
+    subj : Peterka18
+        Fitted Peterka18 model object with `.params`, `.fit_output`, and `.plot()`.
+
+    Examples
+    --------
+    >>> config = bp.AnaropiaPreprocessingConfig()
+    >>> config.end_time_seconds = 220
+    >>> config.cut_to_cycles = True
+    >>> subj = bp.run_csmi(filename, body_height_m=1.75, body_weight_kg=70, config=config)
+    >>> subj.plot()
+    """
+    from balancepy.model_sim.peterka18 import Peterka18
+
+    if config is None:
+        config = AnaropiaPreprocessingConfig()
+
+    com, _ = getdata_anaropia(filename, output='com', body_height_m=body_height_m, config=config)
+    stim, _ = getdata_anaropia(filename, output='stimulus', config=config)
+
+    if name is None:
+        from pathlib import Path as _Path
+        _parts = _Path(filename).parts
+        name = str(_Path(*_parts[-4:])) if len(_parts) >= 4 else filename
+
+    data_exp = data_class.sr_data(
+        samplingrate_Hz=config.samplingrate_Hz,
+        stimulus=stim,
+        response=com,
+        frequency_selection='prts',
+        name=name
+    )
+
+    subj = Peterka18(body_weight_kg, body_height_m, data_exp=data_exp)
+    subj.fit()
+    return subj
+
+
+def _run_csmi_job(
+    subject_id: str,
+    condition: str,
+    filepath: str,
+    body_height_m: float,
+    body_weight_kg: float,
+    config: AnaropiaPreprocessingConfig,
+    plot: bool = False,
+    overwrite_plots: bool = True
+) -> dict:
+    """
+    Internal worker for parallel CSMI processing.
+
+    Calls run_csmi and immediately extracts fitted parameters into a plain dict
+    (required for safe inter-process serialisation with joblib).
+    Column names follow the pattern ``{param_name}_{condition_slug}``
+    where ``condition_slug`` replaces ': ' and ' ' with '_'.
+
+    Returns
+    -------
+    dict
+        Keys: 'Subject ID', one key per fitted parameter, 'fit_error_{condition_slug}'.
+        On failure returns {'Subject ID': subject_id} with a warning printed.
+    """
+    slug = condition.replace(': ', '_').replace(' ', '_')
+    try:
+        subj = run_csmi(filepath, body_height_m, body_weight_kg, name=f"{subject_id}_{slug}", config=config)
+        if plot:
+            from pathlib import Path as _Path
+            output_dir = _Path(filepath).parent.parent.parent / "results" / "csmi_plots"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_file = output_dir / f"csmi_{subject_id}_{slug}.pdf"
+            if overwrite_plots or not output_file.exists():
+                fig = subj.plot()
+                fig.write_image(str(output_file), width=397, height=562, scale=1)
+        param_names = list(subj.params.names())
+        param_vals = [float(x) for x in subj.params.values(only_free=False)]
+        return {
+            'Subject ID': subject_id,
+            **{f'{name}_{slug}': val for name, val in zip(param_names, param_vals)},
+            f'fit_error_{slug}': float(subj.fit_output.fun),
+        }
+    except Exception as e:
+        print(f"  ✗ {subject_id} - {condition}: {e}")
+        return {'Subject ID': subject_id}
+
+
+def run_csmi_batch(
+    metadata: pd.DataFrame,
+    subjects: Union[int, str, List[Union[int, str]], None] = None,
+    conditions: Union[int, str, List[Union[int, str]], None] = None,
+    config: AnaropiaPreprocessingConfig = None,
+    n_jobs: int = -1,
+    plot: bool = False,
+    overwrite_plots: bool = True
+) -> pd.DataFrame:
+    """
+    Run CSMI analysis for all subjects and conditions in parallel.
+
+    Returns a results DataFrame (Subject ID + fitted parameters) that can be
+    saved independently and merged with metadata as needed. Fitted parameter
+    columns follow the naming convention ``{param_name}_{condition_slug}``
+    (e.g. ``W_c5_s0_v1``).
+
+    Parameters
+    ----------
+    metadata : pd.DataFrame
+        Metadata table as returned by get_metadata(). Used for file lookup and
+        to extract body_height_m / body_weight_kg per subject.
+    subjects : int, str, list, or None
+        Subject selection passed to batch_iterator. None = all subjects.
+    conditions : int, str, list, or None
+        Condition selection passed to batch_iterator. None = all conditions.
+    config : AnaropiaPreprocessingConfig, optional
+        Shared preprocessing config for all trials. Defaults to
+        AnaropiaPreprocessingConfig().
+    n_jobs : int, default=-1
+        Number of parallel workers (passed to joblib.Parallel).
+        -1 uses all available CPUs.
+    plot : bool, default=False
+        If True, saves a Bode plot for each subject/condition as
+        ``results/csmi_plots/csmi_{subject_id}_{condition_slug}.pdf``.
+    overwrite_plots : bool, default=True
+        If False, skips saving a plot when the PDF file already exists.
+        Has no effect when ``plot=False``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Results table with 'Subject ID' as key plus one column per fitted
+        parameter per condition. One row per subject.
+
+    Examples
+    --------
+    >>> config = bp.AnaropiaPreprocessingConfig()
+    >>> config.end_time_seconds = 220
+    >>> config.cut_to_cycles = True
+    >>> csmi_df = bp.run_csmi_batch(metadata, conditions=['c5: s0_v1', 'c6: s0_v2'], config=config)
+    >>> csmi_df.to_parquet('../results/csmi_results.parquet', index=False)
+    >>> metadata = metadata.merge(csmi_df, on='Subject ID', how='left')
+    """
+    from joblib import Parallel, delayed
+
+    if config is None:
+        config = AnaropiaPreprocessingConfig()
+
+    # kaleido (used for PDF export) spawns a Chromium subprocess per worker (~150-300 MB each).
+    # Cap parallelism to 3 when plotting to avoid OOM; user can still pass a lower value explicitly.
+    if plot and (n_jobs > 3 or n_jobs < 0):
+        n_jobs = 3
+
+    # Build job list in main process — only scalars cross process boundaries
+    jobs = []
+    for subject_id, condition, filepath, _ in batch_iterator(
+        metadata, subjects=subjects, conditions=conditions, skip_nfu=None
+    ):
+        body_height_m = metadata.loc[metadata['Subject ID'] == subject_id, 'body_height_m'].values[0]
+        body_weight_kg = metadata.loc[metadata['Subject ID'] == subject_id, 'body_weight_kg'].values[0]
+        jobs.append((subject_id, condition, filepath, body_height_m, body_weight_kg, config))
+
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(_run_csmi_job)(*job, plot=plot, overwrite_plots=overwrite_plots) for job in jobs
+    )
+
+    # One result row per subject+condition; pivot to one row per subject
+    return pd.DataFrame(results).groupby('Subject ID').first().reset_index()

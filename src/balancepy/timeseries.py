@@ -9,7 +9,7 @@ def resample(
     data: NDArray[np.number],
     sampling_rate: float,
     end_time_seconds: float = 0,
-) -> NDArray:
+) -> tuple[NDArray, NDArray]:
     """resamples to fixed sample rate
 
     Args:
@@ -19,7 +19,7 @@ def resample(
         end_time_seconds (float, optional): optional end time of resampled data in seconds. Defaults to 0.
 
     Returns:
-        NDArray: 1D or 2D with resampled data input
+        tuple[NDArray, NDArray]: resampled data and corresponding time vector
     """
 
     assert time_s.ndim == 1
@@ -31,16 +31,16 @@ def resample(
     n_samples = int(end_time_seconds * sampling_rate)
     new_time_vector = np.linspace(0, end_time_seconds, n_samples, endpoint=False)
 
-    out = interp1d(time_s, data, kind='cubic', fill_value='extrapolate')(new_time_vector)
+    resampled_data = interp1d(time_s, data, kind='cubic', fill_value='extrapolate')(new_time_vector)
 
-    return out
+    return resampled_data, new_time_vector
 
 def butterworth_filter(
     data: np.ndarray,
     samplingrate_Hz: float,
     order: int,
-    cutoff_Hz: float,
-    filter_type: str = 'low'
+    cutoff_Hz: float | list[float],
+    filter_type: str = 'lowpass'
 ) -> np.ndarray:
     """Apply Butterworth filter to data.
 
@@ -48,26 +48,24 @@ def butterworth_filter(
         data (np.ndarray): Input data to filter.
         samplingrate_Hz (float): Sampling rate in Hz.
         order (int): Filter order.
-        cutoff_Hz (float): Cutoff frequency in Hz.
-        filter_type (str, optional): Type of filter: 'low', 'high', 'band'. Defaults to 'low'.
+        cutoff_Hz (float or [float, float]): Cutoff frequency in Hz. For 'bandpass'
+            and 'bandstop', pass a 2-element list [low, high].
+        filter_type (str, optional): Type of filter: 'lowpass', 'highpass', 'bandpass',
+            'bandstop'. Defaults to 'lowpass'.
 
     Returns:
         np.ndarray: Filtered data.
     """
-    # Normalize cutoff frequency relative to Nyquist frequency
     nyquist = samplingrate_Hz / 2
-    normalized_cutoff = cutoff_Hz / nyquist
-    
-    # Ensure normalized cutoff is in valid range
-    if normalized_cutoff >= 1:
-        normalized_cutoff = 0.99
-    
-    # Design filter
+
+    if isinstance(cutoff_Hz, (list, tuple, np.ndarray)):
+        normalized_cutoff = [min(f / nyquist, 0.99) for f in cutoff_Hz]
+    else:
+        normalized_cutoff = min(cutoff_Hz / nyquist, 0.99)
+
     b, a = butter(order, normalized_cutoff, btype=filter_type)
-    
-    # Apply filter (zero-phase filtering using filtfilt)
     filtered_data = filtfilt(b, a, data)
-    
+
     return filtered_data
 
 def cut_to_cycles(
