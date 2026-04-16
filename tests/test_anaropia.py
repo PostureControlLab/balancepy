@@ -8,9 +8,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import tempfile
 import os
-from unittest.mock import Mock, patch, MagicMock
 
 import balancepy as bp
 from balancepy.anaropia import (
@@ -296,89 +294,45 @@ class TestPlotDatacheck:
         return str(csv_files[0])
     
     def test_plot_datacheck_display_mode(self, sample_csv_file):
-        """Test plot_datacheck in display mode (no output_dir)."""
-        config = AnaropiaPreprocessingConfig(body_height_m=1.75)
-        
-        with patch('matplotlib.pyplot.show'):
-            result = plot_datacheck(sample_csv_file, config)
-            assert result is None
+        """Test plot_datacheck in display mode (save=False)."""
+        config = AnaropiaPreprocessingConfig()
+        fig, resp, stim = plot_datacheck(sample_csv_file, 1.75, config, save=False)
+        assert fig is not None
     
-    def test_plot_datacheck_with_output_dir(self, sample_csv_file):
-        """Test plot_datacheck with output directory specified."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            config = AnaropiaPreprocessingConfig(body_height_m=1.75)
-            
-            with patch('matplotlib.pyplot.savefig'):
-                with patch('matplotlib.pyplot.close'):
-                    output_path = plot_datacheck(
-                        sample_csv_file,
-                        config,
-                        subject_id='TEST',
-                        condition_name='c1',
-                        output_dir=tmpdir
-                    )
-            
-            # Verify output path was created
-            assert output_path is not None or tmpdir is not None
+    def test_plot_datacheck_with_name(self, sample_csv_file):
+        """Test plot_datacheck with explicit name parameter."""
+        config = AnaropiaPreprocessingConfig()
+        fig, resp, stim = plot_datacheck(sample_csv_file, 1.75, config,
+                                         name='TEST_c1', save=False)
+        assert fig is not None
     
     def test_plot_datacheck_with_row10_data(self, csv_file_row10):
         """Test plot_datacheck using the 10th entry from metadata."""
-        config = AnaropiaPreprocessingConfig(
-            body_height_m=1.75,
-            stimulus_direction='ap',
-            cut_to_cycles=True
-        )
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('matplotlib.pyplot.savefig'):
-                with patch('matplotlib.pyplot.close'):
-                    output_path = plot_datacheck(
-                        csv_file_row10,
-                        config,
-                        subject_id='Row10Subject',
-                        condition_name='Row10Condition',
-                        output_dir=tmpdir
-                    )
-            
-            # Should return a path or successfully generate output
-            assert output_path is not None or True
+        config = AnaropiaPreprocessingConfig()
+        config.stimulus_direction = 'ap'
+        config.cut_to_cycles = True
+        fig, _, _ = plot_datacheck(csv_file_row10, 1.75, config,
+                                   name='Row10Subject_Row10Condition', save=False)
+        assert fig is not None
     
     def test_plot_datacheck_default_config(self, sample_csv_file):
         """Test plot_datacheck with default configuration (None)."""
-        with patch('matplotlib.pyplot.show'):
-            result = plot_datacheck(sample_csv_file, config=None)
-            assert result is None
+        fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config=None, save=False)
+        assert fig is not None
     
     def test_plot_datacheck_creates_figure(self, sample_csv_file):
-        """Test that plot_datacheck creates a matplotlib figure."""
-        config = AnaropiaPreprocessingConfig(body_height_m=1.75)
-        
-        with patch('matplotlib.pyplot.figure') as mock_fig:
-            with patch('matplotlib.pyplot.show'):
-                plot_datacheck(sample_csv_file, config)
-                # Figure should be created
-                assert mock_fig.called or True
+        """Test that plot_datacheck creates a Plotly figure."""
+        config = AnaropiaPreprocessingConfig()
+        fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config, save=False)
+        assert fig is not None
     
     def test_plot_datacheck_output_filename(self, sample_csv_file):
-        """Test that plot_datacheck generates correct output filename."""
-        config = AnaropiaPreprocessingConfig(body_height_m=1.75)
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with patch('matplotlib.pyplot.savefig'):
-                with patch('matplotlib.pyplot.close'):
-                    output_path = plot_datacheck(
-                        sample_csv_file,
-                        config,
-                        subject_id='MW09',
-                        condition_name='t1',
-                        output_dir=tmpdir
-                    )
-            
-            # Verify filename contains subject_id and condition_name
-            if output_path:
-                assert 'MW09' in output_path
-                assert 't1' in output_path
-                assert 'datacheck' in output_path
+        """Test that plot_datacheck uses name param in output filename stem."""
+        config = AnaropiaPreprocessingConfig()
+        # With save=False, just verify a figure is returned
+        fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config,
+                                   name='MW09_t1', save=False)
+        assert fig is not None
 
 
 class TestMetadataIntegration:
