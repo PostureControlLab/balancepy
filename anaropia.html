@@ -69,13 +69,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig.samplingrate_Hz</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.batch_iterator"><code class="docutils literal notranslate"><span class="pre">batch_iterator()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.get_filename_from_metadata"><code class="docutils literal notranslate"><span class="pre">get_filename_from_metadata()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.get_metadata"><code class="docutils literal notranslate"><span class="pre">get_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.getdata_anaropia"><code class="docutils literal notranslate"><span class="pre">getdata_anaropia()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.plot_datacheck"><code class="docutils literal notranslate"><span class="pre">plot_datacheck()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.run_csmi"><code class="docutils literal notranslate"><span class="pre">run_csmi()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#balancepy.anaropia.run_csmi_batch"><code class="docutils literal notranslate"><span class="pre">run_csmi_batch()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#balancepy.biomechanics.get_com"><code class="docutils literal notranslate"><span class="pre">get_com()</span></code></a></li>
 </ul>
 </li>
@@ -292,172 +288,6 @@ Standard: 260, Legacy: 220 (adjust as needed).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="balancepy.anaropia.batch_iterator">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">batch_iterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subjects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data/raw'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_nfu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[4,</span> <span class="pre">5,</span> <span class="pre">6]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.batch_iterator" title="Link to this definition"></a></dt>
-<dd><p>Iterate over subject-condition combinations in metadata, yielding file paths and configs.</p>
-<p>Yields one tuple per valid subject-condition pair, with flexible indexing:
-- Subjects: row number (int), subject ID (str), or list of either
-- Conditions: condition number (int, e.g. 1 for “c1: …”), full name (str), or list of either</p>
-<p>Missing files indicated by -1 in the metadata cell are skipped silently without warnings.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – Metadata table (typically from get_metadata()).</p></li>
-<li><p><strong>subjects</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Subject(s) to process. Can be:
-- None: all subjects
-- int: single row number (0-indexed)
-- str: single subject ID
-- list: mix of row numbers and/or subject IDs, e.g. [0, ‘MW09’, 2]</p></li>
-<li><p><strong>conditions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Condition(s) to process. Can be:
-- None: all conditions
-- int: single condition number (1, 2, 3, …)
-- str: full condition name (e.g. ‘c1: eyes open’)
-- list: mix of numbers and/or names, e.g. [1, ‘c2: eyes closed’]</p></li>
-<li><p><strong>data_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Data directory relative to parent folder. Default: ‘data/raw’</p></li>
-<li><p><strong>skip_nfu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]]</span>) – NFU (Not For Use) categories to skip. Entries with matching NFU values
-will not be yielded. Convention: NFU columns are named “NFU {conditionname}”.
-Default: [4, 5, 6] (Poor FRF Fit, Marker Missing, File Missing).
-Set to None to disable NFU filtering.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Yields<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>subject_id</strong> (<em>str</em>) – Subject identifier from metadata</p></li>
-<li><p><strong>condition</strong> (<em>str</em>) – Full condition column name (e.g. ‘c1: eyes open’)</p></li>
-<li><p><strong>filepath</strong> (<em>str</em>) – Full path to data file</p></li>
-<li><p><strong>config</strong> (<em>AnaropiaPreprocessingConfig</em>) – Config with body_height_m set from metadata</p></li>
-</ul>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<p>Files marked with -1 in the metadata condition cell are treated as missing and are
-skipped silently without warning messages.</p>
-<p>Entries with NFU (Not For Use) values in the skip_nfu list are also skipped silently.
-The NFU column is identified by the naming convention “NFU {conditionname}”.
-By default, NFU categories 4, 5, and 6 are skipped (Poor FRF Fit, Marker Missing, File Missing).
-Set skip_nfu=None to disable this filtering.</p>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># All subjects, first 2 conditions (skips NFU 4, 5, 6 by default)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">batch_iterator</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]):</span>
-<span class="gp">... </span>    <span class="n">plot_datacheck</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Specific subjects by ID, all conditions</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">batch_iterator</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">subjects</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;MW09&#39;</span><span class="p">,</span> <span class="s1">&#39;AN16&#39;</span><span class="p">]):</span>
-<span class="gp">... </span>    <span class="n">plot_datacheck</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Row 0, condition by name, skip only NFU 6 (file missing)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">batch_iterator</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">subjects</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="s1">&#39;c1: eyes open&#39;</span><span class="p">,</span> <span class="n">skip_nfu</span><span class="o">=</span><span class="p">[</span><span class="mi">6</span><span class="p">]):</span>
-<span class="gp">... </span>    <span class="n">plot_datacheck</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Disable NFU filtering entirely</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">batch_iterator</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">subjects</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;MW09&#39;</span><span class="p">],</span> <span class="n">conditions</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">skip_nfu</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="c1"># process each file</span>
-<span class="gp">... </span>    <span class="k">pass</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="balancepy.anaropia.get_filename_from_metadata">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">get_filename_from_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data/raw'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.get_filename_from_metadata" title="Link to this definition"></a></dt>
-<dd><p>Obtain the data filename from metadata, with intelligent fallback and fuzzy matching.</p>
-<p>Retrieves a data filename from metadata by subject and condition, with automatic
-defaults and fuzzy file matching. If the metadata cell contains just a number,
-searches for filenames matching: _s{subject_id}_t{number}.csv</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Metadata DataFrame. If None, loads default metadata file from ‘../data/metadata.xlsx’.</p></li>
-<li><p><strong>subject</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – <code class="docutils literal notranslate"><span class="pre">str</span></code> → matched against the ‘Subject ID’ column (e.g. <code class="docutils literal notranslate"><span class="pre">'MW09AB13'</span></code>).
-<code class="docutils literal notranslate"><span class="pre">int</span></code> → used as a zero-based row index (e.g. <code class="docutils literal notranslate"><span class="pre">0</span></code> for first subject).
-<code class="docutils literal notranslate"><span class="pre">None</span></code> → defaults to row 0.</p></li>
-<li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – <code class="docutils literal notranslate"><span class="pre">str</span></code> → exact or prefix match against condition column names
-(e.g. <code class="docutils literal notranslate"><span class="pre">'c1:</span> <span class="pre">eyes</span> <span class="pre">open'</span></code>, <code class="docutils literal notranslate"><span class="pre">'c1'</span></code>).
-<code class="docutils literal notranslate"><span class="pre">int</span></code> → condition number, matched as <code class="docutils literal notranslate"><span class="pre">c{n}...</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">1</span></code> → <code class="docutils literal notranslate"><span class="pre">'c1:</span> <span class="pre">...'</span></code>).
-<code class="docutils literal notranslate"><span class="pre">None</span></code> → uses the first condition column found.</p></li>
-<li><p><strong>data_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Directory where data files are located.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Full path to the data file.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>FileNotFoundError</strong> – If metadata or data files not found, or if no matching file exists.</p></li>
-<li><p><strong>ValueError</strong> – If subject not found, row index out of bounds, or condition not found.</p></li>
-</ul>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="s1">&#39;MW09AB13&#39;</span><span class="p">,</span> <span class="s1">&#39;c1: eyes open&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="s1">&#39;MW09AB13&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;c1: eyes open&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span> <span class="n">get_filename_from_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="balancepy.anaropia.get_metadata">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">get_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_information</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.get_metadata" title="Link to this definition"></a></dt>
-<dd><p>Load and validate metadata from an Excel file.</p>
-<p>This function reads metadata containing subject information and experimental
-conditions, then performs several checks:
-- Validates that all required columns are present and properly formatted
-- Extracts condition information (columns starting with ‘c’)
-- Reports data quality metrics for each condition using NFU (Not For Use) scores</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to metadata Excel file. If None, loads default file from
-‘../data/metadata.xlsx’ relative to current working directory.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Metadata table with subject information and condition data.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>Exception</strong> – If no condition columns are found in the metadata file.</p></li>
-<li><p><strong>Required Columns</strong> – </p></li>
-<li><p><strong>----------------</strong> – </p></li>
-<li><p><strong>The metadata file must contain the following columns:</strong> – </p></li>
-</ul>
-</dd>
-</dl>
-<p>:raises - Subject ID : Unique identifier for each subject:
-:raises - body_height_m : Subject height in meters:
-:raises - body_weight_kg : Subject weight in kilograms:
-:raises - age_years : Subject age in years:
-:raises - sex : Subject sex (e.g., ‘m’, ‘w’):
-:raises Column Naming Conventions:
-:raises ————————-:
-:raises Condition columns : Start with ‘c’ (e.g., ‘c1: eyes open’, ‘c2: eyes closed’):
-:raises NFU columns : Start with ‘NFU ‘ followed by condition name (e.g., ‘NFU c1: eyes open’):
-:raises NFU (Not For Use) Category Definitions:
-:raises —————————————-:
-:raises Score 0 - All Good : The data file is complete, with no irregularities detected.:
-:raises Score 1 - Big Movements : Excessive participant movements were detected.:
-:raises Score 2 - &gt;5 HMD Spikes : The data contains more than five spikes in the: Head-Mounted Display (HMD) measurements.
-:raises Score 3 - Other Irregularities : Any other issues not covered by the above categories: that might affect data quality.
-:raises Score 4 - Poor FRF Fit : The Frequency Response Function (FRF) fit does not meet: the required criteria.
-:raises Score 5 - Marker Missing : One or more required markers are missing.:
-:raises Score 6 - File Missing : The corresponding data file is not available.:
-:raises Data Quality Grouping:
-:raises ———————-:
-:raises - Valid (0): Ready for analysis:
-:raises - Warnings (1-3): Use with caution, review data quality:
-:raises - Invalid (4-6): Do not use for analysis:</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="balancepy.anaropia.getdata_anaropia">
 <span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">getdata_anaropia</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ap'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_weight_kg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.getdata_anaropia" title="Link to this definition"></a></dt>
 <dd><p>Access and format data from balance experiments recorded with Anaropia.</p>
@@ -512,40 +342,57 @@ configuration with standard settings.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="balancepy.anaropia.plot_datacheck">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">plot_datacheck</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.plot_datacheck" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">plot_datacheck</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.plot_datacheck" title="Link to this definition"></a></dt>
 <dd><p>Plot data for comprehensive visual inspection of quality and structure.</p>
 <p>Generates a DinA4 landscape-formatted figure with multiple subplots for visually
-inspecting stimulus and response data using Plotly. The figure includes raw data translations,
-resampled stimulus and response with cycle indicators, and cycle-by-cycle analysis.</p>
+inspecting stimulus and response data using Plotly. The figure includes raw data
+translations, resampled stimulus and response with cycle indicators, and
+cycle-by-cycle analysis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to the Anaropia data file (CSV format) to be plotted.</p></li>
-<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></span>) – Configuration object for data preprocessing. If None, uses default configuration.</p></li>
-<li><p><strong>subject_id</strong> (<em>str</em><em>, </em><em>optional</em>) – Subject identifier for output filename. If None, uses input filename stem.</p></li>
-<li><p><strong>condition_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Condition name for output filename. If None, uses input filename stem.</p></li>
-<li><p><strong>output_dir</strong> (<em>str</em><em>, </em><em>optional</em>) – Directory where the HTML will be saved. If None, displays the figure in browser.</p></li>
+<li><p><strong>body_height_m</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Subject body height in metres, used for COM calculation.</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></span>) – Preprocessing configuration. If None, uses default settings.</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Label used as both the output filename stem (<code class="docutils literal notranslate"><span class="pre">datacheck_{name}.pdf</span></code>)
+and the figure title. If None, falls back to the input filename stem.</p></li>
+<li><p><strong>output_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Custom directory for saving the figure. If None, saves to the raw data file location.</p></li>
+<li><p><strong>save</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, write the figure to the datacheck_plots directory.
+If <code class="docutils literal notranslate"><span class="pre">False</span></code>, return the figure without saving.
+To skip existing files in a batch loop, check <code class="docutils literal notranslate"><span class="pre">datacheck_output_path()</span></code>
+before calling this function.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Path to the saved HTML file, or None if displayed instead of saved.</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></span></p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>fig</strong> (<em>plotly.graph_objects.Figure</em>)</p></li>
+<li><p><strong>response_resampled</strong> (<em>np.ndarray</em>)</p></li>
+<li><p><strong>stimulus_resampled</strong> (<em>np.ndarray</em>)</p></li>
+</ul>
+</p>
 </dd>
 </dl>
-<p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">(</span><span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_datacheck</span><span class="p">(</span><span class="s1">&#39;data/raw/sMW09ON27_t1.csv&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">save_fig</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="gp">... </span>               <span class="n">subject_id</span><span class="o">=</span><span class="s1">&#39;MW09&#39;</span><span class="p">,</span> <span class="n">condition_name</span><span class="o">=</span><span class="s1">&#39;t1&#39;</span><span class="p">,</span>
-<span class="gp">... </span>               <span class="n">output_dir</span><span class="o">=</span><span class="s1">&#39;results/&#39;</span><span class="p">)</span>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">datacheck_output_path</span></code></dt><dd><p>Returns the output path without generating the figure.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">AnaropiaPreprocessingConfig</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">plot_datacheck</span><span class="p">(</span><span class="s1">&#39;data/raw/sMW09ON27_t5.csv&#39;</span><span class="p">,</span> <span class="mf">1.75</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span>
+<span class="gp">... </span>                           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MW09ON27_c5_s0_v1&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="balancepy.anaropia.run_csmi">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">run_csmi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_weight_kg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.run_csmi" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">run_csmi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_height_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_weight_kg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">com</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stimulus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.run_csmi" title="Link to this definition"></a></dt>
 <dd><p>Run a CSMI (Continuous Sensory Manipulation Identification) analysis for one trial.</p>
 <p>Loads the stimulus and COM response from <cite>filename</cite>, constructs an sr_data object,
 fits the Peterka18 model, and returns the fitted model object.</p>
@@ -571,50 +418,6 @@ fits the Peterka18 model, and returns the fitted model object.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">cut_to_cycles</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subj</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">run_csmi</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">body_height_m</span><span class="o">=</span><span class="mf">1.75</span><span class="p">,</span> <span class="n">body_weight_kg</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subj</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="balancepy.anaropia.run_csmi_batch">
-<span class="sig-prename descclassname"><span class="pre">balancepy.anaropia.</span></span><span class="sig-name descname"><span class="pre">run_csmi_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subjects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#balancepy.anaropia.run_csmi_batch" title="Link to this definition"></a></dt>
-<dd><p>Run CSMI analysis for all subjects and conditions in parallel.</p>
-<p>Returns a results DataFrame (Subject ID + fitted parameters) that can be
-saved independently and merged with metadata as needed. Fitted parameter
-columns follow the naming convention <code class="docutils literal notranslate"><span class="pre">{param_name}_{condition_slug}</span></code>
-(e.g. <code class="docutils literal notranslate"><span class="pre">W_c5_s0_v1</span></code>).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – Metadata table as returned by get_metadata(). Used for file lookup and
-to extract body_height_m / body_weight_kg per subject.</p></li>
-<li><p><strong>subjects</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Subject selection passed to batch_iterator. None = all subjects.</p></li>
-<li><p><strong>conditions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Condition selection passed to batch_iterator. None = all conditions.</p></li>
-<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#balancepy.anaropia.AnaropiaPreprocessingConfig" title="balancepy.anaropia.AnaropiaPreprocessingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">AnaropiaPreprocessingConfig</span></code></a></span>) – Shared preprocessing config for all trials. Defaults to
-AnaropiaPreprocessingConfig().</p></li>
-<li><p><strong>n_jobs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of parallel workers (passed to joblib.Parallel).
--1 uses all available CPUs.</p></li>
-<li><p><strong>plot</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, saves a Bode plot for each subject/condition as
-<code class="docutils literal notranslate"><span class="pre">results/csmi_plots/csmi_{subject_id}_{condition_slug}.pdf</span></code>.</p></li>
-<li><p><strong>overwrite_plots</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, skips saving a plot when the PDF file already exists.
-Has no effect when <code class="docutils literal notranslate"><span class="pre">plot=False</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Results table with ‘Subject ID’ as key plus one column per fitted
-parameter per condition. One row per subject.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">AnaropiaPreprocessingConfig</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">end_time_seconds</span> <span class="o">=</span> <span class="mi">220</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">cut_to_cycles</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">csmi_df</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">run_csmi_batch</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;c5: s0_v1&#39;</span><span class="p">,</span> <span class="s1">&#39;c6: s0_v2&#39;</span><span class="p">],</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">csmi_df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s1">&#39;../results/csmi_results.parquet&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">metadata</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">csmi_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;Subject ID&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
