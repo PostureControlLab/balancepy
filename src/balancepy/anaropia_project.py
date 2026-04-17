@@ -367,9 +367,8 @@ def screen_quality_flags(
             flags_df.loc[mask, 'flag_code'] = flag_code
             flags_df.loc[mask, 'screened_at'] = now
             flags_df.loc[mask, 'trial_code'] = trial_code
-            existing_note = str(flags_df.loc[mask, 'note'].values[0]).strip()
             if note:
-                flags_df.loc[mask, 'note'] = f"{existing_note} | {note}" if existing_note else note
+                flags_df.loc[mask, 'note'] = note
         else:
             new_row = pd.DataFrame([{
                 'subject_id': subject_id, 'condition_name': condition_name,
@@ -419,7 +418,10 @@ def screen_quality_flags(
 
         note = ''
         if flag_code != 0:
-            note = input("Note: ").strip()
+            prefill = current_note if current_note else ''
+            note = input(f"Note [{prefill}]: ").strip()
+            if not note:
+                note = prefill
 
         _upsert(subject_id, condition_name, flag_code, note)
         write_quality_flags(flags_df, paths)
