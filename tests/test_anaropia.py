@@ -1,393 +1,215 @@
 """
 Tests for the anaropia module.
 
-Tests cover data loading, preprocessing, metadata handling, and visualization features.
+Tests cover config dataclasses, helper functions, preprocessing pipeline,
+data loading (deprecated API), and visualization features.
 """
 
 import pytest
+import warnings
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import os
+from dataclasses import replace
 
 import balancepy as bp
 from balancepy.anaropia import (
     AnaropiaPreprocessingConfig,
-    get_metadata,
-    get_filename_from_metadata,
-    getdata_anaropia,
-    getdata_legacy,
-    plot_datacheck
+    COMConfig,
+    AnaropiaSRDataConfig,
+    SR_LEGACY_AP,
+    SR_LEGACY_ML,
+    SR_STANDARD_AP,
+    SR_STANDARD_ML,
+    COM_LEGACY_AP,
+    COM_LEGACY_ML,
+    COM_STANDARD_AP,
+    COM_STANDARD_ML,
+    _extract_stimulus,
+    _extract_response,
+    preprocess,
+    plot_datacheck,
+    run_csmi,
 )
 
 
-class TestGetMetadata:
-    """Tests for the get_metadata function."""
-    
-    @pytest.fixture
-    def metadata_file(self):
-        """Fixture providing path to the test metadata file."""
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        metadata_path = data_dir / 'metadata.xlsx'
-        assert metadata_path.exists(), f"Metadata file not found at {metadata_path}"
-        return str(metadata_path)
-    
-    def test_metadata_loads_successfully(self, metadata_file):
-        """Test that metadata file loads without errors when print_information is False."""
-        metadata = get_metadata(filename=metadata_file, print_information=False)
-        assert isinstance(metadata, pd.DataFrame)
-        assert len(metadata) > 0
-    
-    def test_metadata_required_columns(self, metadata_file):
-        """Test that metadata contains required columns."""
-        metadata = get_metadata(filename=metadata_file, print_information=False)
-        required_columns = ['Subject ID', 'height_m', 'weight_kg', 'age_years', 'sex']
-        
-        for col in required_columns:
-            assert col in metadata.columns, f"Required column '{col}' not found"
-    
-    def test_metadata_condition_columns(self, metadata_file):
-        """Test that metadata contains condition columns starting with 'c'."""
-        metadata = get_metadata(filename=metadata_file, print_information=False)
-        condition_cols = [c for c in metadata.columns if isinstance(c, str) and c.startswith('c')]
-        
-        assert len(condition_cols) > 0, "No condition columns found (should start with 'c')"
-    
-    def test_metadata_print_information(self, metadata_file, capsys):
-        """Test that print_information parameter controls output."""
-        metadata = get_metadata(filename=metadata_file, print_information=True)
-        captured = capsys.readouterr()
-        
-        # Should contain some informational output
-        assert "Metadata file check:" in captured.out or "subjects" in captured.out
-    
-    def test_metadata_file_not_found(self):
-        """Test that FileNotFoundError is raised for non-existent file."""
-        with pytest.raises(FileNotFoundError):
-            get_metadata(filename='/nonexistent/path/metadata.xlsx', print_information=False)
+# ── Fixtures ──────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def sample_csv_file():
+    """Path to a sample legacy-format Anaropia data file."""
+    data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
+    csv_files = list(data_dir.glob('d1*.csv'))
+    assert len(csv_files) > 0, "No sample CSV files found in notebooks/data"
+    return str(csv_files[0])
 
 
-class TestGetFilenameFromMetadata:
-    """Tests for the get_filename_from_metadata function."""
-    
-    @pytest.fixture
-    def metadata_file(self):
-        """Fixture providing path to the test metadata file."""
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        metadata_path = data_dir / 'metadata.xlsx'
-        assert metadata_path.exists()
-        return str(metadata_path)
-    
-    @pytest.fixture
-    def metadata_df(self, metadata_file):
-        """Fixture providing loaded metadata DataFrame."""
-        return pd.read_excel(metadata_file)
-    
-    def test_get_filename_row_0(self, metadata_df):
-        """Test retrieving filename from first row."""
-        result = get_filename_from_metadata(
-            metadata=metadata_df,
-            row_number=0,
-            data_dir='notebooks/data'
-        )
-        assert isinstance(result, str)
-        assert 'd1' in result  # Dataset 1
-        assert '.csv' in result
-    
-    def test_get_filename_row_10(self, metadata_df):
-        """Test retrieving filename from 10th row (index 9)."""
-        result = get_filename_from_metadata(
-            metadata=metadata_df,
-            row_number=9,
-            data_dir='notebooks/data'
-        )
-        assert isinstance(result, str)
-        assert '.csv' in result
-    
-    def test_get_filename_invalid_row(self, metadata_df):
-        """Test that ValueError is raised for invalid row number."""
-        with pytest.raises(ValueError):
-            get_filename_from_metadata(
-                metadata=metadata_df,
-                row_number=999,
-                data_dir='notebooks/data'
-            )
-    
-    def test_get_filename_by_subject_id(self, metadata_df):
-        """Test retrieving filename by subject ID."""
-        # Get first subject ID from metadata
-        first_subject = metadata_df.iloc[0]['Subject ID']
-        result = get_filename_from_metadata(
-            metadata=metadata_df,
-            subject_id=first_subject,
-            data_dir='notebooks/data'
-        )
-        assert isinstance(result, str)
-        assert '.csv' in result
-    
-    def test_get_filename_condition_column(self, metadata_df):
-        """Test retrieving filename with condition column specification."""
-        condition_cols = [c for c in metadata_df.columns if isinstance(c, str) and c.startswith('c')]
-        if condition_cols:
-            result = get_filename_from_metadata(
-                metadata=metadata_df,
-                row_number=0,
-                condition=condition_cols[0],
-                data_dir='notebooks/data'
-            )
-            assert isinstance(result, str)
-            assert '.csv' in result or result.endswith('csv')
-    
-    def test_get_filename_substring_match(self, metadata_df):
-        """Test that substring matching works for partial filenames."""
-        # Get a condition value from metadata
-        condition_cols = [c for c in metadata_df.columns if isinstance(c, str) and c.startswith('c')]
-        if condition_cols:
-            filename_value = str(metadata_df.iloc[0][condition_cols[0]]).strip()
-            
-            # If it's a filename like "d1_eo.csv", verify substring matching works
-            if filename_value.endswith('.csv'):
-                result = get_filename_from_metadata(
-                    metadata=metadata_df,
-                    row_number=0,
-                    data_dir='notebooks/data'
-                )
-                assert filename_value in result or filename_value.replace('.csv', '') in result
-    
-    def test_get_filename_invalid_subject(self, metadata_df):
-        """Test that ValueError is raised for non-existent subject ID."""
-        with pytest.raises(ValueError):
-            get_filename_from_metadata(
-                metadata=metadata_df,
-                subject_id='NONEXISTENT_SUBJECT_ID_12345',
-                data_dir='notebooks/data'
+@pytest.fixture
+def raw_data(sample_csv_file):
+    """Loaded structured NumPy array from the sample CSV."""
+    return np.genfromtxt(sample_csv_file, delimiter=',', names=True)
+
+
+# ── AnaropiaPreprocessingConfig ──────────────────────────────────────────
+
+class TestAnaropiaPreprocessingConfig:
+    def test_defaults(self):
+        cfg = AnaropiaPreprocessingConfig()
+        assert cfg.samplingrate_Hz == 90
+        assert cfg.resample is True
+        assert cfg.filter_type is None
+        assert cfg.cut_to_cycles is False
+
+    def test_filter_type_validation(self):
+        with pytest.raises(ValueError, match="filter_type"):
+            AnaropiaPreprocessingConfig(filter_type='invalid_filter')
+
+    def test_filter_type_none_allowed(self):
+        cfg = AnaropiaPreprocessingConfig(filter_type=None)
+        assert cfg.filter_type is None
+
+    def test_replace(self):
+        cfg = AnaropiaPreprocessingConfig()
+        cfg2 = replace(cfg, resample=False, cut_to_cycles=False)
+        assert cfg2.resample is False
+        assert cfg2.cut_to_cycles is False
+        assert cfg.resample is True  # original unchanged
+
+
+# ── COMConfig ────────────────────────────────────────────────────────────
+
+class TestCOMConfig:
+    def test_legacy_ap(self):
+        assert COM_LEGACY_AP.shoulder_pos_column == 'shld_zpos'
+        assert COM_LEGACY_AP.hip_pos_column == 'hip_zpos'
+        assert COM_LEGACY_AP.rotation is True
+
+    def test_legacy_ml(self):
+        assert COM_LEGACY_ML.shoulder_pos_column == 'shld_xpos'
+        assert COM_LEGACY_ML.hip_pos_column == 'hip_xpos'
+
+    def test_standard_ap(self):
+        assert COM_STANDARD_AP.shoulder_pos_column == 'LeftShoulder_pos_z'
+
+    def test_standard_ml(self):
+        assert COM_STANDARD_ML.shoulder_pos_column == 'LeftShoulder_pos_x'
+
+
+# ── AnaropiaSRDataConfig ────────────────────────────────────────────────
+
+class TestAnaropiaSRDataConfig:
+    def test_predefined_legacy_ap(self):
+        assert SR_LEGACY_AP.stimulus_column == 'stim_pitch'
+        assert SR_LEGACY_AP.response_column is None
+        assert SR_LEGACY_AP.com_config is COM_LEGACY_AP
+        assert SR_LEGACY_AP.frequency_selection == 'prts'
+
+    def test_predefined_legacy_ml(self):
+        assert SR_LEGACY_ML.stimulus_column == 'stim_roll'
+
+    def test_mutual_exclusion_enforced(self):
+        with pytest.raises(ValueError, match="response_column.*com_config"):
+            AnaropiaSRDataConfig(
+                stimulus_column='stim_pitch',
+                response_column='some_col',
+                com_config=COM_LEGACY_AP,
             )
 
+    def test_custom_response_column(self):
+        cfg = AnaropiaSRDataConfig(
+            stimulus_column='stim_pitch',
+            response_column='analog0',
+        )
+        assert cfg.response_column == 'analog0'
+        assert cfg.com_config is None
 
-class TestGetdataAnaropia:
-    """Tests for the getdata_anaropia function."""
-    
-    @pytest.fixture
-    def sample_csv_file(self):
-        """Fixture providing path to sample Anaropia data file."""
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        csv_files = list(data_dir.glob('d*.csv'))
-        assert len(csv_files) > 0, "No sample CSV files found in notebooks/data"
-        return str(csv_files[0])
-    
-    def test_getdata_anaropia_with_default_config(self, sample_csv_file):
-        """Test loading data with default configuration."""
-        com, time = getdata_anaropia(sample_csv_file, output='com')
-        stim, time2 = getdata_anaropia(sample_csv_file, output='stimulus')
-        
-        assert isinstance(com, np.ndarray)
+
+
+# ── _extract_stimulus / _extract_response ────────────────────────────────
+
+class TestExtractHelpers:
+    def test_extract_stimulus(self, raw_data):
+        stim = _extract_stimulus(raw_data, SR_LEGACY_AP)
         assert isinstance(stim, np.ndarray)
-        assert isinstance(time, np.ndarray)
-        assert len(com) > 0
-        assert len(stim) > 0
-        assert len(time) > 0
-    
-    def test_getdata_anaropia_return_shapes(self, sample_csv_file):
-        """Test that returned arrays have compatible shapes."""
-        com, time = getdata_anaropia(sample_csv_file, output='com')
-        stim, time_stim = getdata_anaropia(sample_csv_file, output='stimulus')
-        
-        # Response and stimulus should have same length (either 1D or 2D with same shape)
-        if com.ndim == 1 and stim.ndim == 1:
-            assert len(com) == len(stim) == len(time)
-        elif com.ndim == 2 and stim.ndim == 2:
-            assert com.shape == stim.shape
-    
-    def test_getdata_anaropia_with_custom_config(self, sample_csv_file):
-        """Test loading data with custom configuration."""
-        config = AnaropiaPreprocessingConfig(
-            body_height_m=1.75,
-            resample=True,
-            samplingrate_Hz=90,
-            stimulus_direction='ap',
-            cut_to_cycles=True
-        )
-        com, time = getdata_anaropia(sample_csv_file, config, output='com')
-        stim, _ = getdata_anaropia(sample_csv_file, config, output='stimulus')
-        
-        assert isinstance(com, np.ndarray)
-        assert isinstance(stim, np.ndarray)
-        assert isinstance(time, np.ndarray)
-    
-    def test_getdata_anaropia_ap_direction(self, sample_csv_file):
-        """Test data loading with anterior-posterior direction."""
-        config = AnaropiaPreprocessingConfig(
-            stimulus_direction='ap',
-            body_height_m=1.70
-        )
-        com, time = getdata_anaropia(sample_csv_file, config, output='com')
-        stim, _ = getdata_anaropia(sample_csv_file, config, output='stimulus')
-        
-        assert com is not None
-        assert stim is not None
-    
-    def test_getdata_anaropia_ml_direction(self, sample_csv_file):
-        """Test data loading with medial-lateral direction."""
-        config = AnaropiaPreprocessingConfig(
-            stimulus_direction='ml',
-            body_height_m=1.70
-        )
-        com, time = getdata_anaropia(sample_csv_file, config, output='com')
-        stim, _ = getdata_anaropia(sample_csv_file, config, output='stimulus')
-        
-        assert com is not None
-        assert stim is not None
-    
-    def test_getdata_anaropia_no_resample(self, sample_csv_file):
-        """Test data loading without resampling."""
-        config = AnaropiaPreprocessingConfig(
-            body_height_m=1.75,
-            resample=False,
-            cut_to_cycles=False
-        )
-        com, time = getdata_anaropia(sample_csv_file, config, output='com')
-        
-        assert len(com) > 0
-        # Without resampling, output length should match input data
-    
-    def test_getdata_anaropia_cut_cycles(self, sample_csv_file):
-        """Test data loading with cycle cutting enabled."""
-        config = AnaropiaPreprocessingConfig(
-            body_height_m=1.75,
-            cut_to_cycles=True,
-            cycle_start_samples=1800,
-            cycle_length_samples=1800
-        )
-        com, time = getdata_anaropia(sample_csv_file, config, output='com')
-        
-        # With cut_to_cycles, should be 2D array
-        if com.ndim == 2:
-            assert com.shape[0] == 1800  # Each cycle should have 1800 samples
-    
-    def test_getdata_anaropia_file_not_found(self):
-        """Test that appropriate error is raised for non-existent file."""
-        with pytest.raises((FileNotFoundError, OSError)):
-            getdata_anaropia('/nonexistent/file.csv')
+        assert stim.ndim == 1
+        assert len(stim) == len(raw_data)
 
+    def test_extract_response_com(self, raw_data):
+        resp = _extract_response(raw_data, SR_LEGACY_AP, body_height_m=1.75)
+        assert isinstance(resp, np.ndarray)
+        assert resp.ndim == 1
+        assert len(resp) == len(raw_data['time'])
+
+    def test_extract_response_com_requires_height(self, raw_data):
+        with pytest.raises(ValueError, match="body_height_m"):
+            _extract_response(raw_data, SR_LEGACY_AP, body_height_m=None)
+
+    def test_extract_response_direct_column(self, raw_data):
+        cfg = AnaropiaSRDataConfig(
+            stimulus_column='stim_pitch',
+            response_column='analog0',
+        )
+        resp = _extract_response(raw_data, cfg)
+        assert isinstance(resp, np.ndarray)
+        assert len(resp) == len(raw_data)
+
+
+# ── preprocess() ─────────────────────────────────────────────────────────
+
+class TestPreprocess:
+    def test_full_pipeline(self, raw_data):
+        signal = raw_data['stim_pitch']
+        time = raw_data['time']
+        cfg = AnaropiaPreprocessingConfig(cut_to_cycles=True)
+        out, t = preprocess(signal, time, cfg)
+        # Both signal and time are cut to cycles → 2D
+        assert out.ndim == 2
+        assert t.ndim == 2
+
+    def test_no_resample_no_filter_no_cut(self, raw_data):
+        signal = raw_data['stim_pitch']
+        time = raw_data['time']
+        cfg = AnaropiaPreprocessingConfig(resample=False, filter_type=None, cut_to_cycles=False)
+        out, t = preprocess(signal, time, cfg)
+        np.testing.assert_array_equal(out, signal)
+        np.testing.assert_array_equal(t, time)
+
+    def test_resample_only(self, raw_data):
+        signal = raw_data['stim_pitch']
+        time = raw_data['time']
+        cfg = AnaropiaPreprocessingConfig(resample=True, filter_type=None, cut_to_cycles=False)
+        out, t = preprocess(signal, time, cfg)
+        assert out.ndim == 1
+        expected_len = int(cfg.samplingrate_Hz * cfg.end_time_seconds)
+        assert len(out) == expected_len
+
+
+# ── plot_datacheck ───────────────────────────────────────────────────────
 
 class TestPlotDatacheck:
-    """Tests for the plot_datacheck function."""
-    
-    @pytest.fixture
-    def csv_file_row10(self):
-        """Fixture providing the 10th entry data file from metadata."""
-        metadata = pd.read_excel(Path(__file__).parent.parent / 'notebooks' / 'data' / 'metadata.xlsx')
-        # Row 10 (index 9) in the metadata
-        condition_col = [c for c in metadata.columns if isinstance(c, str) and c.startswith('c')][0]
-        filename = metadata.iloc[9][condition_col]
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        csv_file = data_dir / filename
-        assert csv_file.exists(), f"CSV file not found: {csv_file}"
-        return str(csv_file)
-    
-    @pytest.fixture
-    def sample_csv_file(self):
-        """Fixture providing path to sample Anaropia data file."""
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        csv_files = list(data_dir.glob('d1*.csv'))[:1]  # Use first d1 file
-        assert len(csv_files) > 0
-        return str(csv_files[0])
-    
-    def test_plot_datacheck_display_mode(self, sample_csv_file):
-        """Test plot_datacheck in display mode (save=False)."""
-        config = AnaropiaPreprocessingConfig()
-        fig, resp, stim = plot_datacheck(sample_csv_file, 1.75, config, save=False)
+    def test_default_config(self, sample_csv_file):
+        fig, resp, stim = plot_datacheck(
+            sample_csv_file, 1.75, save=False,
+        )
         assert fig is not None
-    
-    def test_plot_datacheck_with_name(self, sample_csv_file):
-        """Test plot_datacheck with explicit name parameter."""
-        config = AnaropiaPreprocessingConfig()
-        fig, resp, stim = plot_datacheck(sample_csv_file, 1.75, config,
-                                         name='TEST_c1', save=False)
-        assert fig is not None
-    
-    def test_plot_datacheck_with_row10_data(self, csv_file_row10):
-        """Test plot_datacheck using the 10th entry from metadata."""
-        config = AnaropiaPreprocessingConfig()
-        config.stimulus_direction = 'ap'
-        config.cut_to_cycles = True
-        fig, _, _ = plot_datacheck(csv_file_row10, 1.75, config,
-                                   name='Row10Subject_Row10Condition', save=False)
-        assert fig is not None
-    
-    def test_plot_datacheck_default_config(self, sample_csv_file):
-        """Test plot_datacheck with default configuration (None)."""
-        fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config=None, save=False)
-        assert fig is not None
-    
-    def test_plot_datacheck_creates_figure(self, sample_csv_file):
-        """Test that plot_datacheck creates a Plotly figure."""
-        config = AnaropiaPreprocessingConfig()
-        fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config, save=False)
-        assert fig is not None
-    
-    def test_plot_datacheck_output_filename(self, sample_csv_file):
-        """Test that plot_datacheck uses name param in output filename stem."""
-        config = AnaropiaPreprocessingConfig()
-        # With save=False, just verify a figure is returned
-        fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config,
-                                   name='MW09_t1', save=False)
+        assert isinstance(resp, np.ndarray)
+        assert isinstance(stim, np.ndarray)
+
+    def test_with_name(self, sample_csv_file):
+        fig, _, _ = plot_datacheck(
+            sample_csv_file, 1.75,
+            sr_config=SR_LEGACY_AP,
+            name='TEST_c1',
+            save=False,
+        )
         assert fig is not None
 
-
-class TestMetadataIntegration:
-    """Integration tests combining metadata and data loading."""
-    
-    @pytest.fixture
-    def metadata_file(self):
-        """Fixture providing path to the test metadata file."""
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        return str(data_dir / 'metadata.xlsx')
-    
-    def test_full_pipeline_metadata_to_plot(self, metadata_file):
-        """Test complete pipeline: load metadata -> get filename -> load data -> plot."""
-        # Load metadata
-        metadata = get_metadata(filename=metadata_file, print_information=False)
-        
-        # Get filename from metadata (row 0)
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        filename = get_filename_from_metadata(
-            metadata=metadata,
-            row_number=0,
-            data_dir=str(data_dir)
-        )
-        
-        # Load data
-        config = AnaropiaPreprocessingConfig(body_height_m=1.75)
-        com, time = getdata_anaropia(filename, config, output='com')
-        stim, _ = getdata_anaropia(filename, config, output='stimulus')
-        
-        # Verify data was loaded
-        assert com is not None
-        assert stim is not None
-        assert time is not None
-    
-    def test_metadata_row10_complete_pipeline(self, metadata_file):
-        """Test complete pipeline using 10th entry from metadata."""
-        metadata = get_metadata(filename=metadata_file, print_information=False)
-        
-        # Use row 10 (index 9)
-        data_dir = Path(__file__).parent.parent / 'notebooks' / 'data'
-        filename = get_filename_from_metadata(
-            metadata=metadata,
-            row_number=9,
-            data_dir=str(data_dir)
-        )
-        
-        # Load and process data
-        config = AnaropiaPreprocessingConfig(
-            body_height_m=metadata.iloc[9]['height_m'],
-            cut_to_cycles=True
-        )
-        com, time = getdata_anaropia(filename, config, output='com')
-        
-        assert com is not None
-        assert len(com) > 0
+    def test_backward_compat_config_kwarg(self, sample_csv_file):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            cfg = AnaropiaPreprocessingConfig()
+            fig, _, _ = plot_datacheck(sample_csv_file, 1.75, config=cfg, save=False)
+            assert fig is not None
 
 
 if __name__ == '__main__':

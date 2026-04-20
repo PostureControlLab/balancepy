@@ -5,7 +5,16 @@ import pandas as pd
 from pathlib import Path
 from typing import Union, List, Generator, Tuple
 from dataclasses import dataclass
-from .anaropia import AnaropiaPreprocessingConfig, run_csmi
+from .anaropia import (
+    AnaropiaPreprocessingConfig,
+    AnaropiaSRDataConfig,
+    SR_LEGACY_AP,
+    run_csmi,
+    _get_column,
+    _extract_response,
+    preprocess,
+)
+from . import data_class
 
 
 @dataclass
@@ -656,9 +665,9 @@ def batch_iterator(
     subjects: Union[int, str, List[Union[int, str]], None] = None,
     conditions: Union[int, str, List[Union[int, str]], None] = None,
     skip_flags: list | None = [2, 3],
-) -> Generator[Tuple[str, str, str, AnaropiaPreprocessingConfig], None, None]:
+) -> Generator[Tuple[str, str, str, float], None, None]:
     """
-    Iterate over subject-condition combinations in metadata, yielding file paths and configs.
+    Iterate over subject-condition combinations in metadata, yielding file paths.
     
     Yields one tuple per valid subject-condition pair, with flexible indexing:
     - Subjects: row number (int), subject ID (str), or list of either
@@ -682,8 +691,6 @@ def batch_iterator(
         - int: single condition number (1, 2, 3, ...)
         - str: full condition name (e.g. 'c1: eyes open')
         - list: mix of numbers and/or names, e.g. [1, 'c2: eyes closed']
-    paths : ProjectPaths
-        Project paths object used to resolve raw data and quality flag file paths.
     skip_flags : list of int or None, optional
         Flag codes that cause a trial to be skipped. Default ``[2, 3]`` skips
         error-rated and file-not-found trials.
@@ -699,8 +706,6 @@ def batch_iterator(
         Full path to data file
     body_height_m : float
         Subject body height in metres, read from the ``body_height_m`` metadata column.
-    config : AnaropiaPreprocessingConfig
-        Preprocessing configuration (shared across all subjects).
     
     Notes
     -----
@@ -713,12 +718,11 @@ def batch_iterator(
     
     Examples
     --------
-    >>> # All subjects, first 2 conditions — skip error/missing trials (default)
-    >>> for sid, cond, fp, bh, cfg in batch_iterator(paths, conditions=[1, 2]):
-    ...     process_trial(fp, bh, cfg)
+    >>> for sid, cond, fp, bh in batch_iterator(paths, conditions=[1, 2]):
+    ...     process_trial(fp, bh)
 
     >>> # Disable quality-flag filtering entirely
-    >>> for sid, cond, fp, bh, cfg in batch_iterator(paths, skip_flags=None):
+    >>> for sid, cond, fp, bh in batch_iterator(paths, skip_flags=None):
     ...     pass
     """
     if paths is None:
@@ -763,9 +767,7 @@ def batch_iterator(
                 condition=condition_col
             )
 
-            config = AnaropiaPreprocessingConfig()
-
-            yield subject_id, condition_col, filepath, body_height_m, config
+            yield subject_id, condition_col, filepath, body_height_m
 
 def _normalize_subject_selection(
     metadata: pd.DataFrame,
@@ -898,9 +900,82 @@ def _parse_plot_filename(stem: str, slug_to_condition: dict, prefix: str = 'data
     rest = stem[len(full_prefix):]
     for slug, condition_name in slug_to_condition.items():
         if rest.endswith('_' + slug):
-            subject_id = rest[:-(len(slug) + 1)]
+            subject_id = rest[: -(len(slug) + 1)]
             return subject_id, condition_name
     return None, None
+
+
+def get_sr_data(
+    filename: str,
+    body_height_m: float,
+    sr_config: AnaropiaSRDataConfig = None,
+    preproc_config: AnaropiaPreprocessingConfig = None,
+) -> dict:
+    """Load an Anaropia CSV and return one :class:`~balancepy.data_class.sr_data`
+    per stimulus column.
+
+    When ``sr_config.stimulus_column`` is a plain string a single-entry dict is
+    returned.  When it is a tuple of column names, one ``sr_data`` object is
+    built for each stimulus column (all sharing the same response signal).
+
+    Parameters
+    ----------
+    filename : str
+        Path to the Anaropia CSV data file.
+    body_height_m : float
+        Subject body height in metres (needed for COM calculation).
+    sr_config : AnaropiaSRDataConfig, optional
+        Stimulus/response configuration. Defaults to ``SR_LEGACY_AP``.
+    preproc_config : AnaropiaPreprocessingConfig, optional
+        Preprocessing configuration. Defaults to
+        ``AnaropiaPreprocessingConfig()``.
+
+    Returns
+    -------
+    dict[str, sr_data]
+        Mapping from stimulus column name to the corresponding
+        :class:`~balancepy.data_class.sr_data` object.
+
+    Examples
+    --------
+    >>> sr_config = bp.AnaropiaSRDataConfig(
+    ...     ('stim_pitch', 'analog4'),
+    ...     com_config=bp.COM_LEGACY_AP,
+    ...     column_scales={'analog4': -1.0},
+    ... )
+    >>> sr_dict = bp.get_sr_data(filename, 1.75, sr_config=sr_config, preproc_config=config)
+    >>> sr_dict['stim_pitch'].plot()
+    """
+    if sr_config is None:
+        sr_config = SR_LEGACY_AP
+    if preproc_config is None:
+        preproc_config = AnaropiaPreprocessingConfig()
+
+    raw_data = np.genfromtxt(filename, delimiter=',', names=True)
+    time_raw = raw_data['time']
+
+    # Extract and preprocess response (shared across all stimulus columns)
+    response_raw = _extract_response(raw_data, sr_config, body_height_m)
+    response, _ = preprocess(response_raw, time_raw, preproc_config)
+
+    # Normalize stimulus_column to a tuple
+    stim_cols = sr_config.stimulus_column
+    if isinstance(stim_cols, str):
+        stim_cols = (stim_cols,)
+
+    result = {}
+    for col in stim_cols:
+        stim_raw = _get_column(raw_data, col, sr_config)
+        stim, _ = preprocess(stim_raw, time_raw, preproc_config)
+        result[col] = data_class.sr_data(
+            samplingrate_Hz=preproc_config.samplingrate_Hz,
+            stimulus=stim,
+            response=response,
+            frequency_selection=sr_config.frequency_selection,
+            name=col,
+        )
+
+    return result
 
 # CSMI Analysis
 def _run_csmi_job(
@@ -909,7 +984,8 @@ def _run_csmi_job(
     filepath: str,
     body_height_m: float,
     body_weight_kg: float,
-    config: AnaropiaPreprocessingConfig,
+    sr_config: AnaropiaSRDataConfig,
+    preproc_config: AnaropiaPreprocessingConfig,
     plot: bool = False,
     overwrite_plots: bool = True,
     paths: ProjectPaths = None
@@ -939,13 +1015,21 @@ def _run_csmi_job(
         subj = run_csmi(
             body_height_m=body_height_m,
             body_weight_kg=body_weight_kg,
+            sr_config=sr_config,
+            preproc_config=preproc_config,
             name=f"{subject_id}_{slug}",
-            config=config,
             com=_df['com'].to_numpy(),
-            stimulus=_df['stimulus'].to_numpy()
+            stimulus=_df['stimulus'].to_numpy(),
         )
     else:
-        subj = run_csmi(filepath, body_height_m, body_weight_kg, name=f"{subject_id}_{slug}", config=config)
+        subj = run_csmi(
+            filepath,
+            body_height_m,
+            body_weight_kg,
+            sr_config=sr_config,
+            preproc_config=preproc_config,
+            name=f"{subject_id}_{slug}",
+        )
 
     if plot:
         if paths is None:
@@ -970,7 +1054,8 @@ def run_csmi_batch(
     paths: ProjectPaths,
     subjects: Union[int, str, List[Union[int, str]], None] = None,
     conditions: Union[int, str, List[Union[int, str]], None] = None,
-    config: AnaropiaPreprocessingConfig = None,
+    sr_config: AnaropiaSRDataConfig = None,
+    preproc_config: AnaropiaPreprocessingConfig = None,
     n_jobs: int = -1,
     plot: bool = False,
     overwrite_plots: bool = True,
@@ -993,9 +1078,11 @@ def run_csmi_batch(
         Subject selection passed to batch_iterator. None = all subjects.
     conditions : int, str, list, or None, optional
         Condition selection passed to batch_iterator. None = all conditions.
-    config : AnaropiaPreprocessingConfig, optional
+    sr_config : AnaropiaSRDataConfig, optional
+        Stimulus/response configuration. Defaults to ``SR_LEGACY_AP``.
+    preproc_config : AnaropiaPreprocessingConfig, optional
         Shared preprocessing config for all trials. Defaults to
-        AnaropiaPreprocessingConfig().
+        ``AnaropiaPreprocessingConfig()``.
     n_jobs : int, default=-1
         Number of parallel workers (passed to joblib.Parallel).
         -1 uses all available CPUs.
@@ -1017,10 +1104,9 @@ def run_csmi_batch(
 
     Examples
     --------
-    >>> config = bp.AnaropiaPreprocessingConfig()
-    >>> config.end_time_seconds = 220
-    >>> config.cut_to_cycles = True
-    >>> csmi_df = bp.run_csmi_batch(paths, conditions=['c5: s0_v1', 'c6: s0_v2'], config=config)
+    >>> preproc = bp.AnaropiaPreprocessingConfig(end_time_seconds=220, cut_to_cycles=True)
+    >>> csmi_df = bp.run_csmi_batch(paths, conditions=['c5: s0_v1', 'c6: s0_v2'],
+    ...                             sr_config=bp.SR_LEGACY_AP, preproc_config=preproc)
     >>> csmi_df.to_parquet('../results/csmi_results.parquet', index=False)
     """
     from joblib import Parallel, delayed
@@ -1028,8 +1114,10 @@ def run_csmi_batch(
     if paths is None:
         raise ValueError("Pass 'paths' to run_csmi_batch.")
 
-    if config is None:
-        config = AnaropiaPreprocessingConfig()
+    if sr_config is None:
+        sr_config = SR_LEGACY_AP
+    if preproc_config is None:
+        preproc_config = AnaropiaPreprocessingConfig()
 
     # kaleido (used for PDF export) spawns a Chromium subprocess per worker (~150-300 MB each).
     # Cap parallelism to 3 when plotting to avoid OOM; user can still pass a lower value explicitly.
@@ -1040,11 +1128,12 @@ def run_csmi_batch(
 
     # Build job list in main process — only scalars cross process boundaries
     jobs = []
-    for subject_id, condition, filepath, body_height_m, _ in batch_iterator(
+    for subject_id, condition, filepath, body_height_m in batch_iterator(
         paths, subjects=subjects, conditions=conditions, skip_flags=skip_flags,
     ):
         body_weight_kg = metadata.loc[metadata['Subject ID'] == subject_id, 'body_weight_kg'].values[0]
-        jobs.append((subject_id, condition, filepath, body_height_m, body_weight_kg, config))
+        jobs.append((subject_id, condition, filepath, body_height_m, body_weight_kg,
+                      sr_config, preproc_config))
 
     results = Parallel(n_jobs=n_jobs)(
         delayed(_run_csmi_job)(*job, plot=plot, overwrite_plots=overwrite_plots, paths=paths) for job in jobs

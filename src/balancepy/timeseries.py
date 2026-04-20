@@ -106,8 +106,6 @@ def cut_to_cycles(
     out = out[:, ind] # select only cycles marked with True
 
     return out
-    
-
 
 def time_domain_analysis(
         xi: NDArray,
