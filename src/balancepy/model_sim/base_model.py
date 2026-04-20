@@ -330,56 +330,6 @@ class BaseModel:
                 figure = make_subplots(rows=3, cols=2, shared_xaxes=False)
                 # Optionally, re-add previous traces if needed
 
-            # Remove any existing table in (3,2)
-            for i, trace in enumerate(figure.data):
-                if isinstance(trace, go.Table):
-                    figure.data = tuple([t for j, t in enumerate(figure.data) if j != i])
-                    break
-
-            # Prepare parameter data
-            param_names = [p.name for p in self.params]
-            param_units = [getattr(p, 'unit', '') for p in self.params]
-            param_values = np.round([p.value for p in self.params], 4)
-
-            # Create table with parameters as rows; columns: Name, Value, Unit for first half and Name, Value, Unit for second half
-            n = len(param_names)
-            mid = (n + 1) // 2  # split into two halves, first half gets the extra if odd
-
-            # Split into halves
-            first_names = param_names[:mid]
-            second_names = param_names[mid:]
-
-            first_units = param_units[:mid]
-            second_units = param_units[mid:]
-
-            param_values_list = list(param_values)
-            first_values = param_values_list[:mid]
-            second_values = param_values_list[mid:]
-
-            # Pad halves to equal number of rows for the table
-            rows = max(len(first_names), len(second_names))
-            first_names += [''] * (rows - len(first_names))
-            first_values += [None] * (rows - len(first_values))
-            first_units += [''] * (rows - len(first_units))
-            second_names += [''] * (rows - len(second_names))
-            second_values += [None] * (rows - len(second_values))
-            second_units += [''] * (rows - len(second_units))
-
-            # Build table: columns 1-3 for first half (Name, Value, Unit), columns 4-6 for second half (Name, Value, Unit)
-            table_trace = go.Table(
-                header=dict(values=["Name", "Value", "Unit", "Name", "Value", "Unit"]),
-                cells=dict(values=[
-                    first_names,
-                    first_values,
-                    first_units,
-                    second_names,
-                    second_values,
-                    second_units
-                ])
-            )
-
-            # Add the table to row 3, col 2
-            figure.add_trace(table_trace, row=3, col=2)
             data_sim2 = self.data_sim
             data_sim2.freq = np.arange(data_sim2.freq.min(), data_sim2.freq.max(), 0.001)
             _, data_sim2.frf = signal.freqresp(self.dynamics, w=data_sim2.freq*2*np.pi)

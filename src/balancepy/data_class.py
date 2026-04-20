@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
+from typing import Optional
 import balancepy as bp
 from dataclasses import dataclass
 from plotly.subplots import make_subplots
@@ -148,7 +149,7 @@ class sr_data:
     
     @property
     def phase(self):
-        return bp.phase(self.frf)
+        return bp.phase(self.frf, self.freq)
     
     @property
     def coherence(self):
@@ -556,7 +557,7 @@ class sr_data:
     
     @property
     def phase(self):
-        return bp.phase(self.frf)
+        return bp.phase(self.frf, self.freq)
     
     @property
     def coherence(self):
