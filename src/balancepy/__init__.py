@@ -11,11 +11,8 @@ __author__ = "Lorenz Assländer, Matthias Albrecht"
 __email__ = "lorenz.asslaender@uni-konstanz.de"
 
 from . import anaropia
-from .anaropia import *
 
 from . import anaropia_project
-from .anaropia_project import *
-
 
 from . import biomechanics
 from .biomechanics import *
