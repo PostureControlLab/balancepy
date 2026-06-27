@@ -99,29 +99,26 @@ class TestCOMConfig:
 
 class TestAnaropiaSRDataConfig:
     def test_predefined_legacy_ap(self):
-        assert SR_LEGACY_AP.stimulus_column == 'stim_pitch'
-        assert SR_LEGACY_AP.response_column is None
-        assert SR_LEGACY_AP.com_config is COM_LEGACY_AP
+        assert SR_LEGACY_AP.stimulus_name == 'stim_pitch'
+        assert SR_LEGACY_AP.response_name is COM_LEGACY_AP
         assert SR_LEGACY_AP.frequency_selection == 'prts'
 
     def test_predefined_legacy_ml(self):
-        assert SR_LEGACY_ML.stimulus_column == 'stim_roll'
+        assert SR_LEGACY_ML.stimulus_name == 'stim_roll'
 
-    def test_mutual_exclusion_enforced(self):
-        with pytest.raises(ValueError, match="response_column.*com_config"):
-            AnaropiaSRDataConfig(
-                stimulus_column='stim_pitch',
-                response_column='some_col',
-                com_config=COM_LEGACY_AP,
-            )
+    def test_com_response_config(self):
+        cfg = AnaropiaSRDataConfig(
+            stimulus_name='stim_pitch',
+            response_name=COM_LEGACY_AP,
+        )
+        assert cfg.response_name is COM_LEGACY_AP
 
     def test_custom_response_column(self):
         cfg = AnaropiaSRDataConfig(
-            stimulus_column='stim_pitch',
-            response_column='analog0',
+            stimulus_name='stim_pitch',
+            response_name='analog0',
         )
-        assert cfg.response_column == 'analog0'
-        assert cfg.com_config is None
+        assert cfg.response_name == 'analog0'
 
 
 
@@ -146,8 +143,8 @@ class TestExtractHelpers:
 
     def test_extract_response_direct_column(self, raw_data):
         cfg = AnaropiaSRDataConfig(
-            stimulus_column='stim_pitch',
-            response_column='analog0',
+            stimulus_name='stim_pitch',
+            response_name='analog0',
         )
         resp = _extract_response(raw_data, cfg)
         assert isinstance(resp, np.ndarray)

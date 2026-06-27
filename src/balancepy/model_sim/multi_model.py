@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import basinhopping, Bounds
+from scipy.optimize import basinhopping
 from balancepy.model_sim.base_model import BaseModel
 from balancepy.model_sim.parameter import ParameterSet, Parameter
 import plotly.graph_objects as go
@@ -57,12 +57,12 @@ class MultiModel(BaseModel):
         
         Parameters
         ----------
-            param_name : str
-                The multimodel name of the parameter.
-            value : float
-                The value to set for the parameter.
+        param_name : str
+            The multimodel name of the parameter.
+        value : float
+            The value to set for the parameter.
         """
-        if param_name in self.params.names:
+        if param_name in self.params.names():
             self.params[param_name].value = value
             for model in self.model_list:
                 model.params.set_by_multimodel_name(param_name, value)
@@ -75,10 +75,10 @@ class MultiModel(BaseModel):
 
         Parameters
         ----------
-            values : list or np.ndarray
-                The values to set for the parameters.
-            only_free : bool
-                If True, only set values for parameters that are not fixed.
+        values : list or np.ndarray
+            The values to set for the parameters.
+        only_free : bool
+            If True, only set values for parameters that are not fixed.
         """
         i = 0
         for p in self.params:

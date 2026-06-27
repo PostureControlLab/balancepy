@@ -123,20 +123,19 @@ class AnaropiaSRDataConfig:
     and how the resulting :class:`~balancepy.data_class.sr_data` object is
     configured.
 
-    Exactly one of *response_column* or *com_config* must be provided.
-    When *com_config* is set the response is computed as the centre of mass
-    via :func:`~balancepy.biomechanics.get_com`.
+    The response can be either a direct CSV column name (*str*) or a
+    :class:`COMConfig` to compute COM via
+    :func:`~balancepy.biomechanics.get_com`.
 
     Attributes
     ----------
-    stimulus_column : str or tuple of (str, str)
-        CSV column name for the stimulus signal. When a 2-tuple is given,
-        the first element is the primary stimulus used for analysis and the
-        second is an additional channel displayed in :func:`plot_datacheck`.
-    response_column : str or None
-        CSV column name for a direct response signal.
-    com_config : COMConfig or None
-        If the response is COM, provide marker-column layout here.
+    stimulus_name : str or tuple[str, ...]
+        CSV column name for the stimulus signal. When a tuple is provided,
+        one ``sr_data`` object is generated per listed stimulus column.
+    response_name : str or COMConfig
+        Response specification.
+        - ``str``: CSV column name for direct response signal
+        - ``COMConfig``: marker-column layout for COM response
     frequency_selection : str
         Frequency selection mode passed to :class:`~balancepy.data_class.sr_data`.
     name : str or None
@@ -146,186 +145,17 @@ class AnaropiaSRDataConfig:
         For example ``{'analog4': -1.0}`` inverts that channel.
     """
 
-    stimulus_column: "str | tuple[str, str]"
-    response_column: str | None = None
-    com_config: COMConfig | None = None
+    stimulus_name: str | tuple[str, ...]
+    response_name: str | COMConfig
     frequency_selection: str = 'prts'
     name: str | None = None
     column_scales: dict[str, float] | None = None
 
-    def __post_init__(self):
-        has_col = self.response_column is not None
-        has_com = self.com_config is not None
-        if has_col == has_com:
-            raise ValueError(
-                "Exactly one of 'response_column' or 'com_config' must be set, "
-                f"got response_column={self.response_column!r}, "
-                f"com_config={'set' if has_com else None}."
-            )
-
 # Predefined AnaropiaSRDataConfig instances
-SR_LEGACY_AP = AnaropiaSRDataConfig('stim_pitch', com_config=COM_LEGACY_AP)
-SR_LEGACY_ML = AnaropiaSRDataConfig('stim_roll', com_config=COM_LEGACY_ML)
-SR_STANDARD_AP = AnaropiaSRDataConfig('Screen_rot_x', com_config=COM_STANDARD_AP)
-SR_STANDARD_ML = AnaropiaSRDataConfig('Screen_rot_z', com_config=COM_STANDARD_ML)
-
-
-# ---------------------------------------------------------------------------
-# Backward-compatible alias (deprecated)
-# ---------------------------------------------------------------------------
-# class AnaropiaPreprocessingConfig(PreprocessingConfig):
-#     """Deprecated — use :class:`PreprocessingConfig` instead."""
-
-#     def __init__(self, anaropia_version: str = 'legacy', **kwargs):
-#         warnings.warn(
-#             "AnaropiaPreprocessingConfig is deprecated. "
-#             "Use PreprocessingConfig + AnaropiaSRDataConfig instead.",
-#             DeprecationWarning,
-#             stacklevel=2,
-#         )
-#         super().__init__(**kwargs)
-#         self.anaropia_version = anaropia_version
-# 
-# def getdata_anaropia(
-#     filename: str,
-#     output: str = 'com',
-#     direction: str = 'ap',
-#     body_height_m: float = None,
-#     body_weight_kg: float = None,
-#     config: AnaropiaPreprocessingConfig = None
-# ) -> tuple:
-#     """
-#     Access and format data from balance experiments recorded with Anaropia.
-
-#     Reads data recorded using the Anaropia virtual-reality application for 
-#     balance experiments. Calculates stimulus and center of mass (COM) data.
-
-#     Parameters
-#     ----------
-#     filename : str
-#         Path and filename to be analyzed.
-#     output : str, default='com'
-#         Specifies which data column to return alongside time.
-#         - 'com'      : Center of mass sway (computed from shoulder/hip positions).
-#         - 'stimulus' : Stimulus signal (column determined by config.stimulus_name
-#                        and the direction parameter).
-#         - any other str : Raw column name from the data file (e.g. 'LeftShoulder_pos_z').
-#     body_height_m : float, optional
-#         Used for center of mass calculations.
-#     body_weight_kg : float, optional
-#         Used for center of pressure calculations.
-#     config : AnaropiaPreprocessingConfig, optional
-#         Configuration object containing processing parameters. If None, uses default
-#         configuration with standard settings.
-
-#     Returns
-#     -------
-#     signal : NDArray
-#         The requested data array (com, stimulus, or raw column).
-#     time : NDArray
-#         Time data.
-    
-#     See Also
-#     --------
-#     AnaropiaPreprocessingConfig : Configuration class for Anaropia data preprocessing
-    
-#     Examples
-#     --------
-#     >>> config = AnaropiaPreprocessingConfig()
-#     >>> com, time = getdata_anaropia('data.csv', output='com', direction='ap', body_height_m=1.75, config=config)
-#     >>> stim_ap, time = getdata_anaropia('data.csv', output='stimulus', direction='ap', body_height_m=1.75, config=config)
-#     >>> stim_ml, time = getdata_anaropia('data.csv', output='stimulus', direction='ml', body_height_m=1.75, config=config)
-#     """
-
-#     warnings.warn(
-#         "getdata_anaropia() is deprecated. Use _extract_stimulus / "
-#         "_extract_response + ts.preprocess() instead.",
-#         DeprecationWarning,
-#         stacklevel=2,
-#     )
-
-#     if config is None:
-#         config = AnaropiaPreprocessingConfig()
-
-#     # output_frequencies is a vector with the frequencies for which the FRF is calculated; default is up to 2 Hz
-#     # in case of the prts stimulus sequence, only every odd frequency point has energy, the even frequencies are zero
-
-#     raw_data = np.genfromtxt(filename, delimiter=',', names=True)
-
-#     if config.anaropia_version == 'standard':
-
-#         match output:
-#             case 'com':
-#                 assert body_height_m is not None, "body_height_m must be provided for COM calculation"
-
-#                 sho_height = np.mean(raw_data['LeftShoulder_pos_y'])
-#                 hip_height = np.mean(raw_data['RightShoulder_pos_y'])
-
-#                 if direction == 'ap':
-#                     sho = raw_data['LeftShoulder_pos_z']
-#                     hip = raw_data['RightShoulder_pos_z']
-#                 elif direction == 'ml':
-#                     sho = raw_data['LeftShoulder_pos_x']
-#                     hip = raw_data['RightShoulder_pos_x']
-#                 signal = bm.get_com(sho, sho_height, hip, hip_height, body_height_m, True)
-#             case 'Screen tilt' | 'stimulus':
-#                 column_name = 'Screen_rot_x' if direction == 'ap' else 'Screen_rot_z'
-#                 signal = raw_data[column_name]
-#             case 'data':
-#                 signal = raw_data
-#             case _:
-#                 assert output in raw_data.dtype.names, f"Output column '{output}' not found in data."
-#                 signal = raw_data[output]
-
-#     elif config.anaropia_version == 'legacy':
-#         match output:
-#             case 'com':
-#                 assert body_height_m is not None, "body_height_m must be provided for COM calculation"
-
-#                 sho_height = np.mean(raw_data['shld_ypos'])
-#                 hip_height = np.mean(raw_data['hip_ypos'])
-
-#                 if direction == 'ap':
-#                     sho = raw_data['shld_zpos']
-#                     hip = raw_data['hip_zpos']
-#                 elif direction == 'ml':
-#                     sho = raw_data['shld_xpos']
-#                     hip = raw_data['hip_xpos']
-#                 signal = bm.get_com(sho, sho_height, hip, hip_height, body_height_m, True)
-
-#             case 'Screen tilt' | 'stimulus':
-#                 column_name = 'stim_pitch' if direction == 'ap' else 'stim_roll'
-#                 signal = raw_data[column_name]
-#             case 'data':
-#                 signal = raw_data
-#             case _:
-#                 assert output in raw_data.dtype.names, f"Output column '{output}' not found in data."
-#                 signal = raw_data[output]
-
-
-#     # --- Extract time  ---
-#     time = raw_data['time']
-
-#     # --- Resample if requested ---
-#     if config.resample:
-#         signal, time = ts.resample(time, signal, config.samplingrate_Hz, config.end_time_seconds)
-
-#     # --- Apply filtering if requested ---
-#     if config.filter_type is not None:
-#         signal = ts.butterworth_filter(
-#             signal,
-#             samplingrate_Hz=config.samplingrate_Hz,
-#             filter_type=config.filter_type,
-#             order=config.filter_order,
-#             cutoff_Hz=config.filter_cutoff_Hz
-#         )
-
-#     # --- Cut to cycles if requested ---
-#     if config.cut_to_cycles:
-#         signal = ts.cut_to_cycles(signal, config.cycle_start_samples, config.cycle_length_samples)
-#         time = ts.cut_to_cycles(time, config.cycle_start_samples, config.cycle_length_samples)
-    
-#     return signal, time
+SR_LEGACY_AP = AnaropiaSRDataConfig('stim_pitch', response_name=COM_LEGACY_AP)
+SR_LEGACY_ML = AnaropiaSRDataConfig('stim_roll', response_name=COM_LEGACY_ML)
+SR_STANDARD_AP = AnaropiaSRDataConfig('Screen_rot_x', response_name=COM_STANDARD_AP)
+SR_STANDARD_ML = AnaropiaSRDataConfig('Screen_rot_z', response_name=COM_STANDARD_ML)
 
 def preprocess(signal, time, config):
     """
@@ -383,7 +213,7 @@ def _get_column(raw_data, col_name: str, sr_config: AnaropiaSRDataConfig):
 
 def _extract_stimulus(raw_data, sr_config: AnaropiaSRDataConfig):
     """Return the 1D stimulus array from *raw_data* using *sr_config*."""
-    col = sr_config.stimulus_column
+    col = sr_config.stimulus_name
     if isinstance(col, tuple):
         col = col[0]
     return _get_column(raw_data, col, sr_config)
@@ -392,11 +222,12 @@ def _extract_stimulus(raw_data, sr_config: AnaropiaSRDataConfig):
 def _extract_response(raw_data, sr_config: AnaropiaSRDataConfig, body_height_m: float = None):
     """Return the 1D response array from *raw_data*.
 
-    If *sr_config.com_config* is set, computes COM via :func:`bm.get_com`;
-    otherwise reads the column named by *sr_config.response_column*.
+    If *sr_config.response_name* is a :class:`COMConfig`, computes COM via
+    :func:`bm.get_com`; otherwise reads the response column when
+    *sr_config.response_name* is a string.
     """
-    if sr_config.com_config is not None:
-        cc = sr_config.com_config
+    if isinstance(sr_config.response_name, COMConfig):
+        cc = sr_config.response_name
         if body_height_m is None:
             raise ValueError(
                 "body_height_m is required when sr_config uses a COMConfig response."
@@ -406,8 +237,9 @@ def _extract_response(raw_data, sr_config: AnaropiaSRDataConfig, body_height_m: 
         sho_height = np.mean(_get_column(raw_data, cc.shoulder_height_column, sr_config))
         hip_height = np.mean(_get_column(raw_data, cc.hip_height_column, sr_config))
         return bm.get_com(sho, sho_height, hip, hip_height, body_height_m, cc.rotation)
-    else:
-        return _get_column(raw_data, sr_config.response_column, sr_config)
+    if isinstance(sr_config.response_name, str):
+        return _get_column(raw_data, sr_config.response_name, sr_config)
+    raise ValueError("sr_config.response_name must be a response column name (str) or COMConfig.")
 
 
 # ---------------------------------------------------------------------------
@@ -423,8 +255,6 @@ def plot_datacheck(
     name: str = None,
     output_dir: Path | str = None,
     save: bool = True,
-    # Deprecated keyword — accepted but ignored when sr_config is provided
-    config: "AnaropiaPreprocessingConfig | None" = None,
 ) -> tuple:
     """
     Plot data for comprehensive visual inspection of quality and structure.
@@ -527,7 +357,7 @@ def plot_datacheck(
 
     # --- PLOT 1: Raw marker trajectories --------------------------------
     # Use COMConfig columns for shoulder/hip; add head marker if present
-    cc = sr_config.com_config
+    cc = sr_config.response_name if isinstance(sr_config.response_name, COMConfig) else None
     if cc is not None:
         sho_col = cc.shoulder_pos_column
         hip_col = cc.hip_pos_column
@@ -586,9 +416,9 @@ def plot_datacheck(
         row=2, col=1,
     )
 
-    # Overlay second stimulus channel when stimulus_column is a 2-tuple
-    if isinstance(sr_config.stimulus_column, tuple) and len(sr_config.stimulus_column) > 1:
-        _extra_col = sr_config.stimulus_column[1]
+    # Overlay second stimulus channel when stimulus_name is a 2-tuple
+    if isinstance(sr_config.stimulus_name, tuple) and len(sr_config.stimulus_name) > 1:
+        _extra_col = sr_config.stimulus_name[1]
         fig.add_trace(
             go.Scatter(x=time_raw, y=_get_column(raw_data, _extra_col, sr_config),
                        name=_extra_col, mode='lines',
@@ -637,7 +467,7 @@ def plot_datacheck(
 
     # --- PLOT 4: Cycle-by-cycle analysis (4 subplots) -------------------
     # Build one sr_data per stimulus column
-    stim_cols = sr_config.stimulus_column
+    stim_cols = sr_config.stimulus_name
     if isinstance(stim_cols, str):
         stim_cols = (stim_cols,)
 
@@ -833,12 +663,10 @@ def run_csmi(
     *,
     com: np.ndarray = None,
     stimulus: np.ndarray = None,
-    name: str = None,
-    # Deprecated keyword — accepted but ignored when sr_config is provided
-    config: "AnaropiaPreprocessingConfig | None" = None,
+    name: str = None
 ):
     """
-    Run a CSMI (Continuous Sensory Manipulation Identification) analysis for one trial.
+    Run a CSMI (Central Sensori-Motor Integration) analysis for one trial.
 
     Loads the stimulus and COM response from *filename*, constructs an
     :class:`~balancepy.data_class.sr_data` object, fits the Peterka18 model, and
@@ -877,28 +705,6 @@ def run_csmi(
     >>> subj.plot()
     """
     from balancepy.model_sim.peterka18 import Peterka18
-
-    # --- Backward-compat: old-style `config` keyword ----------------------
-    if config is not None and sr_config is None and preproc_config is None:
-        warnings.warn(
-            "Passing 'config' (AnaropiaPreprocessingConfig) to run_csmi "
-            "is deprecated. Use sr_config + preproc_config instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        version = getattr(config, 'anaropia_version', 'legacy')
-        sr_config = SR_LEGACY_AP if version == 'legacy' else SR_STANDARD_AP
-        preproc_config = AnaropiaPreprocessingConfig(
-            samplingrate_Hz=config.samplingrate_Hz,
-            resample=config.resample,
-            end_time_seconds=config.end_time_seconds,
-            filter_type=config.filter_type,
-            filter_order=config.filter_order,
-            filter_cutoff_Hz=config.filter_cutoff_Hz,
-            cut_to_cycles=config.cut_to_cycles,
-            cycle_start_samples=config.cycle_start_samples,
-            cycle_length_samples=config.cycle_length_samples,
-        )
 
     if sr_config is None:
         sr_config = SR_LEGACY_AP

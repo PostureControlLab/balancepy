@@ -27,6 +27,7 @@ It builds on the work of Peterka et al. [1]_ and Assländer et al. [2]_.
    anaropia
    analysis
    model_simulations
+   mimo_workflow
    models
 
 .. toctree::
