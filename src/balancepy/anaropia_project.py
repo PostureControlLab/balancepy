@@ -919,332 +919,259 @@ def _parse_plot_filename(stem: str, slug_to_condition: dict, prefix: str = 'data
     return None, None
 
 
-def _load_and_extract_sr_data(
-    filename: str,
-    sr_config: AnaropiaSRDataConfig,
-    body_height_m: float,
-    preproc_config: AnaropiaPreprocessingConfig,
-    use_file_prefix: bool = False,
-) -> dict:
-    """
-    Internal helper: Load file and extract stimulus-response data pairs.
+
+# def _load_and_extract_sr_data(
+#     filename: str,
+#     sr_config: AnaropiaSRDataConfig,
+#     body_height_m: float,
+#     preproc_config: AnaropiaPreprocessingConfig,
+#     use_file_prefix: bool = False,
+# ) -> dict:
+#     """
+#     Internal helper: Load file and extract stimulus-response data pairs.
     
-    Parameters
-    ----------
-    filename : str
-        Path to CSV file.
-    sr_config : AnaropiaSRDataConfig
-        Stimulus/response configuration.
-    body_height_m : float
-        Subject height in meters.
-    preproc_config : AnaropiaPreprocessingConfig
-        Preprocessing configuration.
-    use_file_prefix : bool
-        If True, keys are (filename, stimulus_col). 
-        If False, keys are stimulus_col (original behavior).
+#     Parameters
+#     ----------
+#     filename : str
+#         Path to CSV file.
+#     sr_config : AnaropiaSRDataConfig
+#         Stimulus/response configuration.
+#     body_height_m : float
+#         Subject height in meters.
+#     preproc_config : AnaropiaPreprocessingConfig
+#         Preprocessing configuration.
+#     use_file_prefix : bool
+#         If True, keys are (filename, stimulus_col). 
+#         If False, keys are stimulus_col (original behavior).
     
-    Returns
-    -------
-    dict
-        Mapping of {key: sr_data} where key is either stimulus_col or (filename, stimulus_col).
-    """
-    raw_data = np.genfromtxt(filename, delimiter=',', names=True)
-    time_raw = raw_data['time']
+#     Returns
+#     -------
+#     dict
+#         Mapping of {key: sr_data} where key is either stimulus_col or (filename, stimulus_col).
+#     """
+#     raw_data = np.genfromtxt(filename, delimiter=',', names=True)
+#     time_raw = raw_data['time']
 
-    # Extract and preprocess response (shared across all stimulus columns)
-    response_raw = _extract_response(raw_data, sr_config, body_height_m)
-    response, _ = preprocess(response_raw, time_raw, preproc_config)
+#     # Extract and preprocess response (shared across all stimulus columns)
+#     response_raw = _extract_response(raw_data, sr_config, body_height_m)
+#     response, _ = preprocess(response_raw, time_raw, preproc_config)
 
-    # Normalize stimulus_name to a tuple
-    stim_cols = sr_config.stimulus_name
-    if isinstance(stim_cols, str):
-        stim_cols = (stim_cols,)
+#     # Normalize stimulus_name to a tuple
+#     stim_cols = sr_config.stimulus_name
+#     if isinstance(stim_cols, str):
+#         stim_cols = (stim_cols,)
 
-    result = {}
-    for col in stim_cols:
-        stim_raw = _get_column(raw_data, col, sr_config)
-        stim, _ = preprocess(stim_raw, time_raw, preproc_config)
+#     result = {}
+#     for col in stim_cols:
+#         stim_raw = _get_column(raw_data, col, sr_config)
+#         stim, _ = preprocess(stim_raw, time_raw, preproc_config)
         
-        sr_obj = data_class.sr_data(
-            samplingrate_Hz=preproc_config.samplingrate_Hz,
-            stimulus=stim,
-            response=response,
-            frequency_selection=sr_config.frequency_selection,
-            name=f"{filename}:{col}" if use_file_prefix else col,
-        )
+#         sr_obj = data_class.sr_data(
+#             samplingrate_Hz=preproc_config.samplingrate_Hz,
+#             stimulus=stim,
+#             response=response,
+#             frequency_selection=sr_config.frequency_selection,
+#             name=f"{filename}:{col}" if use_file_prefix else col,
+#         )
         
-        key = (filename, col) if use_file_prefix else col
-        result[key] = sr_obj
+#         key = (filename, col) if use_file_prefix else col
+#         result[key] = sr_obj
 
-    return result
+#     return result
 
+# def _normalize_sr_data_items(
+#     *,
+#     filename: str = None,
+#     sr_config: AnaropiaSRDataConfig = None,
+#     body_height_m: float = None,
+#     preproc_config: AnaropiaPreprocessingConfig = None,
+#     configs: List[Union[tuple, dict]] = None,
+# ) -> tuple[list[dict], bool]:
+#     """Normalize single/multi SR inputs into canonical item dicts.
 
-def _normalize_sr_data_items(
-    *,
-    filename: str = None,
-    sr_config: AnaropiaSRDataConfig = None,
-    body_height_m: float = None,
-    preproc_config: AnaropiaPreprocessingConfig = None,
-    configs: List[Union[tuple, dict]] = None,
-) -> tuple[list[dict], bool]:
-    """Normalize single/multi SR inputs into canonical item dicts.
+#     Returns
+#     -------
+#     items : list[dict]
+#         Canonical items with keys: filename, sr_config, body_height_m, preproc_config.
+#     use_file_prefix : bool
+#         True when loading via multi-config mode.
+#     """
+#     default_preproc = preproc_config if preproc_config is not None else AnaropiaPreprocessingConfig()
 
-    Returns
-    -------
-    items : list[dict]
-        Canonical items with keys: filename, sr_config, body_height_m, preproc_config.
-    use_file_prefix : bool
-        True when loading via multi-config mode.
-    """
-    default_preproc = preproc_config if preproc_config is not None else AnaropiaPreprocessingConfig()
+#     if configs is None:
+#         cfg = sr_config if sr_config is not None else SR_LEGACY_AP
+#         if filename is None:
+#             raise ValueError("'filename' is required when 'configs' is not provided.")
+#         if body_height_m is None:
+#             raise ValueError("'body_height_m' is required when 'configs' is not provided.")
+#         return [
+#             {
+#                 'filename': filename,
+#                 'sr_config': cfg,
+#                 'body_height_m': body_height_m,
+#                 'preproc_config': default_preproc,
+#             }
+#         ], False
 
-    if configs is None:
-        cfg = sr_config if sr_config is not None else SR_LEGACY_AP
-        if filename is None:
-            raise ValueError("'filename' is required when 'configs' is not provided.")
-        if body_height_m is None:
-            raise ValueError("'body_height_m' is required when 'configs' is not provided.")
-        return [
-            {
-                'filename': filename,
-                'sr_config': cfg,
-                'body_height_m': body_height_m,
-                'preproc_config': default_preproc,
-            }
-        ], False
+#     if filename is not None or sr_config is not None:
+#         raise ValueError("Do not pass 'filename' or 'sr_config' together with 'configs'.")
 
-    if filename is not None or sr_config is not None:
-        raise ValueError("Do not pass 'filename' or 'sr_config' together with 'configs'.")
+#     if not isinstance(configs, list) or len(configs) == 0:
+#         raise ValueError("'configs' must be a non-empty list.")
 
-    if not isinstance(configs, list) or len(configs) == 0:
-        raise ValueError("'configs' must be a non-empty list.")
+#     items = []
+#     for idx, item in enumerate(configs):
+#         if isinstance(item, dict):
+#             item_filename = item.get('filename', None)
+#             item_sr_config = item.get('sr_config', None)
+#             item_body_height = item.get('body_height_m', body_height_m)
+#             item_preproc = item.get('preproc_config', default_preproc)
+#         elif isinstance(item, tuple):
+#             if len(item) == 2:
+#                 item_filename, item_sr_config = item
+#                 item_body_height = body_height_m
+#                 item_preproc = default_preproc
+#             elif len(item) == 3:
+#                 item_filename, item_sr_config, item_body_height = item
+#                 item_preproc = default_preproc
+#             elif len(item) == 4:
+#                 item_filename, item_sr_config, item_body_height, item_preproc = item
+#             else:
+#                 raise ValueError(
+#                     f"configs[{idx}] tuple must have length 2, 3, or 4: "
+#                     "(filename, sr_config[, body_height_m[, preproc_config]])."
+#                 )
+#         else:
+#             raise TypeError(
+#                 f"configs[{idx}] must be tuple or dict, got {type(item).__name__}."
+#             )
 
-    items = []
-    for idx, item in enumerate(configs):
-        if isinstance(item, dict):
-            item_filename = item.get('filename', None)
-            item_sr_config = item.get('sr_config', None)
-            item_body_height = item.get('body_height_m', body_height_m)
-            item_preproc = item.get('preproc_config', default_preproc)
-        elif isinstance(item, tuple):
-            if len(item) == 2:
-                item_filename, item_sr_config = item
-                item_body_height = body_height_m
-                item_preproc = default_preproc
-            elif len(item) == 3:
-                item_filename, item_sr_config, item_body_height = item
-                item_preproc = default_preproc
-            elif len(item) == 4:
-                item_filename, item_sr_config, item_body_height, item_preproc = item
-            else:
-                raise ValueError(
-                    f"configs[{idx}] tuple must have length 2, 3, or 4: "
-                    "(filename, sr_config[, body_height_m[, preproc_config]])."
-                )
-        else:
-            raise TypeError(
-                f"configs[{idx}] must be tuple or dict, got {type(item).__name__}."
-            )
+#         if item_filename is None:
+#             raise ValueError(f"configs[{idx}] is missing 'filename'.")
+#         if item_sr_config is None:
+#             raise ValueError(f"configs[{idx}] is missing 'sr_config'.")
+#         if item_body_height is None:
+#             raise ValueError(
+#                 f"configs[{idx}] has no body height. Pass a global 'body_height_m' "
+#                 "or include it in the item override."
+#             )
+#         if item_preproc is None:
+#             item_preproc = AnaropiaPreprocessingConfig()
 
-        if item_filename is None:
-            raise ValueError(f"configs[{idx}] is missing 'filename'.")
-        if item_sr_config is None:
-            raise ValueError(f"configs[{idx}] is missing 'sr_config'.")
-        if item_body_height is None:
-            raise ValueError(
-                f"configs[{idx}] has no body height. Pass a global 'body_height_m' "
-                "or include it in the item override."
-            )
-        if item_preproc is None:
-            item_preproc = AnaropiaPreprocessingConfig()
+#         items.append(
+#             {
+#                 'filename': item_filename,
+#                 'sr_config': item_sr_config,
+#                 'body_height_m': item_body_height,
+#                 'preproc_config': item_preproc,
+#             }
+#         )
 
-        items.append(
-            {
-                'filename': item_filename,
-                'sr_config': item_sr_config,
-                'body_height_m': item_body_height,
-                'preproc_config': item_preproc,
-            }
-        )
+#     return items, True
 
-    return items, True
+# def load_sr_data(
+#     filename: str = None,
+#     body_height_m: float = None,
+#     sr_config: AnaropiaSRDataConfig = None,
+#     preproc_config: AnaropiaPreprocessingConfig = None,
+#     configs: List[Union[tuple, dict]] = None,
+# ) -> dict:
+#     """Load one or multiple Anaropia CSV files into ``sr_data`` objects.
 
+#     Use either:
+#     - single mode: ``filename`` + optional ``sr_config``
+#     - multi mode: ``configs`` list with each item as tuple or dict
 
-def load_sr_data(
-    filename: str = None,
-    body_height_m: float = None,
-    sr_config: AnaropiaSRDataConfig = None,
-    preproc_config: AnaropiaPreprocessingConfig = None,
-    configs: List[Union[tuple, dict]] = None,
-) -> dict:
-    """Load one or multiple Anaropia CSV files into ``sr_data`` objects.
+#     Multi-item tuple formats:
+#     - ``(filename, sr_config)``
+#     - ``(filename, sr_config, body_height_m)``
+#     - ``(filename, sr_config, body_height_m, preproc_config)``
 
-    Use either:
-    - single mode: ``filename`` + optional ``sr_config``
-    - multi mode: ``configs`` list with each item as tuple or dict
+#     Multi-item dict format keys:
+#     - required: ``filename``, ``sr_config``
+#     - optional: ``body_height_m``, ``preproc_config``
 
-    Multi-item tuple formats:
-    - ``(filename, sr_config)``
-    - ``(filename, sr_config, body_height_m)``
-    - ``(filename, sr_config, body_height_m, preproc_config)``
+#     Override precedence in multi mode:
+#     - per-item value
+#     - global function argument
 
-    Multi-item dict format keys:
-    - required: ``filename``, ``sr_config``
-    - optional: ``body_height_m``, ``preproc_config``
+#     Returns
+#     -------
+#     dict
+#         Single mode: ``{stimulus_col: sr_data}``
+#         Multi mode: ``{(filename, stimulus_col): sr_data}``
+#     """
+#     items, use_file_prefix = _normalize_sr_data_items(
+#         filename=filename,
+#         sr_config=sr_config,
+#         body_height_m=body_height_m,
+#         preproc_config=preproc_config,
+#         configs=configs,
+#     )
 
-    Override precedence in multi mode:
-    - per-item value
-    - global function argument
+#     result = {}
+#     for item in items:
+#         sr_data_dict = _load_and_extract_sr_data(
+#             filename=item['filename'],
+#             sr_config=item['sr_config'],
+#             body_height_m=item['body_height_m'],
+#             preproc_config=item['preproc_config'],
+#             use_file_prefix=use_file_prefix,
+#         )
+#         result.update(sr_data_dict)
 
-    Returns
-    -------
-    dict
-        Single mode: ``{stimulus_col: sr_data}``
-        Multi mode: ``{(filename, stimulus_col): sr_data}``
-    """
-    items, use_file_prefix = _normalize_sr_data_items(
-        filename=filename,
-        sr_config=sr_config,
-        body_height_m=body_height_m,
-        preproc_config=preproc_config,
-        configs=configs,
-    )
+#     return result
 
-    result = {}
-    for item in items:
-        sr_data_dict = _load_and_extract_sr_data(
-            filename=item['filename'],
-            sr_config=item['sr_config'],
-            body_height_m=item['body_height_m'],
-            preproc_config=item['preproc_config'],
-            use_file_prefix=use_file_prefix,
-        )
-        result.update(sr_data_dict)
+# def get_sr_data(
+#     filename: str,
+#     body_height_m: float,
+#     sr_config: AnaropiaSRDataConfig = None,
+#     preproc_config: AnaropiaPreprocessingConfig = None,
+# ) -> dict:
+#     """Load an Anaropia CSV and return one :class:`~balancepy.data_class.sr_data`
+#     per stimulus column.
 
-    return result
+#     When ``sr_config.stimulus_name`` is a plain string a single-entry dict is
+#     returned.  When it is a tuple of column names, one ``sr_data`` object is
+#     built for each stimulus column (all sharing the same response signal).
 
-def get_sr_data(
-    filename: str,
-    body_height_m: float,
-    sr_config: AnaropiaSRDataConfig = None,
-    preproc_config: AnaropiaPreprocessingConfig = None,
-) -> dict:
-    """Load an Anaropia CSV and return one :class:`~balancepy.data_class.sr_data`
-    per stimulus column.
+#     For multi-file MIMO workflows, use :func:`load_sr_data` with ``configs``.
 
-    When ``sr_config.stimulus_name`` is a plain string a single-entry dict is
-    returned.  When it is a tuple of column names, one ``sr_data`` object is
-    built for each stimulus column (all sharing the same response signal).
+#     Parameters
+#     ----------
+#     filename : str
+#         Path to the Anaropia CSV data file.
+#     body_height_m : float
+#         Subject body height in metres (needed for COM calculation).
+#     sr_config : AnaropiaSRDataConfig, optional
+#         Stimulus/response configuration. Defaults to ``SR_LEGACY_AP``.
+#     preproc_config : AnaropiaPreprocessingConfig, optional
+#         Preprocessing configuration. Defaults to
+#         ``AnaropiaPreprocessingConfig()``.
 
-    For multi-file MIMO workflows, use :func:`load_sr_data` with ``configs``.
+#     Returns
+#     -------
+#     dict[str, sr_data]
+#         Mapping from stimulus column name to the corresponding
+#         :class:`~balancepy.data_class.sr_data` object.
 
-    Parameters
-    ----------
-    filename : str
-        Path to the Anaropia CSV data file.
-    body_height_m : float
-        Subject body height in metres (needed for COM calculation).
-    sr_config : AnaropiaSRDataConfig, optional
-        Stimulus/response configuration. Defaults to ``SR_LEGACY_AP``.
-    preproc_config : AnaropiaPreprocessingConfig, optional
-        Preprocessing configuration. Defaults to
-        ``AnaropiaPreprocessingConfig()``.
+#     Examples
+#     --------
+#     >>> sr_config = bp.AnaropiaSRDataConfig(
+#     ...     ('stim_pitch', 'analog4'),
+#     ...     response_name=bp.COM_LEGACY_AP,
+#     ...     column_scales={'analog4': -1.0},
+#     ... )
+#     >>> sr_dict = bp.get_sr_data(filename, 1.75, sr_config=sr_config, preproc_config=config)
+#     >>> sr_dict['stim_pitch'].plot()
 
-    Returns
-    -------
-    dict[str, sr_data]
-        Mapping from stimulus column name to the corresponding
-        :class:`~balancepy.data_class.sr_data` object.
-
-    Examples
-    --------
-    >>> sr_config = bp.AnaropiaSRDataConfig(
-    ...     ('stim_pitch', 'analog4'),
-    ...     response_name=bp.COM_LEGACY_AP,
-    ...     column_scales={'analog4': -1.0},
-    ... )
-    >>> sr_dict = bp.get_sr_data(filename, 1.75, sr_config=sr_config, preproc_config=config)
-    >>> sr_dict['stim_pitch'].plot()
-
-    See Also
-    --------
-    load_sr_data : Unified loader for single and multi-file workflows.
-    """
-    return load_sr_data(
-        filename=filename,
-        sr_config=sr_config,
-        body_height_m=body_height_m,
-        preproc_config=preproc_config,
-    )
-
-# CSMI Analysis
-def _run_csmi_job(
-    subject_id: str,
-    condition: str,
-    filepath: str,
-    body_height_m: float,
-    body_weight_kg: float,
-    sr_config: AnaropiaSRDataConfig,
-    preproc_config: AnaropiaPreprocessingConfig,
-    plot: bool = False,
-    overwrite_plots: bool = True,
-    paths: ProjectPaths = None
-) ->dict:
-    """
-        Number of parallel workers (passed to joblib.Parallel).
-        -1 uses all available CPUs.
-    plot : bool, default=False
-        If True, saves a Bode plot for each subject/condition as
-        ``results/csmi_plots/csmi_{subject_id}_{condition_slug}.png``.
-    overwrite_plots : bool, default=True
-        If False, skips saving a plot when the PNG file already exists.
-        Has no effect when ``plot=False``.
-    skip_flags : list of int or None, optional
-        Flag codes that cause a trial to be skipped. Default ``[2, 3]``.
-        Set to None to include all trials.
-
-    Returns
-    -------
-    pd.DataFrame
-        Results table with 'Subject ID' as key plus one column per fitted
-        parameter per condition. One row per subject.
-
-    Examples
-    --------
-    >>> preproc = bp.AnaropiaPreprocessingConfig(end_time_seconds=220, cut_to_cycles=True)
-    >>> csmi_df = bp.run_csmi_batch(paths, conditions=['c5: s0_v1', 'c6: s0_v2'],
-    ...                             sr_config=bp.SR_LEGACY_AP, preproc_config=preproc)
-    >>> csmi_df.to_parquet('../results/csmi_results.parquet', index=False)
-    """
-    from joblib import Parallel, delayed
-
-    if paths is None:
-        raise ValueError("Pass 'paths' to run_csmi_batch.")
-
-    if sr_config is None:
-        sr_config = SR_LEGACY_AP
-    if preproc_config is None:
-        preproc_config = AnaropiaPreprocessingConfig()
-
-    # kaleido (used for PDF export) spawns a Chromium subprocess per worker (~150-300 MB each).
-    # Cap parallelism to 3 when plotting to avoid OOM; user can still pass a lower value explicitly.
-    if plot and (n_jobs > 3 or n_jobs < 0):
-        n_jobs = 3
-
-    metadata = get_metadata(paths, print_information=False)
-
-    # Build job list in main process — only scalars cross process boundaries
-    jobs = []
-    for subject_id, condition, filepath, body_height_m in batch_iterator(
-        paths, subjects=subjects, conditions=conditions, skip_flags=skip_flags,
-    ):
-        body_weight_kg = metadata.loc[metadata['Subject ID'] == subject_id, 'body_weight_kg'].values[0]
-        jobs.append((subject_id, condition, filepath, body_height_m, body_weight_kg,
-                      sr_config, preproc_config))
-
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(_run_csmi_job)(*job, plot=plot, overwrite_plots=overwrite_plots, paths=paths) for job in jobs
-    )
-
-    # One result row per subject+condition; pivot to one row per subject
-    return pd.DataFrame(results).groupby('Subject ID').first().reset_index()
+#     See Also
+#     --------
+#     load_sr_data : Unified loader for single and multi-file workflows.
+#     """
+#     return load_sr_data(
+#         filename=filename,
+#         sr_config=sr_config,
+#         body_height_m=body_height_m,
+#         preproc_config=preproc_config,
+#     )
