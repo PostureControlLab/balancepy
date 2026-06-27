@@ -20,7 +20,7 @@ class AnaropiaPreprocessingConfig:
     Configuration for a generic 1D signal preprocessing pipeline.
 
     Controls resampling, filtering, and cycle-cutting applied to any 1D time
-    series via :func:`balancepy.timeseries.preprocess`.
+    series via :func:`balancepy.anaropia.preprocess`.
 
     Attributes
     ----------
@@ -654,15 +654,72 @@ def plot_datacheck(
 
     return fig, response_resampled, stimulus_resampled
 
+def build_sr_data(
+    filename: str = None,
+    body_height_m: float = None,
+    sr_config: AnaropiaSRDataConfig = None,
+    preproc_config: AnaropiaPreprocessingConfig = None,
+    name: str = None
+):
+    """
+    Build a :class:`~balancepy.data_class.sr_data` object from an Anaropia CSV file.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the Anaropia CSV data file.
+    body_height_m : float
+        Subject body height in metres (needed for COM calculation).
+    sr_config : AnaropiaSRDataConfig, optional
+        Stimulus/response configuration. Defaults to ``SR_LEGACY_AP``.
+    preproc_config : AnaropiaPreprocessingConfig, optional
+        Preprocessing configuration. Defaults to ``AnaropiaPreprocessingConfig()``.
+    name : str, optional
+        Label forwarded to ``sr_data.name``. If None, derived from *filename*.
+
+    Returns
+    -------
+    sr_data : balancepy.data_class.sr_data
+        Constructed stimulus-response data object.
+    """
+
+    if sr_config is None:
+        sr_config = SR_LEGACY_AP
+    if preproc_config is None:
+        preproc_config = AnaropiaPreprocessingConfig()
+
+    # Load from file
+    raw_data = np.genfromtxt(filename, delimiter=',', names=True)
+    time_raw = raw_data['time']
+
+    _stim = _extract_stimulus(raw_data, sr_config)
+    _com = _extract_response(raw_data, sr_config, body_height_m)
+
+    _stim, _ = preprocess(_stim, time_raw, preproc_config)
+    _com, _ = preprocess(_com, time_raw, preproc_config)
+
+    if name is None:
+        name = sr_config.name
+    if name is None and filename is not None:
+        _parts = Path(filename).parts
+        name = str(Path(*_parts[-4:])) if len(_parts) >= 4 else filename
+
+    sr_data = data_class.sr_data(
+        samplingrate_Hz=preproc_config.samplingrate_Hz,
+        stimulus=_stim,
+        response=_com,
+        frequency_selection=sr_config.frequency_selection,
+        name=name,
+    )
+
+    return sr_data
+
 def run_csmi(
     filename: str = None,
     body_height_m: float = None,
     body_weight_kg: float = None,
     sr_config: AnaropiaSRDataConfig = None,
     preproc_config: AnaropiaPreprocessingConfig = None,
-    *,
-    com: np.ndarray = None,
-    stimulus: np.ndarray = None,
     name: str = None
 ):
     """
@@ -675,8 +732,7 @@ def run_csmi(
     Parameters
     ----------
     filename : str, optional
-        Path to the Anaropia CSV data file. Not required when *com* and
-        *stimulus* are supplied directly.
+        Path to the Anaropia CSV data file.
     body_height_m : float
         Subject body height in metres (needed for COM calculation).
     body_weight_kg : float
@@ -685,10 +741,6 @@ def run_csmi(
         Stimulus/response configuration. Defaults to ``SR_LEGACY_AP``.
     preproc_config : AnaropiaPreprocessingConfig, optional
         Preprocessing configuration. Defaults to ``AnaropiaPreprocessingConfig()``.
-    com : np.ndarray, optional
-        Pre-computed COM array (bypasses file loading when paired with *stimulus*).
-    stimulus : np.ndarray, optional
-        Pre-computed stimulus array.
     name : str, optional
         Label forwarded to ``sr_data.name``. If None, derived from *filename*.
 
@@ -706,42 +758,11 @@ def run_csmi(
     """
     from balancepy.model_sim.peterka18 import Peterka18
 
-    if sr_config is None:
-        sr_config = SR_LEGACY_AP
-    if preproc_config is None:
-        preproc_config = AnaropiaPreprocessingConfig()
-
-    if com is None or stimulus is None:
-        # Load from file
-        raw_data = np.genfromtxt(filename, delimiter=',', names=True)
-        time_raw = raw_data['time']
-
-        _stim = _extract_stimulus(raw_data, sr_config)
-        _com = _extract_response(raw_data, sr_config, body_height_m)
-
-        _stim, _ = preprocess(_stim, time_raw, preproc_config)
-        _com, _ = preprocess(_com, time_raw, preproc_config)
-    else:
-        # Use pre-computed arrays; only cut to cycles if requested
-        if preproc_config.cut_to_cycles:
-            _com = ts.cut_to_cycles(com, preproc_config.cycle_start_samples,
-                                    preproc_config.cycle_length_samples)
-            _stim = ts.cut_to_cycles(stimulus, preproc_config.cycle_start_samples,
-                                     preproc_config.cycle_length_samples)
-        else:
-            _com, _stim = com, stimulus
-
-    if name is None:
-        name = sr_config.name
-    if name is None and filename is not None:
-        _parts = Path(filename).parts
-        name = str(Path(*_parts[-4:])) if len(_parts) >= 4 else filename
-
-    data_exp = data_class.sr_data(
-        samplingrate_Hz=preproc_config.samplingrate_Hz,
-        stimulus=_stim,
-        response=_com,
-        frequency_selection=sr_config.frequency_selection,
+    data_exp = build_sr_data(
+        filename=filename,
+        body_height_m=body_height_m,
+        sr_config=sr_config,
+        preproc_config=preproc_config,
         name=name,
     )
 
